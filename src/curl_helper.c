@@ -58,7 +58,7 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct cstring *s)
 size_t print_one(void *ptr, size_t size, size_t nmemb, struct cstring *s)
 {
   (void)s;
-  fprintf(stdout, "%s\n", (char*)ptr);
+  fprintf(stdout, "--------\n%s\n--------\n", (char*)ptr);
   return size*nmemb;
 }
 
