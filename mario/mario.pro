@@ -5,12 +5,14 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     ../src/chinese.c \
-    ../src/mario_mysql.c
+    ../src/mario_mysql.c \
+    ../src/curl_helper.c
 
 HEADERS += \
     ../include/chinese.h \
     ../include/mario_mysql.h \
-    ../include/mario_types.h
+    ../include/mario_types.h \
+    ../include/curl_helper.h
 
 DISTFILES += \
     ../src/mario-host-ip.py \

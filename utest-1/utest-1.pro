@@ -5,7 +5,8 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     ../src/chinese.c \
-    ../src/mario_mysql.c
+    ../src/mario_mysql.c \
+    ../src/curl_helper.c
 
 
 INCLUDEPATH += ../include
