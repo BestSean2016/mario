@@ -16,7 +16,8 @@ HEADERS += \
 
 DISTFILES += \
     ../src/mario-host-ip.py \
-    ../src/mario-host-minion.sql
+    ../src/mario-host-minion.sql \
+    ../src/mario.sql
 
 
 
