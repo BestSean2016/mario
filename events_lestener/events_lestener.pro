@@ -4,18 +4,15 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.cpp \
-    ../src/chinese.c \
     ../src/curl_helper.cpp \
     ../src/mario_data.cpp \
-    ../src/mario_mysql.cpp \
-    ../src/utility.c \
-    ../src/salt_api.cpp
+    ../src/salt_api.cpp \
+    ../src/utility.c
+
 
 
 INCLUDEPATH += ../include
 
-
-DEFINES  += __USING_MYSQL__
 
 
 ###################### unix ############################
@@ -25,19 +22,18 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -ligraph -lcurl  -L/usr/lib64/mysql -lmysqlclient
-    LIBS += -L/usr/local/lib -lgtest -lgtest_main
+    LIBS += -lpthread -lrt -lcurl
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
 
     CONFIG(debug, debug|release) {
         DEFINES += _DEBUG_
-        TARGET = utest-1d
+        TARGET = events_lestener-d
         message("Build for Debug version")
     }
     CONFIG(release, debug|release) {
-        TARGET = utest-1
+        TARGET = events_lestener
         message("Build for release version")
     }
 }
