@@ -5,14 +5,19 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     ../src/chinese.c \
-    ../src/mario_mysql.c \
-    ../src/curl_helper.c
+    ../src/curl_helper.c \
+    ../src/mario_mysql.cpp \
+    ../src/mario_data.cpp \
+    ../src/utility.c \
+    ../src/salt_api.cpp
 
 HEADERS += \
     ../include/chinese.h \
     ../include/mario_mysql.h \
-    ../include/mario_types.h \
-    ../include/curl_helper.h
+    ../include/curl_helper.h \
+    ../include/utility.h \
+    ../include/mario_data.h \
+    ../include/salt_api.h
 
 DISTFILES += \
     ../src/mario-host-ip.py \
@@ -23,6 +28,8 @@ DISTFILES += \
 
 INCLUDEPATH += ../include
 
+DEFINES  += __USING_MYSQL__
+
 ###################### unix ############################
 unix {
     DEFINES += _UNIX_
@@ -30,7 +37,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -ligraph -lcurl
+    LIBS += -lpthread -lrt -ligraph -lcurl -L/usr/lib64/mysql -lmysqlclient
     LIBS += -L/usr/local/lib -lgtest -lgtest_main
 
     target.path = /usr/local/bin/mario

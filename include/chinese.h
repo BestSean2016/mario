@@ -1,27 +1,8 @@
 #ifndef CHINESE_H
 #define CHINESE_H
 
-#ifdef max
-#undef max
-#endif // define max
+#include <stdlib.h>
 
-#ifdef min
-#undef min
-#endif // define min
-
-#define max(a, b)                                                              \
-  ({                                                                           \
-    __typeof__(a) _a = (a);                                                    \
-    __typeof__(b) _b = (b);                                                    \
-    _a > _b ? _a : _b;                                                         \
-  })
-
-#define min(a, b)                                                              \
-  ({                                                                           \
-    __typeof__(a) _a = (a);                                                    \
-    __typeof__(b) _b = (b);                                                    \
-    _a < _b ? _a : _b;                                                         \
-  })
 
 #ifdef __cplusplus
 extern "C" {

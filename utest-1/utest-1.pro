@@ -5,11 +5,18 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     ../src/chinese.c \
-    ../src/mario_mysql.c \
-    ../src/curl_helper.c
+    ../src/curl_helper.c \
+    ../src/mario_data.cpp \
+    ../src/mario_mysql.cpp \
+    ../src/utility.c \
+    ../src/salt_api.cpp
 
 
 INCLUDEPATH += ../include
+
+
+DEFINES  += __USING_MYSQL__
+
 
 ###################### unix ############################
 unix {
@@ -18,7 +25,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -ligraph -lcurl
+    LIBS += -lpthread -lrt -ligraph -lcurl  -L/usr/lib64/mysql -lmysqlclient
     LIBS += -L/usr/local/lib -lgtest -lgtest_main
 
     target.path = /usr/local/bin/mario
