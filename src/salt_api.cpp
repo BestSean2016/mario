@@ -252,6 +252,76 @@ int parse_salt_job(SALT_JOB *job, const char *json_data) {
 }
 
 
+
+
+static SALT_JOB* _parse__(rapidjson::Document& doc) {
+  SALT_JOB* job = new SALT_JOB;
+  if (doc.HasMember("tag")) {
+    const char* tag = doc["tag"].GetString();
+    if (strstr(tag, "/new"))  {
+        job->type = SALT_JOB_TYPE_NEW;
+        job->ptr = new SALT_JOB_NEW;
+        ((SALT_JOB_NEW*)job->ptr)->stamp_sec = 0;
+        ((SALT_JOB_NEW*)job->ptr)->stamp_usec = 0;
+        if (parse_salt_job_new((SALT_JOB_NEW*)job->ptr, doc)) {
+          delete ((SALT_JOB_NEW*)job->ptr);
+          delete job;
+          return 0;
+        }
+    } else if (strstr(tag, "/ret")) {
+        job->type = SALT_JOB_TYPE_RET;
+        job->ptr = new SALT_JOB_RET;
+        ((SALT_JOB_RET*)job->ptr)->stamp_sec = 0;
+        ((SALT_JOB_RET*)job->ptr)->stamp_usec = 0;
+        if (parse_salt_job_ret((SALT_JOB_RET*)job->ptr, doc)) {
+          delete ((SALT_JOB_RET*)job->ptr);
+          delete job;
+          return 0;
+        }
+    } else {
+        job->type = SALT_JOB_TYPE_IGNORE;
+        job->ptr = 0;
+    }
+  }else
+    return 0;
+
+  return job;
+}
+
+int parse_job(JOBMAP *jobmap, const char* json_data, size_t len) {
+    rapidjson::Document doc;
+    doc.Parse((char *)json_data + 6);
+
+    if (doc.HasParseError()) {
+      std::cerr << "Error at " << doc.GetErrorOffset() << std::endl
+                //<< json_data + doc.GetErrorOffset() << std::endl;
+                << json_data << std::endl;
+      return -1;
+    }
+
+    SALT_JOB* job = _parse__(doc);
+    if (!job) return -2;
+
+    switch(job->type) {
+    case SALT_JOB_TYPE_NEW:
+      //add job to set and map
+      {
+        jobmap->jobs.insert(std::make_pair(((SALT_JOB_NEW*)job->ptr)->jid, job));
+        MinionSet* mset = new MinionSet();
+
+      }
+      break;
+    case SALT_JOB_TYPE_RET:
+      //remove job from map and set
+      break;
+
+    default:
+      break;
+    }
+
+    return 0;
+}
+
 void free_salt_job(SALT_JOB* job) {
   if (job->ptr) {
     if (job->type == SALT_JOB_TYPE_NEW)

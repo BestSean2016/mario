@@ -6,7 +6,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
+#include <map>
+#include <set>
 
 typedef struct salt_job_new {
   int64_t     ple_id;            ///PIPELINE EXECUTIVE ID
@@ -53,15 +54,34 @@ typedef enum SALT_JOB_TYPE {
     SALT_JOB_TYPE_RET,
 } SALT_JOB_TYPE;
 
+
+
 typedef struct salt_job {
     SALT_JOB_TYPE type;
     SALT_JOB_PTR  ptr;
 } SALT_JOB;
 
+typedef std::string JOBID;
+typedef std::string MINION;
+typedef std::set<MINION> MinionSet;
+typedef std::map<JOBID, SALT_JOB*> MapJid2Job;
+typedef std::multimap<JOBID, MinionSet*> MapJid2Minions;
+typedef MapJid2Minions::iterator MJ2M_Iterator;
+
+typedef struct JobMap {
+  MapJid2Job     jobs;
+  MapJid2Minions minions;
+} JOBMAP;
+
+
 extern int parse_salt_job_new(SALT_JOB_NEW *job, const char* json_data);
 extern int parse_salt_job_ret(SALT_JOB_RET *job, const char* json_data);
 extern int parse_salt_job(SALT_JOB *job, const char* json_data);
 extern int parse_salt_job(SALT_JOB *job, const char *json_data, size_t len);
+
+
+extern int parse_job(JOBMAP* jobmap, const char* json_data, size_t len);
+
 extern void free_salt_job(SALT_JOB *job);
 
 
