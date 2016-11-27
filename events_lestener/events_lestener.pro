@@ -4,10 +4,10 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.cpp \
-    ../src/curl_helper.cpp \
     ../src/mario_data.cpp \
     ../src/salt_api.cpp \
-    ../src/utility.c
+    ../src/utility.c \
+    ../src/mario_mysql.cpp
 
 
 

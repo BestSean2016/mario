@@ -8,13 +8,11 @@ SOURCES += main.cpp \
     ../src/mario_mysql.cpp \
     ../src/mario_data.cpp \
     ../src/utility.c \
-    ../src/salt_api.cpp \
-    ../src/curl_helper.cpp
+    ../src/salt_api.cpp
 
 HEADERS += \
     ../include/chinese.h \
     ../include/mario_mysql.h \
-    ../include/curl_helper.h \
     ../include/utility.h \
     ../include/mario_data.h \
     ../include/salt_api.h

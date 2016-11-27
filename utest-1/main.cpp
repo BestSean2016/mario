@@ -1,9 +1,10 @@
 #include "chinese.h"
-#include "curl_helper.h"
+#include "salt_api.h"
 #include "mario_data.h"
 #include "mario_mysql.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include <curl/curl.h>
 
 using namespace std;
 
