@@ -748,6 +748,7 @@ static void jobmap_cleanup(JOBMAP *jm) { (void)jm; }
   if ((x) == (y)) {                                                            \
     printf("%s %d, %ld vs %ld\n", __FILE__, __LINE__, (int64_t)(x),            \
            (int64_t)(y));                                                      \
+    goto error_exit;                                                           \
   }
 
 #ifdef EXPECT_EQ
@@ -757,14 +758,16 @@ static void jobmap_cleanup(JOBMAP *jm) { (void)jm; }
   if ((x) != (y)) {                                                            \
     printf("%s %d, %ld vs %ld\n", __FILE__, __LINE__, (int64_t)(x),            \
            (int64_t)(y));                                                      \
+    goto error_exit;                                                           \
   }
 
-static char gtoken[32] = {0};
+char gtoken[32] = {0};
 
-int curl_get_token() {
-  CURL *curl;
-  CURLcode res;
+void curl_get_token() {
+  CURL *curl = 0;
+  CURLcode res = CURLE_OK;
   int rspcode = 0;
+  struct curl_slist *headers = NULL; /* init to NULL is important */
 
   /* get a curl handle */
   curl = curl_easy_init();
@@ -782,7 +785,6 @@ int curl_get_token() {
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, get_token));
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEDATA, gtoken));
 
-    struct curl_slist *headers = NULL; /* init to NULL is important */
     EXPECT_NE((void *)0,
               headers = curl_slist_append(headers, "Accept: application/json"));
 
@@ -799,7 +801,12 @@ int curl_get_token() {
     curl_easy_cleanup(curl);
   }
 
-  return 0;
+  return;
+
+error_exit:
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
+  return;
 }
 
 void shot_token() {
@@ -807,15 +814,15 @@ void shot_token() {
 }
 
 int curl_salt_event() {
-  CURL *curl;
-  CURLcode res;
+  CURL *curl = 0;
+  CURLcode res = CURLE_OK;
   int rspcode = 0;
+  struct curl_slist *headers = NULL; /* init to NULL is important */
 
   /* get a curl handle */
   curl = curl_easy_init();
   EXPECT_NE(curl, (void *)NULL);
   if (curl) {
-    struct curl_slist *headers = NULL; /* init to NULL is important */
     EXPECT_NE((void *)0,
               headers = curl_slist_append(headers, "Accept: application/json"));
     char x_token[128];
@@ -894,6 +901,13 @@ int curl_salt_event() {
 
   jobmap_cleanup(&gjobmap);
   return (0);
+
+error_exit:
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
+  jobmap_cleanup(&gjobmap);
+
+  return -1;
 }
 
 /*
@@ -985,15 +999,16 @@ curl http://10.10.10.19:8000 -H "Accept: application/json" -X POST
 */
 
 int curl_run_cmd(int cmd_index) {
-  CURL *curl;
-  CURLcode res;
+  CURL *curl = 0;
+  CURLcode res = CURLE_OK;
   int rspcode = 0;
-
+  struct curl_slist *headers = NULL; /* init to NULL is important */
   cstring s;
   init_string(&s);
+
   /* get a curl handle */
   curl = curl_easy_init();
-  EXPECT_NE(curl, (void *)NULL);
+  if (!curl) return -1;
   if (curl) {
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_URL, "http://10.10.10.19:8000"));
     /* Now specify the POST data */
@@ -1002,11 +1017,11 @@ int curl_run_cmd(int cmd_index) {
     // EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, print_one));
     // EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s));
 
-    struct curl_slist *headers = NULL; /* init to NULL is important */
     EXPECT_NE((void *)0,
               headers = curl_slist_append(headers, "Accept: application/json"));
     char x_token[128];
     snprintf(x_token, 128, "X-Auth-Token: %s", gtoken);
+    std::cout << gtoken << std::endl;
     EXPECT_NE((void *)0,
               headers = curl_slist_append(headers, x_token));
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers));
@@ -1016,8 +1031,6 @@ int curl_run_cmd(int cmd_index) {
     EXPECT_EQ(0, curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &rspcode));
     EXPECT_EQ(200, rspcode);
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-
     /* always cleanup */
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
@@ -1025,5 +1038,41 @@ int curl_run_cmd(int cmd_index) {
 
   free_string(&s);
   return 0;
+
+error_exit:
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
+  free_string(&s);
+  return -1;
 }
 
+
+void test_get_token() {
+  CURL *curl;
+  int rspcode = 0;
+  struct curl_slist *headers = NULL;
+
+  /* get a curl handle */
+  curl = curl_easy_init();
+  if (curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, "http://10.10.10.19:8000/login");
+    /* Now specify the POST data */
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS,
+                     "username=sean&password=hongt@8a51&eauth=pam");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, get_token);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, gtoken);
+
+    headers = curl_slist_append(headers, "Accept: application/json");
+
+    /* pass our list of custom made headers */
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+    /* Perform the request, res will get the return code */
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &rspcode);
+
+    /* always cleanup */
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+  }
+}

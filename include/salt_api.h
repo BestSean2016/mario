@@ -87,7 +87,7 @@ extern size_t print_one(void *ptr, size_t size, size_t nmemb, struct cstring *s)
 extern size_t parse_json(void *ptr, size_t size, size_t nmemb, SALT_JOB* job);
 
 
-extern int curl_get_token();
+extern void curl_get_token();
 extern int curl_salt_event();
 
 
@@ -110,5 +110,6 @@ extern void thread_run_pipeline();
 extern void shot_token();
 extern int curl_run_cmd(int cmd_index);
 
+extern void test_get_token();
 #endif // SALT_API_H
 

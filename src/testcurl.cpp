@@ -12,7 +12,7 @@ struct cstring {
 
 void init_string(struct cstring *s) {
   s->len = 0;
-  s->ptr = malloc(s->len+1);
+  s->ptr = (char*)malloc(s->len+1);
   if (s->ptr == NULL) {
     fprintf(stderr, "malloc() failed\n");
     exit(EXIT_FAILURE);
@@ -31,7 +31,7 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct cstring *s)
 {
   size_t new_len = s->len + size*nmemb;
   printf("hahah: ");
-  s->ptr = realloc(s->ptr, new_len+1);
+  s->ptr = (char*)realloc(s->ptr, new_len+1);
   if (s->ptr == NULL) {
     fprintf(stderr, "realloc() failed\n");
     exit(EXIT_FAILURE);
@@ -241,8 +241,87 @@ test_cookies(void)
 }
 
 
+#include <stdio.h>
+#include <pthread.h>
+#include <curl/curl.h>
+ 
+#define NUMT 4
+ 
+const char * const urls[NUMT]= {
+  "https://curl.haxx.se/",
+  "ftp://cool.haxx.se/",
+  "http://www.contactor.se/",
+  "www.haxx.se"
+};
+ 
+static void *pull_one_url(void *url)
+{
+  CURL *curl;
+ 
+  curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_perform(curl); /* ignores error */ 
+  curl_easy_cleanup(curl);
+ 
+  return NULL;
+}
+ 
+static void get_all_page(int index) {
+  CURL *curl;
+
+  curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_URL, urls[index]);
+  curl_easy_perform(curl); /* ignores error */
+  curl_easy_cleanup(curl);
+}
+
+#include <thread>
+void test_cpp_thread() {
+  std::thread t0(get_all_page, (0));
+  std::thread t1(get_all_page, (1));
+  std::thread t2(get_all_page, (2));
+  std::thread t3(get_all_page, (3));
+
+  t3.join();
+  t2.join();
+  t1.join();
+  t0.join();
+}
+
+
+int test_multi_thread(void)
+{
+  pthread_t tid[NUMT];
+  int i;
+  int error;
+ 
+  /* Must initialize libcurl before any threads are started */ 
+  curl_global_init(CURL_GLOBAL_ALL);
+ 
+  for(i=0; i< NUMT; i++) {
+    error = pthread_create(&tid[i],
+                           NULL, /* default attributes please */ 
+                           pull_one_url,
+                           (void *)urls[i]);
+    if(0 != error)
+      fprintf(stderr, "Couldn't run thread number %d, errno %d\n", i, error);
+    else
+      fprintf(stderr, "Thread %d, gets %s\n", i, urls[i]);
+  }
+ 
+  /* now wait for all threads to terminate */ 
+  for(i=0; i< NUMT; i++) {
+    error = pthread_join(tid[i], NULL);
+    fprintf(stderr, "Thread %d terminated\n", i);
+  }
+ 
+  return 0;
+}
+
 int main(void) {
-  test_cookies();
+  //test_cookies();
+  //test_multi_thread();
+  test_cpp_thread();
   return (0);
 }
 
