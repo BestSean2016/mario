@@ -22,6 +22,8 @@ static int parse_salt_job_new(SALT_JOB_NEW *job, rapidjson::Document &doc);
 
 static bool run = true;
 
+//static int curl_run_cmd(int cmd_index);
+
 static void erase_return_by_jid(std::string &jid) {
   MapJid2Minions::iterator mj2mIter = gjobmap.minions.find(jid);
   MapMinionRet *retset = (mj2mIter)->second;
@@ -81,12 +83,10 @@ void thread_check_timer_out() {
 
 void thread_run_pipeline() {
   srand(time(0));
-  static const char* pipeline[2] = {
-      "salt --async '*' test.ping",
-      "salt --async '' cmd.run_all  "
-  };
   while(run) {
-
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    curl_run_cmd(1);
+    curl_run_cmd(0);
   }
 }
 
@@ -639,9 +639,7 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct cstring *s) {
 
 size_t print_one(void *ptr, size_t size, size_t nmemb, struct cstring *s) {
   (void)s;
-  char *pos = strstr((char *)ptr, "data: {\"tag\": \"salt/job/");
-  if (pos)
-    fprintf(stdout, "%s", (char *)pos);
+  fprintf(stdout, "%s\n", (char *)ptr);
   return size * nmemb;
 }
 
@@ -654,9 +652,8 @@ size_t get_token(void *ptr, size_t size, size_t nmemb, char *token) {
     char *end = strchr(pos, '\"');
     if (!end)
       return 0;
-    strcpy(token, "token=");
-    strncpy(token + strlen("token="), pos, end - pos);
-    token[end - pos + 1 + strlen("token=")] = 0;
+    strncpy(token, pos, end - pos);
+    token[end - pos + 1] = 0;
     // fprintf(stdout, "Token is %s", token);
   } else
     return 0;
@@ -805,6 +802,10 @@ int curl_get_token() {
   return 0;
 }
 
+void shot_token() {
+  std::cout << gtoken << std::endl;
+}
+
 int curl_salt_event() {
   CURL *curl;
   CURLcode res;
@@ -817,13 +818,13 @@ int curl_salt_event() {
     struct curl_slist *headers = NULL; /* init to NULL is important */
     EXPECT_NE((void *)0,
               headers = curl_slist_append(headers, "Accept: application/json"));
-
-    /* pass our list of custom made headers */
+    char x_token[128];
+    snprintf(x_token, 128, "X-Auth-Token: %s", gtoken);
+    EXPECT_NE((void *)0,
+              headers = curl_slist_append(headers, x_token));
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers));
 
-    char url[128];
-    snprintf(url, 128, "http://10.10.10.19:8000/events?%s", gtoken);
-    EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_URL, url));
+    EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_URL, "http://10.10.10.19:8000/events"));
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, parse_job));
     EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEDATA, &gjobmap));
 
@@ -968,3 +969,61 @@ curl_easy_setopt pval 10077 0
 curl_easy_setopt pval 10134 0
 curl_easy_setopt pval 10147 0
 */
+
+
+static const char* cmd_str[2] = {
+  "client=local_async&fun=test.ping&tgt=*",
+  "client=local_async&fun=cmd.run_all&tgt=old08002759F4B6&arg=\"c:\new_salt\ExecClient.exe abcd\""
+};
+
+/*
+curl http://10.10.10.19:8000 -H "Accept: application/json" -X POST
+ --data-urlencode "client=local_async"
+ --data-urlencode "fun=test.ping"
+ --data-urlencode "tgt=*"
+ -H 'X-Auth-Token: 09459e1b1044ed0041186a59a34d5656bb243a3f'
+*/
+
+int curl_run_cmd(int cmd_index) {
+  CURL *curl;
+  CURLcode res;
+  int rspcode = 0;
+
+  cstring s;
+  init_string(&s);
+  /* get a curl handle */
+  curl = curl_easy_init();
+  EXPECT_NE(curl, (void *)NULL);
+  if (curl) {
+    EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_URL, "http://10.10.10.19:8000"));
+    /* Now specify the POST data */
+    EXPECT_EQ(0,
+              curl_easy_setopt(curl, CURLOPT_POSTFIELDS, cmd_str[cmd_index]));
+    // EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, print_one));
+    // EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s));
+
+    struct curl_slist *headers = NULL; /* init to NULL is important */
+    EXPECT_NE((void *)0,
+              headers = curl_slist_append(headers, "Accept: application/json"));
+    char x_token[128];
+    snprintf(x_token, 128, "X-Auth-Token: %s", gtoken);
+    EXPECT_NE((void *)0,
+              headers = curl_slist_append(headers, x_token));
+    EXPECT_EQ(0, curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers));
+
+    /* Perform the request, res will get the return code */
+    EXPECT_EQ(0, res = curl_easy_perform(curl));
+    EXPECT_EQ(0, curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &rspcode));
+    EXPECT_EQ(200, rspcode);
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    /* always cleanup */
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+  }
+
+  free_string(&s);
+  return 0;
+}
+

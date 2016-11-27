@@ -105,6 +105,10 @@ extern std::ostream& operator << (std::ostream& out, SALT_JOB_RET& jobret);
 extern void show_job(SALT_JOB* job);
 
 extern void thread_check_timer_out();
+extern void thread_run_pipeline();
+
+extern void shot_token();
+extern int curl_run_cmd(int cmd_index);
 
 #endif // SALT_API_H
 

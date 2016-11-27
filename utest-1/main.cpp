@@ -67,6 +67,18 @@ TEST(Str, get_next_line_2) {
   }
 }
 
+
+TEST(curl_salt_api, get_token) {
+  // curl_get_token();
+  // shot_token();
+}
+
+TEST(curl_salt_api, run_cmd) {
+  // curl_get_token();
+  curl_run_cmd(0);
+  curl_run_cmd(1);
+}
+
 //
 // TEST(convert, utf8_to_ucs2) {
 //   char hello[100] = "abc 123 大家好！";
