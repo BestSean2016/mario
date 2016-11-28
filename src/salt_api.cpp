@@ -367,19 +367,13 @@ int parse_salt_new_jobmap(const char *json_data, size_t len, JOBMAP *jobmap,
       new std::lock_guard<std::mutex>(g_maps_mutex);
   MapJid2Job::iterator iter = jobmap->jobs.find(job->jid);
   bool found1 = (iter != jobmap->jobs.end());
-  if (found1) {
-    std::cerr << "error @ jobmap->jobs.find job_NEW " << job->jid << "\n";
-  }
-  bool found2 = (jobmap->minions.find(((SALT_JOB_NEW *)job)->jid) !=
+  bool found2 = (jobmap->minions.find(job->jid) !=
                  jobmap->minions.end());
-  if (found2) {
-    std::cerr << "error @ jobmap->jobs.minions job_NEW " << job->jid << "\n";
-  }
 
   if (!found1 && !found2) {
     // insert new job
     jobmap->jobs.insert(std::pair<std::string, SALT_JOB_NEW *>(job->jid, job));
-    std::cout << "JOBS insert job " << job->ple_id << ", " << job->jid << " => "
+    std::cout << "=.= JOBS insert job " << job->ple_id << ", " << job->jid << " => "
               << job << std::endl;
     MapMinionRet *mset = new MapMinionRet();
     jobmap->minions.insert(
@@ -395,7 +389,7 @@ int parse_salt_new_jobmap(const char *json_data, size_t len, JOBMAP *jobmap,
     // update new job
     SALT_JOB_NEW *prejob = iter->second;
     if (prejob->ple_id == 0) {
-      std::cout << "Update Job " << job->ple_id << ", " << prejob->jid
+      std::cout << "=.= Update Job " << job->ple_id << ", " << prejob->jid
                 << std::endl;
       prejob->ple_id = job->ple_id;
     }
@@ -435,24 +429,16 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
       // std::cout << "waiting for new\n";
       guard = new std::lock_guard<std::mutex>(g_maps_mutex);
       MapJid2Job::iterator jobIter =
-          jobmap->jobs.find(((SALT_JOB_RET *)job)->jid);
+          jobmap->jobs.find(((SALT_JOB_NEW *)job)->jid);
       bool found1 = (jobIter != jobmap->jobs.end());
-      if (!found1) {
-        std::cerr << "error @ jobmap->jobs.find job_NEW "
-                  << ((SALT_JOB_NEW *)job)->jid << "\n";
-      }
       bool found2 = (jobmap->minions.find(((SALT_JOB_NEW *)job)->jid) !=
                      jobmap->minions.end());
-      if (!found2) {
-        std::cerr << "error @ jobmap->jobs.minions job_NEW "
-                  << ((SALT_JOB_NEW *)job)->jid << "\n";
-      }
 
       if (!found1 && !found2) {
         // insert new job
         jobmap->jobs.insert(std::pair<std::string, SALT_JOB_NEW *>(
             ((SALT_JOB_NEW *)job)->jid, ((SALT_JOB_NEW *)job)));
-        std::cout << "JOBS insert job " << ((SALT_JOB_NEW *)job)->ple_id << ", "
+        std::cout << "^_^ JOBS insert job " << ((SALT_JOB_NEW *)job)->ple_id << ", "
                   << ((SALT_JOB_NEW *)job)->jid << " => " << job << std::endl;
         MapMinionRet *mset = new MapMinionRet();
         jobmap->minions.insert(std::pair<std::string, MapMinionRet *>(
@@ -468,7 +454,7 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
         // update new job
         SALT_JOB_NEW *prejob = jobIter->second;
         if (prejob->ple_id == 0) {
-          std::cout << "Update Job " << prejob->ple_id << ", " << prejob->jid
+          std::cout << "^_^ Update Job " << prejob->ple_id << ", " << prejob->jid
                     << std::endl;
           ((SALT_JOB_NEW *)job)->ple_id = prejob->ple_id;
           jobIter->second = (SALT_JOB_NEW *)job;
@@ -482,6 +468,8 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   case SALT_JOB_TYPE_RET:
     // remove job from map and set
     {
+      //show_json_string(json_data, len);
+
       guard = new std::lock_guard<std::mutex>(g_maps_mutex);
       MapJid2Job::iterator jobIter =
           jobmap->jobs.find(((SALT_JOB_RET *)job)->jid);
@@ -598,7 +586,7 @@ int parse_new_job(const char *json_data, size_t size, void *param1,
                   void *param2) {
   (void)size;
   JOBMAP *jobmap = (JOBMAP *)param1;
-  show_json_string(json_data, size);
+  //show_json_string(json_data, size);
   if (parse_salt_new_jobmap(json_data, size, jobmap, (uint64_t)param2) < -1)
     return -1;
   return 0;
@@ -609,7 +597,7 @@ int parse_job(const char *json_data, size_t size, void *param1, void *param2) {
   (void)size;
   (void)param2;
   JOBMAP *jobmap = (JOBMAP *)param1;
-  show_json_string(json_data, size);
+  //show_json_string(json_data, size);
   if (!strncmp(json_data, "data: ", 6)) {
     if (parse_salt_jobmap(json_data + 6, size - 6, jobmap) < -1)
       return -1;

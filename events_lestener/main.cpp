@@ -19,9 +19,9 @@ void run_test_cmd() {
   while(run) {
     std::this_thread::sleep_for(std::chrono::seconds(5));
     std::thread t1(salt_api_test_cmdrun, "10.10.10.19", 8000, pid++);
-    // std::thread t2(salt_api_testping, "10.10.10.19", 8000, pid++);
+    std::thread t2(salt_api_testping, "10.10.10.19", 8000, pid++);
     t1.join();
-    // t2.join();
+    t2.join();
   }
 }
 
