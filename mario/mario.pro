@@ -15,7 +15,8 @@ HEADERS += \
     ../include/mario_mysql.h \
     ../include/utility.h \
     ../include/mario_data.h \
-    ../include/salt_api.h
+    ../include/salt_api.h \
+    ../include/http_client.h
 
 DISTFILES += \
     ../src/mario-host-ip.py \

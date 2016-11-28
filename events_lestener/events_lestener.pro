@@ -7,7 +7,8 @@ SOURCES += main.cpp \
     ../src/mario_data.cpp \
     ../src/salt_api.cpp \
     ../src/utility.c \
-    ../src/mario_mysql.cpp
+    ../src/mario_mysql.cpp \
+    ../src/http_client.c
 
 
 
