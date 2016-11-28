@@ -8,7 +8,7 @@ SOURCES += main.cpp \
     ../src/salt_api.cpp \
     ../src/utility.c \
     ../src/mario_mysql.cpp \
-    ../src/http_client.c
+    ../src/http_client.cpp
 
 
 
@@ -23,7 +23,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -lcurl
+    LIBS += -lpthread -lrt
 
     target.path = /usr/local/bin/mario
     INSTALLS += target

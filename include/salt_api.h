@@ -5,7 +5,7 @@
 #include <map>
 
 typedef struct salt_job_new {
-  int64_t     ple_id;            ///PIPELINE EXECUTIVE ID
+  uint64_t    ple_id;            ///PIPELINE EXECUTIVE ID
   time_t      stamp_sec;
   uint32_t    timerout;
   size_t      retnum;
@@ -23,6 +23,7 @@ typedef struct salt_job_new {
 typedef enum RETURN_TYPE {
     RETURN_TYPE_OBJECT,
     RETURN_TYPE_BOOL,
+    RETURN_TYPE_STRING,
 } RETURN_TYPE;
 
 typedef struct salt_job_ret {
@@ -69,47 +70,21 @@ typedef struct JobMap {
   MapJid2Minions minions;
 } JOBMAP;
 
-
-typedef struct cstring {
-  char *ptr;
-  size_t len;
-} CSTRING;
-
-extern char* get_line(const char* buf, int* lines);
-extern char* get_line(const char* buf);
+extern JOBMAP gjobmap;
 
 
-extern void init_string(struct cstring *s);
-extern void free_string(struct cstring* s);
-extern size_t writeone(void *ptr, size_t size, size_t nmemb, struct cstring *s);
-extern size_t writefunc(void *ptr, size_t size, size_t nmemb, struct cstring *s);
-extern size_t print_one(void *ptr, size_t size, size_t nmemb, struct cstring *s);
-extern size_t parse_json(void *ptr, size_t size, size_t nmemb, SALT_JOB* job);
-
-
-extern void curl_get_token();
-extern int curl_salt_event();
-
-
-extern int parse_salt_job_new(SALT_JOB_NEW *job, const char* json_data);
-extern int parse_salt_job_ret(SALT_JOB_RET *job, const char* json_data);
-extern int parse_salt_job(SALT_JOB *job, const char* json_data);
-extern int parse_salt_job(SALT_JOB *job, const char *json_data, size_t len);
-extern int parse_salt_jobmap(JOBMAP* jobmap, const char* json_data, size_t len);
-
-extern void free_salt_job(SALT_JOB *job);
+extern int parse_job(const char* json_data, size_t len, void *param1, void *param2);
+extern int parse_new_job(const char* json_data, size_t len, void *param1, void *param2);
 
 
 extern std::ostream& operator << (std::ostream& out, SALT_JOB_NEW& jobnew);
 extern std::ostream& operator << (std::ostream& out, SALT_JOB_RET& jobret);
 extern void show_job(SALT_JOB* job);
 
-extern void thread_check_timer_out();
+extern void thread_check_timer_out(int *run);
 extern void thread_run_pipeline();
 
-extern void shot_token();
-extern int curl_run_cmd(int cmd_index);
+extern void jobmap_cleanup(JOBMAP *jm);
 
-extern void test_get_token();
 #endif // SALT_API_H
 

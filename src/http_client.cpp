@@ -8,7 +8,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include "http_client.h"
 #define BUFSIZE 65536
 
@@ -101,7 +100,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
           (strncmp(line, _http_header_, strlen(_http_header_)) == 0)) {
         *rescode = get_response_code(line);
 #ifdef _DEBUG_
-        printf("response code %d\n", *rescode);
+        //printf("response code %d\n", *rescode);
 #endif //_DEBUG_
       }
 
@@ -132,7 +131,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
 }
 
 int http_client(const char *hostname, int portno, char *buf, const char *cmd,
-                parse_response parse_fun, void *object, int *run) {
+                parse_response parse_fun, void *param1, void *param2) {
   int sockfd = 0, n = 0, total_len = 0;
   struct sockaddr_in serveraddr;
   struct hostent *server = 0;
@@ -181,13 +180,13 @@ int http_client(const char *hostname, int portno, char *buf, const char *cmd,
                            &data_len))
         break;
       ptr += n;
-      if (*json_data && !data_len)
+      if (json_data && !data_len)
         goto run_receive_long_data;
     }
   }
 
   if (!ret && parse_fun)
-    ret = (0 != parse_fun(json_data, data_len, object));
+    ret = (0 != parse_fun(json_data, data_len, param1, param2));
 
   close(sockfd);
   return ret;
@@ -195,7 +194,8 @@ int http_client(const char *hostname, int portno, char *buf, const char *cmd,
 run_receive_long_data : {
   char *tmp = json_data;
   char *line = tmp;
-  struct timeval timeout;
+  {
+      struct timeval timeout;
   timeout.tv_sec = 5;
   timeout.tv_usec = 0;
 
@@ -206,14 +206,15 @@ run_receive_long_data : {
   if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
                  sizeof(timeout)) < 0)))
     printf("setsockopt failed\n");
+}
 
-  while (!ret && *run) {
+  while (!ret && *(int*)param2) {
     while (tmp < ptr) {
       if (*tmp != '\r')
         ++tmp;
       else {
         if (parse_fun)
-          ret = (0 != parse_fun(line, tmp - line, object));
+          ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
         // next line
         tmp += 2;
@@ -237,10 +238,11 @@ run_receive_long_data : {
   return ret;
 }
 
-static int parse_token(const char *ptr, size_t len, void *ptrtoken) {
+static int parse_token(const char *ptr, size_t len, void *ptrtoken, void* param2) {
   // fprintf(stdout, "%s", (char *)ptr);
   //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
   (void)len;
+  (void)param2;
   char *pos = strstr((char *)ptr, "\"token\": \"");
   if (pos) {
     pos += strlen("\"token\": \"");
@@ -262,30 +264,30 @@ int salt_api_login(const char *hostname, int port) {
                      parse_token, g_token, 0);
 }
 
-static int parse_cmd_return(const char *ptr, size_t len, void *obj) {
-  (void)len;
-  if (!obj && ptr) {
-    *((char *)ptr + len) = 0;
-    printf("%s<--|\n", ptr);
-    return 0;
-  }
+// static int parse_cmd_return(const char *ptr, size_t len, void *obj) {
+//   (void)len;
+//   if (!obj && ptr) {
+//     *((char *)ptr + len) = 0;
+//     printf("%s<--|\n", ptr);
+//     return 0;
+//   }
+//
+//   return 0;
+// }
 
-  return 0;
-}
-
-int salt_api_testping(const char *hostname, int port) {
+int salt_api_testping(const char *hostname, int port, uint64_t pid) {
   char buf[BUFSIZE];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TESTPING], g_token);
 
-  return http_client(hostname, port, buf, cmd, parse_cmd_return, 0, 0);
+  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap, (void*)pid); //parse_cmd_return
 }
 
-int salt_api_testrun(const char *hostname, int port) {
+int salt_api_test_cmdrun(const char *hostname, int port, uint64_t pid) {
   char buf[BUFSIZE];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TEST_CMDRUN], g_token);
-  return http_client(hostname, port, buf, cmd, parse_cmd_return, 0, 0);
+  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap, (void*)pid); //parse_cmd_return
 }
 
 int salt_api_events(const char *hostname, int port, int *run) {
@@ -294,5 +296,5 @@ int salt_api_events(const char *hostname, int port, int *run) {
 
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], g_token);
 
-  return http_client(hostname, port, buf, cmd, parse_cmd_return, 0, run);
+  return http_client(hostname, port, buf, cmd, parse_job, &gjobmap, run);
 }
