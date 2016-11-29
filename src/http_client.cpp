@@ -26,10 +26,10 @@ static const char *salt_api_str[] = {
     "Host: 10.10.10.19:8000\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
-    "Content-Length: 38\r\n"
+    "Content-Length: 41\r\n"
     "Content-Type: application/x-www-form-urlencoded\r\n"
     "\r\n"
-    "client=local_async&fun=test.ping&tgt=*",
+    "client=local_async&fun=test.ping&tgt=old*",
 
     "POST / HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
@@ -38,8 +38,8 @@ static const char *salt_api_str[] = {
     "Content-Length: 90\r\n"
     "Content-Type: application/x-www-form-urlencoded\r\n"
     "\r\n"
-    "client=local_async&fun=cmd.run_all&tgt=old08002759F4B6&arg=\"c:\\new_"
-    "salt\\ExecClient.exe abcd\"",
+    "client=local_async&fun=cmd.run_all&tgt=old08002759F4B6&arg=c:\\new-"
+    "salt\\ExecClient.exe abcd",
 
     "GET /events HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
@@ -194,27 +194,29 @@ int http_client(const char *hostname, int portno, char *buf, const char *cmd,
 run_receive_long_data : {
   char *tmp = json_data;
   char *line = tmp;
-  {
-      struct timeval timeout;
-  timeout.tv_sec = 5;
-  timeout.tv_usec = 0;
-
-  if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
-                 sizeof(timeout)) < 0)))
-    printf("setsockopt failed\n");
-
-  if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
-                 sizeof(timeout)) < 0)))
-    printf("setsockopt failed\n");
-}
+  // {
+  // struct timeval timeout;
+  // timeout.tv_sec = 5;
+  // timeout.tv_usec = 0;
+  //
+  // if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+  //                sizeof(timeout)) < 0)))
+  //   printf("setsockopt failed\n");
+  //
+  // if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+  //                sizeof(timeout)) < 0)))
+  //   printf("setsockopt failed\n");
+  // }
 
   while (!ret && *(int*)param2) {
     while (tmp < ptr) {
       if (*tmp != '\r')
         ++tmp;
       else {
-        if (parse_fun)
-          ret = (0 != parse_fun(line, tmp - line, param1, 0));
+        // printf("************** %s\n", line);
+        if (parse_fun) //do not check error
+          parse_fun(line, tmp - line, param1, 0);
+          //ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
         // next line
         tmp += 2;
@@ -226,11 +228,14 @@ run_receive_long_data : {
     if (line == tmp)
       ptr = buf, total_len = 0, tmp = buf, line = buf;
     // read next package
+    //printf("************** reading *********************\n");
     n = read(sockfd, ptr, BUFSIZE - total_len);
+    //printf("i got n = %d bytes, error no %d, errmsg %s\n", n, errno, strerror(errno));
     // printf("error %d %d\n", n, errno);
     if (n < 0)
       ret = (errno == 11) ? 0 : 1;
-    ptr += n, total_len += n;
+    else
+      ptr += n, total_len += n;
   }
 }
 
