@@ -9,6 +9,7 @@ typedef struct salt_job_new {
   time_t      stamp_sec;
   uint32_t    timerout;
   size_t      retnum;
+  size_t      success_num;
   std::string tag;
   std::string tgt_type;
   std::string jid;

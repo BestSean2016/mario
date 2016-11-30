@@ -156,6 +156,8 @@ data: {"tag": "salt/job/20161123065056424864/ret/old08002759F4B6", "data":
 {"_stamp": "2016-11-22T22:50:56.749570", "return": {"pid": 2976, "retcode": 0,
 "stderr": "", "stdout": ""}, "retcode": 0, "success": true, "cmd": "_return",
 "jid": "20161123065056424864", "fun": "cmd.run_all", "id": "old08002759F4B6"}}
+
+data: {"tag": "salt/job/20161130080318083390/ret/minion3", "data": {"fun_args": ["20161130080110849910"], "jid": "20161130080318083390", "return": {"tgt_type": "glob", "jid": "20161130080110849910", "tgt": "minion3", "pid": 21561, "ret": "", "user": "root", "arg": ["VBoxHeadless --startvm old-3-3-1"], "fun": "cmd.run_all"}, "retcode": 0, "success": true, "cmd": "_return", "_stamp": "2016-11-30T00:03:18.145323", "fun": "saltutil.find_job", "id": "minion3"}}
 */
 
 static int parse_salt_job_ret(SALT_JOB_RET *job, rapidjson::Document &doc) {
@@ -211,17 +213,17 @@ static int parse_salt_job_ret(SALT_JOB_RET *job, rapidjson::Document &doc) {
           return -16;
         if (ret.HasMember("retcode"))
           job->retcode = ret["retcode"].GetInt();
-        else
-          return -17;
+        // else
+        //   return -17;
 
         if (ret.HasMember("stderr"))
           job->stderr = ret["stderr"].GetString();
-        else
-          return -18;
+        // else
+        //   return -18;
         if (ret.HasMember("stdout"))
           job->stdout = ret["stdout"].GetString();
-        else
-          return -18;
+        // else
+        //   return -18;
 
         job->rettype = RETURN_TYPE_OBJECT;
       } else if (data["return"].IsBool()) {
@@ -267,7 +269,7 @@ static SALT_JOB_PTR _parse_with_type_(rapidjson::Document &doc,
       SALT_JOB_NEW *jobnew = new SALT_JOB_NEW;
       jobnew->stamp_sec = time(0);
       jobnew->timerout = 60;
-      jobnew->retnum = 0;
+      jobnew->retnum = jobnew->success_num = 0;
       jobnew->ple_id = 0;
       if (parse_salt_job_new(jobnew, doc)) {
         delete jobnew;
@@ -336,7 +338,7 @@ static int parse_salt_new_job(SALT_JOB_NEW *job, rapidjson::Document &doc,
 
     job->ple_id = pid;
     job->stamp_sec = time(0);
-    job->timerout = 60;
+    job->timerout = job->success_num = 60;
     job->retnum = 0;
     return 0;
   }
@@ -397,6 +399,7 @@ int parse_salt_new_jobmap(const char *json_data, size_t len, JOBMAP *jobmap,
     }
     delete job;
   } else {
+    std::cout << "WTF insert or update? WTF\n";
     delete job;
     return -1;
   }
@@ -417,7 +420,7 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   SALT_JOB_TYPE type = SALT_JOB_TYPE_IGNORE;
   SALT_JOB_PTR job = _parse_with_type_(doc, &type);
   if (!job && type != SALT_JOB_TYPE_IGNORE) {
-    std::cerr << "parser got error\n";
+    std::cerr << "_parse_with_type_ parser got error\n";
     show_json_string(json_data, len);
     return -3;
   }
@@ -514,9 +517,15 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
         std::lock_guard<std::mutex> guard(g_maps_mutex);
         minRetIter->second = (SALT_JOB_RET *)job;
         ++(((jobIter)->second)->retnum);
+        if (((SALT_JOB_RET *)job)->retcode == 0) ++(((jobIter)->second)->success_num);
         if (((jobIter)->second)->retnum ==
             ((jobIter)->second)->minions.size()) {
-          std::cout << "mission " << ((jobIter)->second)->jid << " finished\n";
+          std::cout << "mission " << ((jobIter)->second)->jid << " finished, ";
+          if (((jobIter)->second)->success_num == ((jobIter)->second)->retnum)
+            std::cout << "All Successed!\n";
+          else
+            std::cout << "But NOt All Successed!\n";
+
           erase_return_by_jid(((jobIter)->second)->jid);
           std::cout << ">_> erase job " << ((jobIter)->second)->jid
                     << std::endl;
@@ -612,6 +621,7 @@ int parse_job(const char *json_data, size_t size, void *param1, void *param2) {
     if (parse_salt_jobmap(json_data + 6, size - 6, jobmap) < -1)
       return -1;
   }
+
   return 0;
 }
 
