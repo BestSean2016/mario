@@ -33,7 +33,7 @@ static void erase_return_by_jid(std::string &jid) {
     delete retset;
     gjobmap.minions.erase(mj2mIter);
   } else {
-    std::cerr << "Erase Minion's Return " << jid << std::endl;
+    std::cout << "Erase Minion's Return " << jid << std::endl;
   }
 }
 
@@ -42,9 +42,9 @@ void thread_check_timer_out(int *run) {
     std::this_thread::sleep_for(std::chrono::seconds(60));
     printf("i want to  get a lock ... ");
     {
-      std::lock_guard<std::mutex> guard(g_maps_mutex);
       printf("i got it ... ");
       time_t now = time(0);
+      std::lock_guard<std::mutex> *guard = new std::lock_guard<std::mutex>(g_maps_mutex);
       for (MapJid2Job::iterator iter = gjobmap.jobs.begin();
            iter != gjobmap.jobs.end(); ++iter) {
         if (((iter)->second) &&
@@ -55,6 +55,7 @@ void thread_check_timer_out(int *run) {
           iter = gjobmap.jobs.erase(iter);
         }
       }
+      delete guard;
       printf("Done.\n");
     }
   }
@@ -138,7 +139,7 @@ int parse_salt_job_new(SALT_JOB_NEW *job, const char *json_data) {
   doc.ParseStream(ss);
 
   if (doc.HasParseError()) {
-    std::cerr << "Error at " << doc.GetErrorOffset() << std::endl
+    std::cout << "Error at " << doc.GetErrorOffset() << std::endl
               << json_data + doc.GetErrorOffset() << std::endl;
     return -1;
   }
@@ -154,7 +155,7 @@ data: {"tag": "salt/job/20161123065414567343/ret/old0800277AF5BE", "data":
 
 data: {"tag": "salt/job/20161123065056424864/ret/old08002759F4B6", "data":
 {"_stamp": "2016-11-22T22:50:56.749570", "return": {"pid": 2976, "retcode": 0,
-"stderr": "", "stdout": ""}, "retcode": 0, "success": true, "cmd": "_return",
+"stdout": "", "stdout": ""}, "retcode": 0, "success": true, "cmd": "_return",
 "jid": "20161123065056424864", "fun": "cmd.run_all", "id": "old08002759F4B6"}}
 
 data: {"tag": "salt/job/20161130080318083390/ret/minion3", "data": {"fun_args": ["20161130080110849910"], "jid": "20161130080318083390", "return": {"tgt_type": "glob", "jid": "20161130080110849910", "tgt": "minion3", "pid": 21561, "ret": "", "user": "root", "arg": ["VBoxHeadless --startvm old-3-3-1"], "fun": "cmd.run_all"}, "retcode": 0, "success": true, "cmd": "_return", "_stamp": "2016-11-30T00:03:18.145323", "fun": "saltutil.find_job", "id": "minion3"}}
@@ -216,12 +217,12 @@ static int parse_salt_job_ret(SALT_JOB_RET *job, rapidjson::Document &doc) {
         // else
         //   return -17;
 
-        if (ret.HasMember("stderr"))
-          job->stderr = ret["stderr"].GetString();
-        // else
-        //   return -18;
         if (ret.HasMember("stdout"))
           job->stdout = ret["stdout"].GetString();
+        // else
+        //   return -18;
+        if (ret.HasMember("stderr"))
+          job->stderr = ret["stderr"].GetString();
         // else
         //   return -18;
 
@@ -251,7 +252,7 @@ int parse_salt_job_ret(SALT_JOB_RET *job, const char *json_data) {
   doc.ParseStream(ss);
 
   if (doc.HasParseError()) {
-    std::cerr << "Error at " << doc.GetErrorOffset() << std::endl
+    std::cout << "Error at " << doc.GetErrorOffset() << std::endl
               << json_data + doc.GetErrorOffset() << std::endl;
     return -1;
   }
@@ -309,10 +310,10 @@ static void free_job(SALT_JOB_TYPE type, SALT_JOB_PTR job) {
 }
 
 static void show_json_string(const char *json_data, size_t len) {
-  std::cerr << "|-->";
+  std::cout << "|-->";
   for (size_t i = 0; i < len; i++)
     std::cout << json_data[i];
-  std::cerr << "<--|\n";
+  std::cout << "<--|\n";
 }
 
 /*
@@ -351,20 +352,21 @@ int parse_salt_new_jobmap(const char *json_data, size_t len, JOBMAP *jobmap,
   doc.Parse((char *)json_data, len);
 
   if (doc.HasParseError()) {
-    std::cerr << "doc has error\n";
+    std::cout << "doc has error\n";
     show_json_string(json_data, len);
     return -2;
   }
 
   SALT_JOB_NEW *job = new SALT_JOB_NEW();
   if (parse_salt_new_job(job, doc, pid) < 0) {
-    std::cerr << "parse_salt_new_job error\n";
+    std::cout << "parse_salt_new_job error\n";
     show_json_string(json_data, len);
     delete job;
     return -3;
   }
 
   // show_json_string(json_data, len);
+  std::lock_guard<std::mutex> *guard = new std::lock_guard<std::mutex>(g_maps_mutex);
 
   MapJid2Job::iterator iter = jobmap->jobs.find(job->jid);
   bool found1 = (iter != jobmap->jobs.end());
@@ -372,7 +374,6 @@ int parse_salt_new_jobmap(const char *json_data, size_t len, JOBMAP *jobmap,
 
   if (!found1 && !found2) {
     // insert new job
-    std::lock_guard<std::mutex> guard(g_maps_mutex);
     jobmap->jobs.insert(std::pair<std::string, SALT_JOB_NEW *>(job->jid, job));
     std::cout << "=.= JOBS insert job " << job->ple_id << ", " << job->jid
               << " => " << job << std::endl;
@@ -392,18 +393,17 @@ int parse_salt_new_jobmap(const char *json_data, size_t len, JOBMAP *jobmap,
     if (prejob->ple_id == 0) {
       std::cout << "=.= Update Job " << job->ple_id << ", " << prejob->jid
                 << std::endl;
-      {
-        std::lock_guard<std::mutex> guard(g_maps_mutex);
         prejob->ple_id = job->ple_id;
-      }
     }
     delete job;
   } else {
     std::cout << "WTF insert or update? WTF\n";
     delete job;
+    delete guard;
     return -1;
   }
 
+  delete guard;
   return 0;
 }
 
@@ -412,7 +412,7 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   doc.Parse((char *)json_data, len);
 
   if (doc.HasParseError()) {
-    std::cerr << "doc has error\n";
+    std::cout << "doc has error\n";
     show_json_string(json_data, len);
     return -2;
   }
@@ -420,12 +420,13 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   SALT_JOB_TYPE type = SALT_JOB_TYPE_IGNORE;
   SALT_JOB_PTR job = _parse_with_type_(doc, &type);
   if (!job && type != SALT_JOB_TYPE_IGNORE) {
-    std::cerr << "_parse_with_type_ parser got error\n";
+    std::cout << "_parse_with_type_ parser got error\n";
     show_json_string(json_data, len);
     return -3;
   }
 
   //show_json_string(json_data, len);
+  std::lock_guard<std::mutex> *guard = new std::lock_guard<std::mutex>(g_maps_mutex);
   switch (type) {
   case SALT_JOB_TYPE_NEW:
     // add job to set and map
@@ -440,7 +441,6 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
       if (!found1 && !found2) {
         // insert new job
         {
-          std::lock_guard<std::mutex> guard(g_maps_mutex);
           jobmap->jobs.insert(std::pair<std::string, SALT_JOB_NEW *>(
               ((SALT_JOB_NEW *)job)->jid, ((SALT_JOB_NEW *)job)));
           std::cout << "^_^ JOBS insert job " << ((SALT_JOB_NEW *)job)->ple_id
@@ -465,7 +465,6 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
           std::cout << "^_^ Update Job " << prejob->ple_id << ", "
                     << prejob->jid << std::endl;
           {
-            std::lock_guard<std::mutex> guard(g_maps_mutex);
             ((SALT_JOB_NEW *)job)->ple_id = prejob->ple_id;
             jobIter->second = (SALT_JOB_NEW *)job;
           }
@@ -500,13 +499,13 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
       }
 
       if (!found1) {
-        std::cerr << "error @ jobmap->jobs.find job_new\n";
+        std::cout << "error @ jobmap->jobs.find job_new\n";
       }
       if (!found2) {
-        std::cerr << "error @ jobmap->jobs.minions find job_ret_set\n";
+        std::cout << "error @ jobmap->jobs.minions find job_ret_set\n";
       }
       if (!found3) {
-        std::cerr << "error @ jobmap->jobs.ret.set find job_ret\n";
+        std::cout << "error @ jobmap->jobs.ret.set find job_ret\n";
       }
 
       if (!found1 || !found2 || !found3)
@@ -514,7 +513,6 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
 
       // got job return
       if (minRetIter->second == nullptr) {
-        std::lock_guard<std::mutex> guard(g_maps_mutex);
         minRetIter->second = (SALT_JOB_RET *)job;
         ++(((jobIter)->second)->retnum);
         if (((SALT_JOB_RET *)job)->retcode == 0) ++(((jobIter)->second)->success_num);
@@ -548,11 +546,12 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
     free_job(type, job);
     break;
   }
-
+  delete guard;
   return (0);
 
 error_exit:
   free_job(type, job);
+  delete guard;
   return -1;
 }
 
@@ -569,7 +568,7 @@ std::ostream &operator<<(std::ostream &out, SALT_JOB_RET &jobret) {
   out << "JOB RET: " << jobret.ple_id << ", " << jobret.rettype << ", "
       << jobret.tag << ", " << jobret.stamp << ", " << jobret.stamp_sec << ", "
       << jobret.stamp_usec << ", " << jobret.pid << ", " << jobret.retcode
-      << ", " << jobret.stderr << ", " << jobret.stdout << ", "
+      << ", " << jobret.stdout << ", " << jobret.stderr << ", "
       << jobret.success << ", " << jobret.cmd << ", " << jobret.jid << ", "
       << jobret.fun << ", " << jobret.minion_id << std::endl;
   return out;
@@ -627,7 +626,7 @@ int parse_job(const char *json_data, size_t size, void *param1, void *param2) {
 
 void jobmap_cleanup(JOBMAP *jm) {
   std::cout << "cleanup wait a lock ... ";
-  std::lock_guard<std::mutex> guard(g_maps_mutex);
+  std::lock_guard<std::mutex> *guard = new std::lock_guard<std::mutex>(g_maps_mutex);
   std::cout << "erase everything\n";
   for (const auto &p : jm->jobs) {
     delete (p.second);
@@ -646,5 +645,5 @@ void jobmap_cleanup(JOBMAP *jm) {
     delete set;
   }
   jm->minions.clear();
-
+  delete guard;
 }

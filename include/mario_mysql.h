@@ -34,7 +34,7 @@ int get_array_from_db(std::vector<T *> &array, DBHANDLE dbh, const char *sql,
 
   int res = mysql_query(reinterpret_cast<MYSQL *>(dbh), sql);
   if (res) {
-    fprintf(stderr, "SELECT error: %s by %s\n",
+    fprintf(stdout, "SELECT error: %s by %s\n",
             mysql_error(reinterpret_cast<MYSQL *>(dbh)), sql);
     return -2;
   } else {
@@ -55,7 +55,7 @@ int get_array_from_db(std::vector<T *> &array, DBHANDLE dbh, const char *sql,
       }
 
       if (mysql_errno(reinterpret_cast<MYSQL *>(dbh))) {
-        fprintf(stderr, "Retrive an error: %s\n",
+        fprintf(stdout, "Retrive an error: %s\n",
                 mysql_error(reinterpret_cast<MYSQL *>(dbh)));
         nCount = -3;
       }

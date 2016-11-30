@@ -63,7 +63,7 @@ const char* select_plen_from_db = {
     mr_pln_exec.ret_code,\
     UNIX_TIMESTAMP(mr_pln_exec.pln_stm) AS start_tm,\
     UNIX_TIMESTAMP(mr_pln_exec.pln_etm) AS end_tm,\
-    mr_pln_exec.ret_stderr,\
+    mr_pln_exec.ret_stdout,\
     mr_pln_exec.ret_stdout,\
     mr_pln_exec.minion_id,\
     mr_pln_exec.arg,\
@@ -92,13 +92,13 @@ DBHANDLE connect_db(const char *host, int port, const char *db, const char *user
   MYSQL *mysql = mysql_init(NULL);
 
   if (mysql == 0) {
-    fprintf(stderr, "%s\n", mysql_error(mysql));
+    fprintf(stdout, "%s\n", mysql_error(mysql));
     return nullptr;
   }
 
   if (mysql_real_connect(mysql, host, user, passwd, db, port, NULL, 0) ==
       NULL) {
-    fprintf(stderr, "%s\n", mysql_error(mysql));
+    fprintf(stdout, "%s\n", mysql_error(mysql));
     mysql_close(mysql);
     return nullptr;
   }
@@ -282,7 +282,7 @@ void get_pipeline_exec(void* ptr, MYSQL_ROW& row) {
   `ret_code` int(11) DEFAULT NULL COMMENT '执行结果代码',
   `pln_stm` timestamp NULL DEFAULT NULL COMMENT '开始时间',
   `pln_etm` timestamp NULL DEFAULT NULL COMMENT '结束时间',
-  `ret_stderr` varchar(255) DEFAULT NULL COMMENT '标准错误输出',
+  `ret_stdout` varchar(255) DEFAULT NULL COMMENT '标准错误输出',
   `ret_stdout` varchar(255) DEFAULT NULL COMMENT '标准输出',
   `minion_id` varchar(32) DEFAULT NULL COMMENT '主机MinionID',
   `arg` varchar(255) DEFAULT NULL COMMENT '运行参数',
@@ -305,7 +305,7 @@ void get_plen_exec(void* ptr, MYSQL_ROW& row) {
     ne->ret_code   = atol(row[5]);
     ne->pln_stm    = atoll(row[6]);
     ne->pln_etm    = atoll(row[7]);
-    mysql_scpy(ne->ret_stderr, SHORT_TEXT_LENGTH, row[8]);
+    mysql_scpy(ne->ret_stdout, SHORT_TEXT_LENGTH, row[8]);
     mysql_scpy(ne->ret_stdout, SHORT_TEXT_LENGTH, row[9]);
     mysql_scpy(ne->minion_id , HOST_MINION_ID_LENGTH, row[10]);
     mysql_scpy(ne->arg       , SHORT_TEXT_LENGTH, row[11]);

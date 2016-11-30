@@ -14,6 +14,7 @@ SOURCES += main.cpp \
 
 INCLUDEPATH += ../include
 
+INCLUDEPATH += /usr/local/include/igraph
 
 
 ###################### unix ############################
@@ -60,4 +61,13 @@ windows {
     }
 
 }
+
+HEADERS += \
+    ../include/chinese.h \
+    ../include/http_client.h \
+    ../include/mario_data.h \
+    ../include/mario_mysql.h \
+    ../include/salt_api.h \
+    ../include/utility.h \
+    ../include/pipeline.h
 

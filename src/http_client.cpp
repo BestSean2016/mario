@@ -1,3 +1,4 @@
+#include "http_client.h"
 #include <errno.h>
 #include <error.h>
 #include <netdb.h>
@@ -8,7 +9,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "http_client.h"
 #define BUFSIZE 65536
 
 char g_token[32] = {0};
@@ -100,7 +100,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
           (strncmp(line, _http_header_, strlen(_http_header_)) == 0)) {
         *rescode = get_response_code(line);
 #ifdef _DEBUG_
-        //printf("response code %d\n", *rescode);
+// printf("response code %d\n", *rescode);
 #endif //_DEBUG_
       }
 
@@ -132,15 +132,25 @@ static int analyse_response(char **buf, int buflen, int *rescode,
 
 int http_client(const char *hostname, int portno, char *buf, const char *cmd,
                 parse_response parse_fun, void *param1, void *param2) {
-  int sockfd = 0, n = 0, total_len = 0;
+  int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
-  struct hostent *server = 0;
-  char *ptr = buf;
-  int ret = 0;
-  char *json_data = 0;
-  int64_t data_len = 0;
-  char *anaptr = ptr;
-  int rescode = 0;
+  struct hostent *server;
+  char *ptr;
+  int ret;
+  char *json_data;
+  int64_t data_len;
+  char *anaptr;
+  int rescode;
+
+restart_client:
+  sockfd = 0, n = 0, total_len = 0;
+  server = 0;
+  ptr = buf;
+  ret = 0;
+  json_data = 0;
+  data_len = 0;
+  anaptr = ptr;
+  rescode = 0;
 
   /* socket: create the socket */
   ret = ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0);
@@ -171,7 +181,6 @@ int http_client(const char *hostname, int portno, char *buf, const char *cmd,
 
   while (!ret && (total_len < BUFSIZE)) {
     ret = ((n = read(sockfd, ptr, BUFSIZE - total_len)) <= 0);
-    // printf("Received %d\n", n);
     if (n == 0)
       continue;
     if (!ret) {
@@ -199,24 +208,26 @@ run_receive_long_data : {
   // timeout.tv_sec = 5;
   // timeout.tv_usec = 0;
   //
-  // if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+  // if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char
+  // *)&timeout,
   //                sizeof(timeout)) < 0)))
   //   printf("setsockopt failed\n");
   //
-  // if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+  // if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char
+  // *)&timeout,
   //                sizeof(timeout)) < 0)))
   //   printf("setsockopt failed\n");
   // }
 
-  while (!ret && *(int*)param2) {
+  while (!ret && *(int *)param2) {
     while (tmp < ptr) {
       if (*tmp != '\r')
         ++tmp;
       else {
         // printf("************** %s\n", line);
-        if (parse_fun) //do not check error
+        if (parse_fun) // do not check error
           parse_fun(line, tmp - line, param1, 0);
-          //ret = (0 != parse_fun(line, tmp - line, param1, 0));
+        // ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
         // next line
         tmp += 2;
@@ -225,25 +236,38 @@ run_receive_long_data : {
     }
 
     // reset pointer to begin of buffer
-    if (line == tmp)
+    if (line == tmp || (BUFSIZE - total_len < 8 * 1024)) {
       ptr = buf, total_len = 0, tmp = buf, line = buf;
+    }
+
     // read next package
-    //printf("************** reading *********************\n");
+    // printf("************** reading *********************\n");
     n = read(sockfd, ptr, BUFSIZE - total_len);
-    //printf("i got n = %d bytes, error no %d, errmsg %s\n", n, errno, strerror(errno));
-    // printf("error %d %d\n", n, errno);
-    if (n < 0)
+    if (n < 0) {
+      fprintf(stdout,
+              "i got n = %d bytes, error no %d, errmsg %s total_len is %d\n", n,
+              errno, strerror(errno), total_len);
       ret = (errno == 11) ? 0 : 1;
-    else
+    } else if (n == 0) {
+        fprintf(stdout,
+                "i got n = %d bytes, error no %d, errmsg %s total_len is %d\n", n,
+                errno, strerror(errno), total_len);
+    } else {
       ptr += n, total_len += n;
+    }
   }
-}
 
   close(sockfd);
+}
+  if (!ret) {
+    fprintf(stdout, "ReStart Http Event Client!\n");
+    goto restart_client;
+  }
   return ret;
 }
 
-static int parse_token(const char *ptr, size_t len, void *ptrtoken, void* param2) {
+static int parse_token(const char *ptr, size_t len, void *ptrtoken,
+                       void *param2) {
   // fprintf(stdout, "%s", (char *)ptr);
   //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
   (void)len;
@@ -285,14 +309,16 @@ int salt_api_testping(const char *hostname, int port, uint64_t pid) {
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TESTPING], g_token);
 
-  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap, (void*)pid); //parse_cmd_return
+  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
+                     (void *)pid); // parse_cmd_return
 }
 
 int salt_api_test_cmdrun(const char *hostname, int port, uint64_t pid) {
   char buf[BUFSIZE];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TEST_CMDRUN], g_token);
-  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap, (void*)pid); //parse_cmd_return
+  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
+                     (void *)pid); // parse_cmd_return
 }
 
 int salt_api_events(const char *hostname, int port, int *run) {

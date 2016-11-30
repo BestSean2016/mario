@@ -765,7 +765,7 @@ curl_easy_setopt pval 10147 0
 //   const char* json_data = {
 //       "data: {\"tag\": \"salt/job/20161123065056424864/ret/old08002759F4B6\", \"data\":             "
 //       "{\"_stamp\": \"2016-11-22T22:50:56.749570\", \"return\": {\"pid\": 2976, \"retcode\": 0,     "
-//       "\"stderr\": \"aaa\", \"stdout\": \"bbb\"}, \"retcode\": 0, \"success\": true, \"cmd\": \"_return\","
+//       "\"stdout\": \"aaa\", \"stdout\": \"bbb\"}, \"retcode\": 0, \"success\": true, \"cmd\": \"_return\","
 //       "\"jid\": \"20161123065056424864\", \"fun\": \"cmd.run_all\", \"id\": \"old08002759F4B6\"}}   "
 //   };
 //
@@ -774,7 +774,7 @@ curl_easy_setopt pval 10147 0
 //   EXPECT_EQ(ret.stamp, "2016-11-22T22:50:56.749570");
 //   EXPECT_EQ(ret.pid, 2976);
 //   EXPECT_EQ(ret.retcode, 0);
-//   EXPECT_EQ(ret.stderr, "aaa");
+//   EXPECT_EQ(ret.stdout, "aaa");
 //   EXPECT_EQ(ret.stdout, "bbb");
 //   EXPECT_EQ(ret.success, true);
 //   EXPECT_EQ(ret.cmd, "_return");
@@ -791,7 +791,7 @@ curl_easy_setopt pval 10147 0
 //   EXPECT_EQ(jr->stamp, "2016-11-22T22:50:56.749570");
 //   EXPECT_EQ(jr->pid, 2976);
 //   EXPECT_EQ(jr->retcode, 0);
-//   EXPECT_EQ(jr->stderr, "aaa");
+//   EXPECT_EQ(jr->stdout, "aaa");
 //   EXPECT_EQ(jr->stdout, "bbb");
 //   EXPECT_EQ(jr->success, true);
 //   EXPECT_EQ(jr->cmd, "_return");
@@ -814,7 +814,7 @@ curl_easy_setopt pval 10147 0
 //   EXPECT_EQ(ret.stamp, "2016-11-22T22:54:14.580881");
 //   EXPECT_EQ(ret.pid, 0);
 //   EXPECT_EQ(ret.retcode, 123);
-//   EXPECT_EQ(ret.stderr, "");
+//   EXPECT_EQ(ret.stdout, "");
 //   EXPECT_EQ(ret.stdout, "");
 //   EXPECT_EQ(ret.success, false);
 //   EXPECT_EQ(ret.cmd, "_return");
@@ -830,7 +830,7 @@ curl_easy_setopt pval 10147 0
 //   EXPECT_EQ(jr->stamp, "2016-11-22T22:54:14.580881");
 //   EXPECT_EQ(jr->pid, 0);
 //   EXPECT_EQ(jr->retcode, 123);
-//   EXPECT_EQ(jr->stderr, "");
+//   EXPECT_EQ(jr->stdout, "");
 //   EXPECT_EQ(jr->stdout, "");
 //   EXPECT_EQ(jr->success, false);
 //   EXPECT_EQ(jr->cmd, "_return");
