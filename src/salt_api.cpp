@@ -159,6 +159,8 @@ data: {"tag": "salt/job/20161123065056424864/ret/old08002759F4B6", "data":
 "jid": "20161123065056424864", "fun": "cmd.run_all", "id": "old08002759F4B6"}}
 
 data: {"tag": "salt/job/20161130080318083390/ret/minion3", "data": {"fun_args": ["20161130080110849910"], "jid": "20161130080318083390", "return": {"tgt_type": "glob", "jid": "20161130080110849910", "tgt": "minion3", "pid": 21561, "ret": "", "user": "root", "arg": ["VBoxHeadless --startvm old-3-3-1"], "fun": "cmd.run_all"}, "retcode": 0, "success": true, "cmd": "_return", "_stamp": "2016-11-30T00:03:18.145323", "fun": "saltutil.find_job", "id": "minion3"}}
+
+{"tag": "salt/job/20161201142918499600/ret/old080027A63244", "data": {"jid": "20161201142918499600", "return": "Traceback (most recent call last):\n  File \"salt/minion.py\", line 722, in _thread_return\n  File \"salt/modules/cp.py\", line 150, in get_file\n  File \"salt/fileclient.py\", line 708, in get_file\n  File \"salt/utils/__init__.py\", line 930, in fopen\nIOError: [Errno 13] Permission denied: 'C:\\\\hongt\\\\Client'\n", "success": false, "cmd": "_return", "_stamp": "2016-12-01T06:29:21.400408", "fun": "cp.get_file", "id": "old080027A63244"}}
 */
 
 static int parse_salt_job_ret(SALT_JOB_RET *job, rapidjson::Document &doc) {
@@ -210,8 +212,9 @@ static int parse_salt_job_ret(SALT_JOB_RET *job, rapidjson::Document &doc) {
         rapidjson::Value &ret = data["return"];
         if (ret.HasMember("pid"))
           job->pid = ret["pid"].GetInt();
-        else
-          return -16;
+        // else
+        //   return -16;
+
         if (ret.HasMember("retcode"))
           job->retcode = ret["retcode"].GetInt();
         // else
@@ -240,8 +243,8 @@ static int parse_salt_job_ret(SALT_JOB_RET *job, rapidjson::Document &doc) {
           job->stderr = data["return"].GetString(), job->stdout = "";
         job->rettype = RETURN_TYPE_STRING;
       }
-    } else
-      return -15;
+    } // else
+      // return -15;
   }
   return 0;
 }

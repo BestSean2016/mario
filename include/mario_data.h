@@ -155,44 +155,61 @@ typedef struct mr_host_status {
   time_t updatetime;            ///状态更新时间
 } MR_HOST_STATUS;
 
-typedef std::vector<MR_HOST*> HostArray;
+
+template<typename T>
+struct DataSet {
+    size_t size;
+    T* data;
+
+    DataSet<T> () {
+      size = 0;
+      data = nullptr;
+    }
+    T& operator[] (size_t d) {
+      return data[d];
+    }
+};
+
+template<typename T>
+bool operator==(T& a, T&b) {
+  return (0 == (memcmp(&a, &b, sizeof(T))));
+}
+
 typedef std::map<int64_t, void*> MapId2Ptr;
 typedef MapId2Ptr::iterator id2ptr_iter;
 typedef std::map<std::string, void*>MapStr2Ptr;
 
-typedef std::vector<MR_PIPELINE*> PipeLineArray;
-
 template<typename T>
-void show_ptr_array(T& t, std::ostream& out) {
-  for (auto &p : t)
-    out << *p;
+void show_data_set(struct DataSet<T>& set, std::ostream& out) {
+  for (size_t i = 0; i < set.size; ++i)
+    out << set.data[i];
 }
 
 template<typename T>
-void free_ptr_array(T& t) {
-  for (auto& p : t)
-    delete p;
+void free_data_set(struct DataSet<T>& set) {
+  if (set.data) delete [] set.data;
+  set.size = 0;
+  set.data = nullptr;
+}
 
-  t.clear();
+extern void free_script_set(struct DataSet<MR_SCRIPT>& set);
+
+template<typename T>
+void insert_int2ptr_map(MapId2Ptr& map, struct DataSet<T>& set) {
+    for (size_t i = 0; i < set.size; ++i)
+      map[set.data[i].id] = set.data + i;
 }
 
 template<typename T>
-void insert_int2ptr_map(MapId2Ptr& map, std::vector<T*>& t) {
-  for (auto& p : t)
-    map[p->id] = p;
+void insert_str2_ptr_map(MapStr2Ptr& map, struct DataSet<T>& set, size_t offset) {
+  for (size_t i = 0; i < set.size; ++i)
+    map[(char*)(set.data + i) + offset] = set.data + i;
 }
 
 template<typename T>
-void insert_str2_ptr_map(MapStr2Ptr& map, std::vector<T*>& t, size_t offset) {
-  for (auto& p : t) {
-    map[(char*)(p) + offset] = p;
-  }
-}
-
-template<typename T>
-void set_key_to_ptr(MapId2Ptr& map, std::vector<T*>& t, size_t id_offset, size_t ptr_offset) {
-    for (auto& p : t) {
-      *(char**)((char*)p + ptr_offset) = (char*)(map[*(int64_t*)((char*)(p) + id_offset)]);
+void set_key_to_ptr(MapId2Ptr& map, struct DataSet<T>& set, size_t id_offset, size_t ptr_offset) {
+    for (size_t i = 0; i < set.size; ++i) {
+      *(char**)((char*)(set.data + i) + ptr_offset) = (char*)(map[*(int64_t*)((char*)(set.data + i) + id_offset)]);
     }
 }
 
@@ -204,19 +221,12 @@ extern std::ostream& operator<<(std::ostream& out, MR_PIPELINE_EXEC& ple);
 extern std::ostream& operator<<(std::ostream& out, MR_PIPELINE_NODE_EXEC& plen);
 extern std::ostream& operator<<(std::ostream& out, MR_HOST_STATUS& hs);
 
-#ifdef __cplusplus
-extern "C" {
-#endif //__cplusplus
 
-extern void free_script_array(std::vector<MR_SCRIPT*> array);
 extern void set_host_status_map(std::vector<MR_HOST_STATUS *> &status,
                                 MapId2Ptr &ple, MapId2Ptr &mapHost);
 
 extern void set_plne_map(std::vector<MR_PIPELINE_NODE_EXEC*>& array,
                           MapId2Ptr& mapPle, MapId2Ptr& mapEdge, MapStr2Ptr& mapHost);
 
-#ifdef __cplusplus
-}
-#endif //__cplusplus
 
 #endif // MARIO_TYPES_H

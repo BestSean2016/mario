@@ -108,12 +108,12 @@ std::ostream& operator <<(std::ostream& out, MR_HOST_STATUS& hs) {\
   return out;
 }
 
-void free_script_array(std::vector<MR_SCRIPT*> array) {
-    for (auto& p : array) {
-      if (p->script) free(p->script);
-      delete p;
-    }
-    array.clear();
+void free_script_set(struct DataSet<MR_SCRIPT>& set) {
+  if (set.data) {
+    for (size_t i = 0; i < set.size; ++i)
+      if (set.data[i].script) free(set.data[i].script);
+  }
+  free_data_set(set);
 }
 
 void set_host_status_map(std::vector<MR_HOST_STATUS*>& status,

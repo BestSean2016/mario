@@ -29,120 +29,120 @@ int main(int argc, char **argv) {
 }
 
 
-//
-// TEST(convert, utf8_to_ucs2) {
-//   char hello[100] = "abc 123 大家好！";
-//   char temp[100];
-//   memset(temp, 0, 100);
-//   EXPECT_EQ(0, convert(hello, temp, strlen(hello), 100, "UTF-8", "UCS-2"));
-//
-//   // dumpbuf("hello", hello, 100);
-//   // dumpbuf("temp", temp, 100);
-//   unsigned char t1[] = {0x61, 0x00, 0x62, 0x00, 0x63, 0x00, 0x20, 0x00, 0x31,
-//                         0x00, 0x32, 0x00, 0x33, 0x00, 0x20, 0x00, 0x27, 0x59,
-//                         0xB6, 0x5B, 0x7D, 0x59, 0x01, 0xFF, 0x00, 0x00};
-//   EXPECT_EQ(memcmp(temp, t1, sizeof(t1)), 0);
-// }
-//
-// TEST(convert, utf8_to_ucs4) {
-//   char hello[100] = "abc 123 大家好！";
-//   char temp[200];
-//   memset(temp, 0, 200);
-//   EXPECT_EQ(0, convert(hello, temp, strlen(hello), 200, "UTF-8", "UCS-4"));
-//
-//   // dumpbuf("hello", hello, 100);
-//   // dumpbuf("temp", temp, 100);
-//
-//   unsigned char t2[] = {0x00, 0x00, 0x00, 0x61, 0x00, 0x00, 0x00, 0x62, 0x00,
-//                         0x00, 0x00, 0x63, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00,
-//                         0x00, 0x31, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00,
-//                         0x33, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x59, 0x27,
-//                         0x00, 0x00, 0x5B, 0xB6, 0x00, 0x00, 0x59, 0x7D, 0x00,
-//                         0x00, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00};
-//
-//   // printf("sizeof t2 %lu\n", sizeof(t2));
-//   EXPECT_EQ(memcmp(temp, t2, sizeof(t2)), 0);
-//
-//   // for (int k = 1; k <= 100; k++)
-//   //     for (int j = 1; j <= 100; j++) {
-//   //         int ret = convert(hello, temp, k, j, "UTF-8", "UCS-4");
-//   //         if (ret == 0) printf("%d %d %d\n", k, j, ret);
-//   //     }
-// }
-//
-// TEST(convert, utf8_to_webucs2) {
-//   char hello[100] = "abc 123 大家好！";
-//   char tmp[200];
-//   memset(tmp, 0, 200);
-//   EXPECT_EQ(0, utf8_2_webucs2(hello, tmp, strlen(hello), 200, "&#", ";"));
-//   EXPECT_EQ(strcmp(tmp, "abc 123 &#22823;&#23478;&#22909;&#65281;"), 0);
-// }
-//
-// TEST(convert, gbk_to_webucs2) {
-//   char hello[100] = "abc 123 大家好！";
-//   char tmp[200];
-//   char gbk[200];
-//
-//   memset(gbk, 0, 200);
-//   EXPECT_EQ(0, convert(hello, gbk, strlen(hello), 200, "UTF-8", "GBK"));
-//
-//   memset(tmp, 0, 200);
-//   EXPECT_EQ(0, gbk_2_webucs2(gbk, tmp, strlen(gbk), 200, "&#", ";"));
-//   EXPECT_EQ(strcmp(tmp, "abc 123 &#22823;&#23478;&#22909;&#65281;"), 0);
-// }
-//
-// TEST(convert, webucs_2_gbk) {
-//   char hello[100] = "abc 123 大家好！";
-//   char gbk[200];
-//   char webucs_2[] = "abc 123 &#22823;&#23478;&#22909;&#65281;";
-//
-//   char tmp[100];
-//   memset(tmp, 0, 100);
-//   EXPECT_EQ(0, convert(hello, tmp, strlen(hello), 100, "UTF-8", "GBK"));
-//
-//   memset(gbk, 0, 200);
-//   EXPECT_EQ(0,
-//             webucs_2_gbk(webucs_2, gbk, strlen(webucs_2) + 1, 200, "&#", ";"));
-//   EXPECT_EQ(strcmp(gbk, tmp), 0);
-// }
-//
-// TEST(convert, webucs_2_utf8) {
-//   char hello[100] = "abc 123 大家好！";
-//   char utf8[200];
-//   char webucs_2[] = "abc 123 &#22823;&#23478;&#22909;&#65281;";
-//
-//   memset(utf8, 0, 200);
-//   EXPECT_EQ(
-//       0, webucs_2_utf8(webucs_2, utf8, strlen(webucs_2) + 1, 200, "&#", ";"));
-//   EXPECT_EQ(strcmp(utf8, hello), 0);
-// }
-//
-// TEST(convert, webucs16_2_utf8) {
-//   char hello[100] = "abc 123 大家好！";
-//   char utf8[200];
-//   char webucs_2[] = "abc 123 &#x5927;&#x5bb6;&#x597d;&#xff01;";
-//
-//   memset(utf8, 0, 200);
-//   EXPECT_EQ(0, webucs16_2_utf8(webucs_2, utf8, strlen(webucs_2) + 1, 200, "&#x",
-//                                ";"));
-//   EXPECT_EQ(strcmp(utf8, hello), 0);
-// }
-//
-// TEST(convert, webucs16_2_gbk) {
-//   char hello[100] = "abc 123 大家好！";
-//   char gbk[200];
-//   char webucs_2[] = "abc 123 &#x5927;&#x5bb6;&#x597d;&#xff01;";
-//
-//   char tmp[100];
-//   memset(tmp, 0, 100);
-//   EXPECT_EQ(0, convert(hello, tmp, strlen(hello), 100, "UTF-8", "GBK"));
-//
-//   memset(gbk, 0, 200);
-//   EXPECT_EQ(
-//       0, webucs16_2_utf8(webucs_2, gbk, strlen(webucs_2) + 1, 200, "&#x", ";"));
-//   EXPECT_EQ(strcmp(gbk, hello), 0);
-// }
-//
+
+TEST(convert, utf8_to_ucs2) {
+  char hello[100] = "abc 123 大家好！";
+  char temp[100];
+  memset(temp, 0, 100);
+  EXPECT_EQ(0, convert(hello, temp, strlen(hello), 100, "UTF-8", "UCS-2"));
+
+  // dumpbuf("hello", hello, 100);
+  // dumpbuf("temp", temp, 100);
+  unsigned char t1[] = {0x61, 0x00, 0x62, 0x00, 0x63, 0x00, 0x20, 0x00, 0x31,
+                        0x00, 0x32, 0x00, 0x33, 0x00, 0x20, 0x00, 0x27, 0x59,
+                        0xB6, 0x5B, 0x7D, 0x59, 0x01, 0xFF, 0x00, 0x00};
+  EXPECT_EQ(memcmp(temp, t1, sizeof(t1)), 0);
+}
+
+TEST(convert, utf8_to_ucs4) {
+  char hello[100] = "abc 123 大家好！";
+  char temp[200];
+  memset(temp, 0, 200);
+  EXPECT_EQ(0, convert(hello, temp, strlen(hello), 200, "UTF-8", "UCS-4"));
+
+  // dumpbuf("hello", hello, 100);
+  // dumpbuf("temp", temp, 100);
+
+  unsigned char t2[] = {0x00, 0x00, 0x00, 0x61, 0x00, 0x00, 0x00, 0x62, 0x00,
+                        0x00, 0x00, 0x63, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00,
+                        0x00, 0x31, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00,
+                        0x33, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x59, 0x27,
+                        0x00, 0x00, 0x5B, 0xB6, 0x00, 0x00, 0x59, 0x7D, 0x00,
+                        0x00, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00};
+
+  // printf("sizeof t2 %lu\n", sizeof(t2));
+  EXPECT_EQ(memcmp(temp, t2, sizeof(t2)), 0);
+
+  // for (int k = 1; k <= 100; k++)
+  //     for (int j = 1; j <= 100; j++) {
+  //         int ret = convert(hello, temp, k, j, "UTF-8", "UCS-4");
+  //         if (ret == 0) printf("%d %d %d\n", k, j, ret);
+  //     }
+}
+
+TEST(convert, utf8_to_webucs2) {
+  char hello[100] = "abc 123 大家好！";
+  char tmp[200];
+  memset(tmp, 0, 200);
+  EXPECT_EQ(0, utf8_2_webucs2(hello, tmp, strlen(hello), 200, "&#", ";"));
+  EXPECT_EQ(strcmp(tmp, "abc 123 &#22823;&#23478;&#22909;&#65281;"), 0);
+}
+
+TEST(convert, gbk_to_webucs2) {
+  char hello[100] = "abc 123 大家好！";
+  char tmp[200];
+  char gbk[200];
+
+  memset(gbk, 0, 200);
+  EXPECT_EQ(0, convert(hello, gbk, strlen(hello), 200, "UTF-8", "GBK"));
+
+  memset(tmp, 0, 200);
+  EXPECT_EQ(0, gbk_2_webucs2(gbk, tmp, strlen(gbk), 200, "&#", ";"));
+  EXPECT_EQ(strcmp(tmp, "abc 123 &#22823;&#23478;&#22909;&#65281;"), 0);
+}
+
+TEST(convert, webucs_2_gbk) {
+  char hello[100] = "abc 123 大家好！";
+  char gbk[200];
+  char webucs_2[] = "abc 123 &#22823;&#23478;&#22909;&#65281;";
+
+  char tmp[100];
+  memset(tmp, 0, 100);
+  EXPECT_EQ(0, convert(hello, tmp, strlen(hello), 100, "UTF-8", "GBK"));
+
+  memset(gbk, 0, 200);
+  EXPECT_EQ(0,
+            webucs_2_gbk(webucs_2, gbk, strlen(webucs_2) + 1, 200, "&#", ";"));
+  EXPECT_EQ(strcmp(gbk, tmp), 0);
+}
+
+TEST(convert, webucs_2_utf8) {
+  char hello[100] = "abc 123 大家好！";
+  char utf8[200];
+  char webucs_2[] = "abc 123 &#22823;&#23478;&#22909;&#65281;";
+
+  memset(utf8, 0, 200);
+  EXPECT_EQ(
+      0, webucs_2_utf8(webucs_2, utf8, strlen(webucs_2) + 1, 200, "&#", ";"));
+  EXPECT_EQ(strcmp(utf8, hello), 0);
+}
+
+TEST(convert, webucs16_2_utf8) {
+  char hello[100] = "abc 123 大家好！";
+  char utf8[200];
+  char webucs_2[] = "abc 123 &#x5927;&#x5bb6;&#x597d;&#xff01;";
+
+  memset(utf8, 0, 200);
+  EXPECT_EQ(0, webucs16_2_utf8(webucs_2, utf8, strlen(webucs_2) + 1, 200, "&#x",
+                               ";"));
+  EXPECT_EQ(strcmp(utf8, hello), 0);
+}
+
+TEST(convert, webucs16_2_gbk) {
+  char hello[100] = "abc 123 大家好！";
+  char gbk[200];
+  char webucs_2[] = "abc 123 &#x5927;&#x5bb6;&#x597d;&#xff01;";
+
+  char tmp[100];
+  memset(tmp, 0, 100);
+  EXPECT_EQ(0, convert(hello, tmp, strlen(hello), 100, "UTF-8", "GBK"));
+
+  memset(gbk, 0, 200);
+  EXPECT_EQ(
+      0, webucs16_2_utf8(webucs_2, gbk, strlen(webucs_2) + 1, 200, "&#x", ";"));
+  EXPECT_EQ(strcmp(gbk, hello), 0);
+}
+
 
 /*
 curl_easy_setopt lval 43 1L
@@ -223,233 +223,249 @@ curl_easy_setopt pval 10147 0
 //   EXPECT_EQ(0, curl_salt_event());
 // }
 
-// TEST(mysql, connect) {
-//   DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
-//   EXPECT_NE(nullptr, dbh);
-//   disconnect_db(dbh);
-// }
-//
-// template <typename T>
-// void read_table(std::vector<T *> &array, const char *sql,
-//                 get_fields_callback get_fields) {
-//   DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
-//   EXPECT_NE(nullptr, dbh);
-//
-//   EXPECT_GE(get_array_from_db(array, dbh, sql, get_fields), 0);
-//
-//   show_ptr_array(array, std::cout);
-//
-//   free_ptr_array(array);
-//
-//   disconnect_db(dbh);
-// }
-//
-// TEST(mysql, read_hosts) {
-//   HostArray hosts;
-//   read_table(hosts, select_host_from_db, get_hosts);
-// }
-//
-// TEST(mysql, read_pipeline) {
-//   PipeLineArray pls;
-//   read_table(pls, select_pipeline_from_db, get_pipeline);
-// }
-//
-// TEST(mysql, read_script) {
-//   std::vector<MR_SCRIPT *> array;
-//
-//   DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
-//   EXPECT_NE(nullptr, dbh);
-//
-//   EXPECT_GE(get_array_from_db(array, dbh, select_script_from_db, get_script),
-//             0);
-//
-//   show_ptr_array(array, std::cout);
-//
-//   free_script_array(array);
-//
-//   disconnect_db(dbh);
-// }
-//
-// TEST(mysql, read_pipeline_edge) {
-//   std::vector<MR_PIPELINE_EDGE *> edges;
-//   read_table(edges, select_edge_from_db, get_edge);
-// }
-//
-// TEST(mysql, read_pipeline_exec) {
-//   std::vector<MR_PIPELINE_EXEC *> ples;
-//   read_table(ples, select_plexec_from_db, get_pipeline_exec);
-// }
-//
-// TEST(mysql, read_plen_exec) {
-//   std::vector<MR_PIPELINE_NODE_EXEC *> plens;
-//   read_table(plens, select_plen_from_db, get_plen_exec);
-// }
-//
-// TEST(mysql, read_host_status) {
-//   std::vector<MR_HOST_STATUS *> status;
-//   read_table(status, select_host_status_from_db, get_host_status);
-// }
-//
-// TEST(mysql, read_all) {
-//   DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
-//   EXPECT_NE(nullptr, dbh);
-//
-//   HostArray hosts;
-//   PipeLineArray pls;
-//   std::vector<MR_SCRIPT *> scripts;
-//   std::vector<MR_PIPELINE_EDGE *> edges;
-//   std::vector<MR_PIPELINE_EXEC *> ples;
-//   std::vector<MR_PIPELINE_NODE_EXEC *> plens;
-//   std::vector<MR_HOST_STATUS *> status;
-//
-//   EXPECT_GE(get_array_from_db(hosts, dbh, select_host_from_db, get_hosts), 0);
-//   EXPECT_GE(get_array_from_db(pls, dbh, select_pipeline_from_db, get_pipeline),
-//             0);
-//   EXPECT_GE(get_array_from_db(scripts, dbh, select_script_from_db, get_script),
-//             0);
-//   EXPECT_GE(get_array_from_db(edges, dbh, select_edge_from_db, get_edge), 0);
-//   EXPECT_GE(
-//       get_array_from_db(ples, dbh, select_plexec_from_db, get_pipeline_exec),
-//       0);
-//   EXPECT_GE(get_array_from_db(plens, dbh, select_plen_from_db, get_plen_exec),
-//             0);
-//   EXPECT_GE(
-//       get_array_from_db(status, dbh, select_pipeline_from_db, get_host_status),
-//       0);
-//
-//   free_ptr_array(status);
-//   free_ptr_array(plens);
-//   free_ptr_array(ples);
-//   free_ptr_array(edges);
-//   free_ptr_array(pls);
-//   free_ptr_array(hosts);
-//   free_script_array(scripts);
-//
-//   disconnect_db(dbh);
-// }
-//
-// #define offset(T, F) ((char *)&(F) - (char *)&(T))
-//
-// TEST(mario_data, set_maps) {
-//   DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
-//   EXPECT_NE(nullptr, dbh);
-//
-//   HostArray hosts;
-//   PipeLineArray pls;
-//   std::vector<MR_SCRIPT *> scripts;
-//   std::vector<MR_PIPELINE_EDGE *> edges;
-//   std::vector<MR_PIPELINE_EXEC *> ples;
-//   std::vector<MR_PIPELINE_NODE_EXEC *> plens;
-//   std::vector<MR_HOST_STATUS *> status;
-//
-//   EXPECT_GE(get_array_from_db(hosts, dbh, select_host_from_db, get_hosts), 0);
-//   EXPECT_GE(get_array_from_db(pls, dbh, select_pipeline_from_db, get_pipeline),
-//             0);
-//   EXPECT_GE(get_array_from_db(scripts, dbh, select_script_from_db, get_script),
-//             0);
-//   EXPECT_GE(get_array_from_db(edges, dbh, select_edge_from_db, get_edge), 0);
-//   EXPECT_GE(
-//       get_array_from_db(ples, dbh, select_plexec_from_db, get_pipeline_exec),
-//       0);
-//   EXPECT_GE(get_array_from_db(plens, dbh, select_plen_from_db, get_plen_exec),
-//             0);
-//   EXPECT_GE(get_array_from_db(status, dbh, select_host_status_from_db,
-//                               get_host_status),
-//             0);
-//
-//   MapId2Ptr mapHosts, mapPipeline, mapScript, mapEdges, mapPipelineExec,
-//       mapPipelineNodeExec, mapHostStatus;
-//   insert_int2ptr_map(mapHosts, hosts);
-//   insert_int2ptr_map(mapPipeline, pls);
-//   insert_int2ptr_map(mapScript, scripts);
-//   insert_int2ptr_map(mapEdges, edges);
-//   insert_int2ptr_map(mapPipelineExec, ples);
-//   insert_int2ptr_map(mapPipelineNodeExec, plens);
-//   insert_int2ptr_map(mapHostStatus, status);
-//
-//   EXPECT_NE(nullptr, mapHosts[0]);
-//   EXPECT_NE(nullptr, mapHosts[1]);
-//   EXPECT_EQ(mapHosts[0], hosts[0]);
-//   EXPECT_EQ(mapHosts[1], hosts[1]);
-//   EXPECT_EQ(mapHosts[10552], hosts[2]);
-//   EXPECT_EQ(nullptr, mapHosts[100000000]);
-//
-//   MapStr2Ptr mapHostMinion;
-//   MR_HOST host_;
-//   insert_str2_ptr_map(mapHostMinion, hosts, offset(host_, host_.minion_id));
-//   EXPECT_NE(mapHostMinion["new080027ADF439"], nullptr);
-//   EXPECT_EQ(0,
-//             strcmp(((MR_HOST *)(mapHostMinion["new080027ADF439"]))->minion_id,
-//                    "new080027ADF439"));
-//   EXPECT_EQ(mapHostMinion["*"], hosts[0]);
-//   EXPECT_EQ(mapHostMinion["---"], hosts[1]);
-//
-//   {
-//     MR_HOST_STATUS s_;
-//     set_key_to_ptr(mapHosts, status, offset(s_, s_.host_id),
-//                    offset(s_, s_.host));
-//     set_key_to_ptr(mapPipelineExec, status, offset(s_, s_.pe_id),
-//                    offset(s_, s_.pe));
-//   }
-//
-//   {
-//     MR_PIPELINE_NODE_EXEC p_;
-//     set_key_to_ptr(mapPipelineExec, plens, offset(p_, p_.pe_id),
-//                    offset(p_, p_.ple));
-//     set_key_to_ptr(mapEdges, plens, offset(p_, p_.edge_id),
-//                    offset(p_, p_.edge));
-//     for (auto &p : plens)
-//       p->host = reinterpret_cast<MR_HOST *>(mapHostMinion[p->minion_id]);
-//   }
-//
-//   {
-//     MR_PIPELINE_EXEC p_;
-//     set_key_to_ptr(mapPipeline, ples, offset(p_, p_.pl_id),
-//                    offset(p_, p_.pipeline));
-//   }
-//
-//   {
-//     for (auto &p : edges) {
-//       p->pipeline = reinterpret_cast<MR_PIPELINE *>(mapPipeline[p->pl_id]);
-//       p->src_host = reinterpret_cast<MR_HOST *>(mapHostMinion[p->src_min_id]);
-//       p->trg_host = reinterpret_cast<MR_HOST *>(mapHostMinion[p->trg_min_id]);
-//
-//       p->src_node_ptr = (p->src_type == NODE_TYPE_SCRIPT)
-//                             ? mapScript[p->src_id]
-//                             : mapPipeline[p->src_id];
-//       p->trg_node_ptr = (p->trg_type == NODE_TYPE_SCRIPT)
-//                             ? mapScript[p->trg_id]
-//                             : mapPipeline[p->trg_id];
-//     }
-//     MR_PIPELINE_EDGE *p = (MR_PIPELINE_EDGE *)edges[0];
-//     EXPECT_EQ(strcmp(p->src_host->minion_id, p->src_min_id), 0);
-//     EXPECT_EQ(strcmp(p->trg_host->minion_id, p->trg_min_id), 0);
-//     EXPECT_EQ(p->pl_id, p->pipeline->id);
-//     EXPECT_EQ(((MR_SCRIPT *)(p->src_node_ptr))->id, p->src_id);
-//     EXPECT_EQ(((MR_SCRIPT *)(p->trg_node_ptr))->id, p->trg_id);
-//
-//     p = (MR_PIPELINE_EDGE *)edges[1];
-//     EXPECT_EQ(strcmp(p->src_host->minion_id, p->src_min_id), 0);
-//     EXPECT_EQ(strcmp(p->trg_host->minion_id, p->trg_min_id), 0);
-//     EXPECT_EQ(p->pl_id, p->pipeline->id);
-//     EXPECT_EQ(((MR_SCRIPT *)(p->src_node_ptr))->id, p->src_id);
-//     EXPECT_EQ(((MR_SCRIPT *)(p->trg_node_ptr))->id, p->trg_id);
-//   }
-//
-//   for (auto &p : scripts)
-//     p->host = reinterpret_cast<MR_HOST *>(mapHosts[p->host_id]);
-//
-//   free_ptr_array(status);
-//   free_ptr_array(plens);
-//   free_ptr_array(ples);
-//   free_ptr_array(edges);
-//   free_ptr_array(pls);
-//   free_ptr_array(hosts);
-//   free_script_array(scripts);
-//
-//   disconnect_db(dbh);
-// }
-//
+TEST(mysql, connect) {
+  DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
+  EXPECT_NE(nullptr, dbh);
+  disconnect_db(dbh);
+}
+
+template <typename T>
+void read_table(struct DataSet<T> &set, const char *sql,
+                get_fields_callback get_fields, const char* where = 0) {
+  DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
+  EXPECT_NE(nullptr, dbh);
+
+  EXPECT_GE(query_data(set, dbh, sql, get_fields, where), 0);
+
+  //show_data_set(set, std::cout);
+
+  free_data_set(set);
+
+  disconnect_db(dbh);
+}
+
+TEST(mysql, read_hosts_where) {
+  struct DataSet<MR_HOST> hosts;
+  DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
+  EXPECT_NE(nullptr, dbh);
+
+  EXPECT_GE(query_data(hosts, dbh, select_host_from_db, get_hosts, (const char*)"minion_id like 'old%' and ip not like '10.10.205%'"), 0);
+
+  //show_data_set(hosts, std::cout);
+
+  EXPECT_EQ(hosts.size, 280);
+  free_data_set(hosts);
+
+  disconnect_db(dbh);
+
+}
+
+TEST(mysql, read_hosts) {
+  struct DataSet<MR_HOST> hosts;
+  read_table(hosts, select_host_from_db, get_hosts);
+}
+
+TEST(mysql, read_pipeline) {
+  struct DataSet<MR_PIPELINE> pls;
+  read_table(pls, select_pipeline_from_db, get_pipeline);
+}
+
+TEST(mysql, read_script) {
+  DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
+  EXPECT_NE(nullptr, dbh);
+
+  struct DataSet<MR_SCRIPT> set;
+  EXPECT_GE(query_data(set, dbh, select_script_from_db, get_script),
+            0);
+
+  //show_data_set(set, std::cout);
+
+  free_script_set(set);
+
+  disconnect_db(dbh);
+}
+
+TEST(mysql, read_pipeline_edge) {
+  struct DataSet<MR_PIPELINE_EDGE> edges;
+  read_table(edges, select_edge_from_db, get_edge);
+}
+
+TEST(mysql, read_pipeline_exec) {
+  struct DataSet<MR_PIPELINE_EXEC> ples;
+  read_table(ples, select_plexec_from_db, get_pipeline_exec);
+}
+
+TEST(mysql, read_plen_exec) {
+  struct DataSet<MR_PIPELINE_NODE_EXEC> plens;
+  read_table(plens, select_plen_from_db, get_plen_exec);
+}
+
+TEST(mysql, read_host_status) {
+  struct DataSet<MR_HOST_STATUS> status;
+  read_table(status, select_host_status_from_db, get_host_status);
+}
+
+TEST(mysql, read_all) {
+  DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
+  EXPECT_NE(nullptr, dbh);
+
+  struct DataSet<MR_HOST> hosts;
+  struct DataSet<MR_PIPELINE> pls;
+  struct DataSet<MR_SCRIPT> scripts;
+  struct DataSet<MR_PIPELINE_EDGE> edges;
+  struct DataSet<MR_PIPELINE_EXEC> ples;
+  struct DataSet<MR_PIPELINE_NODE_EXEC> plens;
+  struct DataSet<MR_HOST_STATUS> status;
+
+  EXPECT_GE(query_data(hosts, dbh, select_host_from_db, get_hosts), 0);
+  EXPECT_GE(query_data(pls, dbh, select_pipeline_from_db, get_pipeline),
+            0);
+  EXPECT_GE(query_data(scripts, dbh, select_script_from_db, get_script),
+            0);
+  EXPECT_GE(query_data(edges, dbh, select_edge_from_db, get_edge), 0);
+  EXPECT_GE(
+      query_data(ples, dbh, select_plexec_from_db, get_pipeline_exec),
+      0);
+  EXPECT_GE(query_data(plens, dbh, select_plen_from_db, get_plen_exec),
+            0);
+  EXPECT_GE(
+      query_data(status, dbh, select_pipeline_from_db, get_host_status),
+      0);
+
+  free_data_set(status);
+  free_data_set(plens);
+  free_data_set(ples);
+  free_data_set(edges);
+  free_data_set(pls);
+  free_data_set(hosts);
+  free_script_set(scripts);
+
+  disconnect_db(dbh);
+}
+
+#define offset(T, F) ((char *)&(F) - (char *)&(T))
+
+TEST(mario_data, set_maps) {
+  DBHANDLE dbh = connect_db("localhost", 3306, "mario", "mario", "chaojimali");
+  EXPECT_NE(nullptr, dbh);
+
+  struct DataSet<MR_HOST> hosts;
+  struct DataSet<MR_PIPELINE> pls;
+  struct DataSet<MR_SCRIPT> scripts;
+  struct DataSet<MR_PIPELINE_EDGE> edges;
+  struct DataSet<MR_PIPELINE_EXEC> ples;
+  struct DataSet<MR_PIPELINE_NODE_EXEC> plens;
+  struct DataSet<MR_HOST_STATUS> status;
+
+  EXPECT_GE(query_data(hosts, dbh, select_host_from_db, get_hosts), 0);
+  EXPECT_GE(query_data(pls, dbh, select_pipeline_from_db, get_pipeline),
+            0);
+  EXPECT_GE(query_data(scripts, dbh, select_script_from_db, get_script),
+            0);
+  EXPECT_GE(query_data(edges, dbh, select_edge_from_db, get_edge), 0);
+  EXPECT_GE(
+      query_data(ples, dbh, select_plexec_from_db, get_pipeline_exec),
+      0);
+  EXPECT_GE(query_data(plens, dbh, select_plen_from_db, get_plen_exec),
+            0);
+  EXPECT_GE(query_data(status, dbh, select_host_status_from_db,
+                              get_host_status),
+            0);
+
+  MapId2Ptr mapHosts, mapPipeline, mapScript, mapEdges, mapPipelineExec,
+      mapPipelineNodeExec, mapHostStatus;
+  insert_int2ptr_map(mapHosts, hosts);
+  insert_int2ptr_map(mapPipeline, pls);
+  insert_int2ptr_map(mapScript, scripts);
+  insert_int2ptr_map(mapEdges, edges);
+  insert_int2ptr_map(mapPipelineExec, ples);
+  insert_int2ptr_map(mapPipelineNodeExec, plens);
+  insert_int2ptr_map(mapHostStatus, status);
+
+  EXPECT_NE(nullptr, mapHosts[0]);
+  EXPECT_NE(nullptr, mapHosts[1]);
+  EXPECT_EQ(mapHosts[0], &hosts[0]);
+  EXPECT_EQ(mapHosts[1], &hosts[1]);
+  EXPECT_EQ(mapHosts[10552], hosts.data + 2);
+  EXPECT_EQ(nullptr, mapHosts[100000000]);
+
+  MapStr2Ptr mapHostMinion;
+  MR_HOST host_;
+  insert_str2_ptr_map(mapHostMinion, hosts, offset(host_, host_.minion_id));
+  EXPECT_NE(mapHostMinion["new080027ADF439"], nullptr);
+  EXPECT_EQ(0,
+            strcmp(((MR_HOST *)(mapHostMinion["new080027ADF439"]))->minion_id,
+                   "new080027ADF439"));
+  EXPECT_EQ(mapHostMinion["*"], &hosts[0]);
+  EXPECT_EQ(mapHostMinion["---"], &hosts[1]);
+
+  {
+    MR_HOST_STATUS s_;
+    set_key_to_ptr(mapHosts, status, offset(s_, s_.host_id),
+                   offset(s_, s_.host));
+    set_key_to_ptr(mapPipelineExec, status, offset(s_, s_.pe_id),
+                   offset(s_, s_.pe));
+  }
+
+  {
+    MR_PIPELINE_NODE_EXEC p_;
+    set_key_to_ptr(mapPipelineExec, plens, offset(p_, p_.pe_id),
+                   offset(p_, p_.ple));
+    set_key_to_ptr(mapEdges, plens, offset(p_, p_.edge_id),
+                   offset(p_, p_.edge));
+
+    for (size_t i = 0; i < plens.size; ++i)
+        plens[i].host = reinterpret_cast<MR_HOST *>(mapHostMinion[plens[i].minion_id]);
+  }
+
+  {
+    MR_PIPELINE_EXEC p_;
+    set_key_to_ptr(mapPipeline, ples, offset(p_, p_.pl_id),
+                   offset(p_, p_.pipeline));
+  }
+
+  {
+    for (size_t i = 0; i < edges.size; ++i) {
+      edges[i].pipeline = reinterpret_cast<MR_PIPELINE *>(mapPipeline[edges[i].pl_id]);
+      edges[i].src_host = reinterpret_cast<MR_HOST *>(mapHostMinion[edges[i].src_min_id]);
+      edges[i].trg_host = reinterpret_cast<MR_HOST *>(mapHostMinion[edges[i].trg_min_id]);
+
+      edges[i].src_node_ptr = (edges[i].src_type == NODE_TYPE_SCRIPT)
+                            ? mapScript[edges[i].src_id]
+                            : mapPipeline[edges[i].src_id];
+      edges[i].trg_node_ptr = (edges[i].trg_type == NODE_TYPE_SCRIPT)
+                            ? mapScript[edges[i].trg_id]
+                            : mapPipeline[edges[i].trg_id];
+    }
+    MR_PIPELINE_EDGE *p = edges.data;
+    EXPECT_EQ(strcmp(p->src_host->minion_id, p->src_min_id), 0);
+    EXPECT_EQ(strcmp(p->trg_host->minion_id, p->trg_min_id), 0);
+    EXPECT_EQ(p->pl_id, p->pipeline->id);
+    EXPECT_EQ(((MR_SCRIPT *)(p->src_node_ptr))->id, p->src_id);
+    EXPECT_EQ(((MR_SCRIPT *)(p->trg_node_ptr))->id, p->trg_id);
+
+    p = edges.data + 1;
+    EXPECT_EQ(strcmp(p->src_host->minion_id, p->src_min_id), 0);
+    EXPECT_EQ(strcmp(p->trg_host->minion_id, p->trg_min_id), 0);
+    EXPECT_EQ(p->pl_id, p->pipeline->id);
+    EXPECT_EQ(((MR_SCRIPT *)(p->src_node_ptr))->id, p->src_id);
+    EXPECT_EQ(((MR_SCRIPT *)(p->trg_node_ptr))->id, p->trg_id);
+  }
+
+  for (size_t i = 0; i < scripts.size; ++i)
+    scripts.data[i].host = reinterpret_cast<MR_HOST *>(mapHosts[scripts.data[i].host_id]);
+
+  free_data_set(status);
+  free_data_set(plens);
+  free_data_set(ples);
+  free_data_set(edges);
+  free_data_set(pls);
+  free_data_set(hosts);
+  free_script_set(scripts);
+
+  disconnect_db(dbh);
+}
+
 // #include "salt_api.h"
 //
 // TEST(salt, parse_json_job_new) {

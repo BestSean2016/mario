@@ -25,17 +25,25 @@ template <typename T> T* new_obj() {
 }
 
 template <typename T>
-int get_array_from_db(std::vector<T *> &array, DBHANDLE dbh, const char *sql,
-                      get_fields_callback get_field) {
+int query_data(struct DataSet<T>& set, DBHANDLE dbh, const char *sql,
+                      get_fields_callback get_field, const char* where = 0) {
   if (!dbh)
     return -1;
 
   int nCount = 0;
 
-  int res = mysql_query(reinterpret_cast<MYSQL *>(dbh), sql);
+  char * query = 0;
+  if (where) {
+    query = new char[strlen(sql) + strlen(where) + strlen(" WHERE ") + 1];
+    snprintf(query, strlen(sql) + strlen(where) + strlen(" WHERE ") + 1, "%s WHERE %s", sql, where);
+  } else
+    query = (char*)sql;
+
+  int res = mysql_query(reinterpret_cast<MYSQL *>(dbh), query);
   if (res) {
     fprintf(stdout, "SELECT error: %s by %s\n",
-            mysql_error(reinterpret_cast<MYSQL *>(dbh)), sql);
+            mysql_error(reinterpret_cast<MYSQL *>(dbh)), query);
+    if (where) delete query;
     return -2;
   } else {
     MYSQL_RES *res_ptr = mysql_store_result(reinterpret_cast<MYSQL *>(dbh));
@@ -44,14 +52,17 @@ int get_array_from_db(std::vector<T *> &array, DBHANDLE dbh, const char *sql,
       nCount = mysql_num_rows(res_ptr);
       if (nCount <= 0) {
         mysql_free_result(res_ptr);
+        free_data_set(set);
         return 0;
       }
 
+      set.size = (size_t)nCount;
+      set.data = new T[set.size];
+
       MYSQL_ROW mysql_row;
+      size_t i = 0;
       while ((mysql_row = mysql_fetch_row(res_ptr))) {
-        T *t = new_obj<T>();
-        get_field(t, mysql_row);
-        array.push_back(t);
+        get_field(set.data + i++, mysql_row);
       }
 
       if (mysql_errno(reinterpret_cast<MYSQL *>(dbh))) {
@@ -62,6 +73,7 @@ int get_array_from_db(std::vector<T *> &array, DBHANDLE dbh, const char *sql,
       mysql_free_result(res_ptr);
     }
   }
+  if (where) delete [] query;
   return nCount;
 }
 

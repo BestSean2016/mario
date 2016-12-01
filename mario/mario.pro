@@ -3,12 +3,15 @@ CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
+DEFINES  += __USING_MYSQL__
+
 SOURCES += main.cpp \
     ../src/chinese.c \
     ../src/mario_mysql.cpp \
     ../src/mario_data.cpp \
     ../src/utility.c \
-    ../src/salt_api.cpp
+    ../src/salt_api.cpp \
+    ../src/pipeline.cpp
 
 HEADERS += \
     ../include/chinese.h \
@@ -16,7 +19,8 @@ HEADERS += \
     ../include/utility.h \
     ../include/mario_data.h \
     ../include/salt_api.h \
-    ../include/http_client.h
+    ../include/http_client.h \
+    ../include/pipeline.h
 
 DISTFILES += \
     ../src/mario-host-ip.py \
@@ -26,8 +30,9 @@ DISTFILES += \
 
 
 INCLUDEPATH += ../include
+INCLUDEPATH += /usr/local/include/igraph
 
-DEFINES  += __USING_MYSQL__
+
 
 ###################### unix ############################
 unix {

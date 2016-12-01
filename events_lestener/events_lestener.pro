@@ -7,9 +7,7 @@ SOURCES += main.cpp \
     ../src/mario_data.cpp \
     ../src/salt_api.cpp \
     ../src/utility.c \
-    ../src/mario_mysql.cpp \
     ../src/http_client.cpp
-
 
 
 INCLUDEPATH += ../include
@@ -66,8 +64,6 @@ HEADERS += \
     ../include/chinese.h \
     ../include/http_client.h \
     ../include/mario_data.h \
-    ../include/mario_mysql.h \
     ../include/salt_api.h \
-    ../include/utility.h \
-    ../include/pipeline.h
+    ../include/utility.h
 
