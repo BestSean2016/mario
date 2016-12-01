@@ -1,0 +1,2 @@
+rapidjson/document.h:1681: const Ch* rapidjson::GenericValue<Encoding, Allocator>::GetString() const [with Encoding = rapidjson::UTF8<>; Allocator = rapidjson::MemoryPoolAllocator<>; rapidjson::GenericValue<Encoding, Allocator>::Ch = char]: Assertion `IsString()' failed.
+

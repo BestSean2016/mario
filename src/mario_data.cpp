@@ -20,8 +20,8 @@ std::ostream& operator<<(std::ostream& out, MR_PIPELINE& pl) {
       << pl.pl_oldid << ", "
       << pl.pl_create_tm << ", "
       << pl.pl_modify_tm << ", "
-      << pl.pl_desc
-      << std::endl;
+      << pl.pl_desc << ", "
+      << pl.pl_schedule << std::endl;
   return out;
 }
 
@@ -113,7 +113,7 @@ void free_script_set(struct DataSet<MR_SCRIPT>& set) {
     for (size_t i = 0; i < set.size; ++i)
       if (set.data[i].script) free(set.data[i].script);
   }
-  free_data_set(set);
+  set.free_data_set();
 }
 
 void set_host_status_map(std::vector<MR_HOST_STATUS*>& status,

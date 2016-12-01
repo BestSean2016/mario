@@ -47,6 +47,14 @@ static const char *salt_api_str[] = {
     "X-Auth-Token: %s\r\n"
     "\r\n",
 
+    "POST / HTTP/1.1\r\n"
+    "Host: 10.10.10.19:8000\r\n"
+    "Accept: application/json\r\n"
+    "X-Auth-Token: %s\r\n"
+    "Content-Length: 94\r\n"
+    "Content-Type: application/x-www-form-urlencoded\r\n"
+    "\r\n"
+    "client=local_async&fun=cmd.run_all&tgt=%s&arg=c:\\hongt\\Client\\ExecClient.exe abcd",
 };
 
 //
@@ -313,12 +321,23 @@ int salt_api_testping(const char *hostname, int port, uint64_t pid) {
                      (void *)pid); // parse_cmd_return
 }
 
+
 int salt_api_test_cmdrun(const char *hostname, int port, uint64_t pid) {
   char buf[BUFSIZE];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TEST_CMDRUN], g_token);
   return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
                      (void *)pid); // parse_cmd_return
+}
+
+int salt_api_cmd_runall(const char* hostname, int port, const char* minion, const char* script, uint64_t pid)
+{
+    (void)script;
+    char buf[BUFSIZE];
+    char cmd[1024];
+    snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_RUNALL], g_token, minion);
+    return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
+                       (void *)pid); // parse_cmd_return
 }
 
 int salt_api_events(const char *hostname, int port, int *run) {

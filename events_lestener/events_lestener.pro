@@ -12,8 +12,6 @@ SOURCES += main.cpp \
 
 INCLUDEPATH += ../include
 
-INCLUDEPATH += /usr/local/include/igraph
-
 
 ###################### unix ############################
 unix {

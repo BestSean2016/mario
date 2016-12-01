@@ -1,7 +1,9 @@
 #include "chinese.h"
 #include "salt_api.h"
+#include "http_client.h"
 #include "mario_data.h"
 #include "mario_mysql.h"
+#include "pipeline.h"
 #include <gtest/gtest.h>
 #include <iostream>
 #include <curl/curl.h>
@@ -239,8 +241,6 @@ void read_table(struct DataSet<T> &set, const char *sql,
 
   //show_data_set(set, std::cout);
 
-  free_data_set(set);
-
   disconnect_db(dbh);
 }
 
@@ -254,10 +254,8 @@ TEST(mysql, read_hosts_where) {
   //show_data_set(hosts, std::cout);
 
   EXPECT_EQ(hosts.size, 280);
-  free_data_set(hosts);
 
   disconnect_db(dbh);
-
 }
 
 TEST(mysql, read_hosts) {
@@ -268,6 +266,16 @@ TEST(mysql, read_hosts) {
 TEST(mysql, read_pipeline) {
   struct DataSet<MR_PIPELINE> pls;
   read_table(pls, select_pipeline_from_db, get_pipeline);
+}
+
+TEST(mysql, read_real_node) {
+  struct DataSet<MR_REAL_NODE> nodes;
+  read_table(nodes, select_real_node, get_real_node);
+}
+
+TEST(mysql, read_real_edge) {
+  struct DataSet<MR_REAL_EDGE> edges;
+  read_table(edges, select_real_edge, get_real_edge);
 }
 
 TEST(mysql, read_script) {
@@ -332,12 +340,6 @@ TEST(mysql, read_all) {
       query_data(status, dbh, select_pipeline_from_db, get_host_status),
       0);
 
-  free_data_set(status);
-  free_data_set(plens);
-  free_data_set(ples);
-  free_data_set(edges);
-  free_data_set(pls);
-  free_data_set(hosts);
   free_script_set(scripts);
 
   disconnect_db(dbh);
@@ -396,8 +398,8 @@ TEST(mario_data, set_maps) {
   EXPECT_EQ(0,
             strcmp(((MR_HOST *)(mapHostMinion["new080027ADF439"]))->minion_id,
                    "new080027ADF439"));
-  EXPECT_EQ(mapHostMinion["*"], &hosts[0]);
-  EXPECT_EQ(mapHostMinion["---"], &hosts[1]);
+  EXPECT_EQ(mapHostMinion["*"], &hosts[1]);
+  EXPECT_EQ(mapHostMinion["---"], &hosts[0]);
 
   {
     MR_HOST_STATUS s_;
@@ -455,12 +457,6 @@ TEST(mario_data, set_maps) {
   for (size_t i = 0; i < scripts.size; ++i)
     scripts.data[i].host = reinterpret_cast<MR_HOST *>(mapHosts[scripts.data[i].host_id]);
 
-  free_data_set(status);
-  free_data_set(plens);
-  free_data_set(ples);
-  free_data_set(edges);
-  free_data_set(pls);
-  free_data_set(hosts);
   free_script_set(scripts);
 
   disconnect_db(dbh);
@@ -857,3 +853,10 @@ TEST(mario_data, set_maps) {
 //   free_salt_job(job);
 // }
 //
+
+TEST(gen_piple, diamond) {
+  EXPECT_EQ(0, gen_diamond_pipeline(120, 4));
+  salt_api_login("10.10.10.19", 8000);
+  run_pipeline();
+  release_pipeline();
+}

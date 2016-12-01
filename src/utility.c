@@ -13,6 +13,8 @@
 
 #ifdef _UNIX_
 char *strcpy_s(char *buf, const size_t buflen, const char *str) {
+  if (!str || !buf) return 0;
+
   if (strlen(str) > buflen - 1) {
       strncpy(buf, str, buflen - 1);
       buf[buflen - 1] = 0;

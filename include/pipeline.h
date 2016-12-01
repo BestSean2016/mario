@@ -2,12 +2,8 @@
 #define PIPELINE_H
 
 
-#include <igraph.h>
-#include "mario_data.h"
-#include "mario_mysql.h"
-#include "salt_api.h"
-
-extern int gen_tree_pipeline();
-
+extern int gen_diamond_pipeline(int node_num, int branch_num);
+extern void release_pipeline();
+extern int run_pipeline();
 
 #endif // PIPELINE_H

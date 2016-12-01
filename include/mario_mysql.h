@@ -14,6 +14,13 @@
 
 #define mysql_sdup(dptr) ((dptr) ? strdup(dptr) : nullptr)
 
+#define mysql_atoll(dptr) ((dptr) ? atoll(dptr) : 0)
+
+#define mysql_atol(dptr) ((dptr) ? atol(dptr) : 0)
+
+#define mysql_atoi(dptr) ((dptr) ? atoi(dptr) : 0)
+
+
 typedef void *DBHANDLE;
 typedef void (*get_fields_callback)(void *, MYSQL_ROW &mysql_row);
 
@@ -52,12 +59,11 @@ int query_data(struct DataSet<T>& set, DBHANDLE dbh, const char *sql,
       nCount = mysql_num_rows(res_ptr);
       if (nCount <= 0) {
         mysql_free_result(res_ptr);
-        free_data_set(set);
+        set.free_data_set();
         return 0;
       }
 
-      set.size = (size_t)nCount;
-      set.data = new T[set.size];
+      set.init((size_t)nCount);
 
       MYSQL_ROW mysql_row;
       size_t i = 0;
@@ -77,10 +83,6 @@ int query_data(struct DataSet<T>& set, DBHANDLE dbh, const char *sql,
   return nCount;
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif //__cplusplus
-
 extern const char *select_host_from_db;
 extern const char *select_pipeline_from_db;
 extern const char *select_script_from_db;
@@ -88,6 +90,9 @@ extern const char* select_edge_from_db;
 extern const char *select_plexec_from_db;
 extern const char* select_plen_from_db;
 extern const char* select_host_status_from_db;
+extern const char* select_real_node;
+extern const char* select_real_edge;
+
 
 extern DBHANDLE connect_db(const char *host, int port, const char *db,
                            const char *user, const char *passwd);
@@ -100,10 +105,8 @@ extern void get_edge(void* edge_ptr, MYSQL_ROW& mysql_row);
 extern void get_pipeline_exec(void* ptr, MYSQL_ROW& row);
 extern void get_plen_exec(void* ptr, MYSQL_ROW& row);
 extern void get_host_status(void* ptr, MYSQL_ROW& row);
-
-#ifdef __cplusplus
-}
-#endif //__cplusplus
+extern void get_real_node(void* ptr, MYSQL_ROW &row);
+extern void get_real_edge(void* ptr, MYSQL_ROW &row);
 
 #endif //__USING_MYSQL_
 

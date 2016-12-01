@@ -11,7 +11,8 @@ SOURCES += main.cpp \
     ../src/mario_data.cpp \
     ../src/utility.c \
     ../src/salt_api.cpp \
-    ../src/pipeline.cpp
+    ../src/pipeline.cpp \
+    ../src/http_client.cpp
 
 HEADERS += \
     ../include/chinese.h \
@@ -41,7 +42,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -ligraph -lcurl -L/usr/lib64/mysql -lmysqlclient
+    LIBS += -lpthread -lrt -ligraph -L/usr/lib64/mysql -lmysqlclient
     LIBS += -L/usr/local/lib -lgtest -lgtest_main
 
     target.path = /usr/local/bin/mario

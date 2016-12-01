@@ -21,6 +21,7 @@
 #define IP_ADDRESS_LENGTH 15
 #define OLD_SYS_ID_LENGTH 64
 #define NORMAL_NAME_LENGTH 50
+#define SCHEDULE_LENGTH    128
 
 //#define new_obj(Obj, Type) Obj = (#Type*)new #Type; \ memset(Obj, 0, sizeof(#Type));
 
@@ -51,6 +52,21 @@ typedef struct mr_script {
   char desc[SHORT_TEXT_LENGTH];       ///说明
 } MR_SCRIPT;
 
+typedef struct mr_real_node {
+  int64_t id;
+  int64_t ple_id;
+  int64_t script_id;
+  int64_t host_id;
+  int     timerout;
+} MR_REAL_NODE;
+
+typedef struct mr_real_edge {
+  int64_t id;
+  int64_t ple_id;
+  int64_t node_src_id;
+  int64_t node_trg_id;
+} MR_REAL_EDGE;
+
 typedef enum HOST_STATUS_TYPE {
   HOST_STATUS_TYPE_UNKONW,
   HOST_STATUS_TYPE_NORMAL,
@@ -64,6 +80,7 @@ typedef struct mr_pipeline {
   char pl_oldid[OLD_SYS_ID_LENGTH]; ///原系统ID
   char pl_name[NORMAL_NAME_LENGTH]; ///名称
   char pl_desc[SHORT_TEXT_LENGTH];  ///说明
+  char pl_schedule[SCHEDULE_LENGTH];  ///schaduling
 } MR_PIPELINE;
 
 typedef enum NODE_TYPE {
@@ -158,16 +175,46 @@ typedef struct mr_host_status {
 
 template<typename T>
 struct DataSet {
-    size_t size;
-    T* data;
+  size_t size;
+  T* data;
 
-    DataSet<T> () {
-      size = 0;
-      data = nullptr;
-    }
-    T& operator[] (size_t d) {
-      return data[d];
-    }
+  DataSet<T> () {
+    size = 0;
+    data = nullptr;
+  }
+
+  DataSet<T> (size_t s) {
+    size = s;
+    data = new T[s];
+    memset(data, 0, sizeof(T) * s);
+  }
+
+  void init(size_t s) {
+    free_data_set();
+    size = s;
+    data = new T[s];
+    memset(data, 0, sizeof(T) * s);
+  }
+
+  ~DataSet<T> () {
+    free_data_set();
+  }
+
+  void free_data_set() {
+    if (data) delete [] data;
+    size = 0;
+    data = nullptr;
+  }
+
+  T& operator[] (size_t d) {
+    return data[d];
+  }
+
+  int64_t rand_id() {
+    if (!size) return -1;
+    srand(time(0));
+    return (int64_t)(rand() % size);
+  }
 };
 
 template<typename T>
@@ -185,12 +232,6 @@ void show_data_set(struct DataSet<T>& set, std::ostream& out) {
     out << set.data[i];
 }
 
-template<typename T>
-void free_data_set(struct DataSet<T>& set) {
-  if (set.data) delete [] set.data;
-  set.size = 0;
-  set.data = nullptr;
-}
 
 extern void free_script_set(struct DataSet<MR_SCRIPT>& set);
 
