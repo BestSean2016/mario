@@ -35,34 +35,37 @@ static int get_scripts_data() {
 
 static int gen_tree(int node_num, int branch_num) {
   igraph_t gIn, gOut;
-  igraph_vector_t neinode;
   igraph_vector_t edge;
   std::vector<int> e;
+  int half = node_num / 2;
 
   igraph_vector_init(&edge, 0);
-  igraph_vector_init(&neinode, 0);
 
-  igraph_tree(&gIn, node_num, branch_num, IGRAPH_TREE_IN);
-  igraph_tree(&gOut, node_num, branch_num, IGRAPH_TREE_OUT);
+  igraph_tree(&gIn, half, branch_num, IGRAPH_TREE_IN);
+  igraph_tree(&gOut, half, branch_num, IGRAPH_TREE_OUT);
 
   igraph_get_edgelist(&gOut, &edge, false);
 
   for (int64_t i = 0; i < igraph_vector_size(&edge); ++i)
     e.push_back(VECTOR(edge)[i]);
 
-  for (int i = 0; i < node_num; ++i) {
-    igraph_neighbors(&gOut, &neinode, i, IGRAPH_OUT);
-    if (0 == igraph_vector_size(&neinode)) {
-      e.push_back(i);
-      e.push_back(i + ((node_num - i) - 1) * 2 + 1);
+  {
+    igraph_vector_t neinode;
+    igraph_vector_init(&neinode, 0);
+    for (int i = 0; i < half; ++i) {
+      igraph_neighbors(&gOut, &neinode, i, IGRAPH_OUT);
+      if (0 == igraph_vector_size(&neinode)) {
+        e.push_back(i);
+        e.push_back(i + ((half - i) - 1) * 2 + 1);
+      }
     }
+    igraph_vector_destroy(&neinode);
   }
-  igraph_vector_destroy(&neinode);
 
   igraph_get_edgelist(&gIn, &edge, false);
   for (int64_t i = 0; i < igraph_vector_size(&edge); ++i) {
     int vid = VECTOR(edge)[i];
-    e.push_back(vid + ((node_num - vid) - 1) * 2 + 1);
+    e.push_back(vid + ((half - vid) - 1) * 2 + 1);
   }
 
   igraph_vector_destroy(&edge);
@@ -73,19 +76,13 @@ static int gen_tree(int node_num, int branch_num) {
 
   igraph_destroy(&gOut);
   igraph_destroy(&gIn);
-  igraph_vector_destroy(&neinode);
 
   igraph_i_set_attribute_table(&igraph_cattribute_table);
-  igraph_create(&g_graph, &edge, node_num * 2, 1);
+  igraph_create(&g_graph, &edge, half * 2, 1);
   igraph_vector_destroy(&edge);
 
   return (0);
 }
-int64_t id;
-int64_t pl_id;
-int64_t script_id;
-int64_t host_id;
-int     timerout;
 
 static void set_start_and_stop(struct DataSet<MR_REAL_NODE>& nodes, int64_t id_start) {
   nodes[0].id = id_start;
@@ -114,10 +111,10 @@ static int gen_nodes_edges() {
   set_start_and_stop(g_nodes, id_start);
 
   for (size_t i = 1; i < g_nodes.size - 1; ++i) {
-    g_nodes[i].id = id_start + 1;
+    g_nodes[i].id = id_start + i;
     g_nodes[i].ple_id = 2;
     g_nodes[i].script_id = 11;
-    g_nodes[i].host_id = g_hosts.rand_id();
+    g_nodes[i].host_id = (i - 1) % g_hosts.size;
     g_nodes[i].timerout = 40;
   }
 
@@ -157,15 +154,65 @@ void release_pipeline() {
 }
 
 static int run_task(MR_REAL_NODE& node) {
-  return salt_api_cmd_runall("10.10.10.19", 8000, g_hosts[node.host_id].minion_id, g_scripts[node.host_id].script, node.id);
+  if ((size_t)node.host_id > g_hosts.size) {
+    printf("node id %ld, host id %ld\n", node.id, node.host_id);
+    exit(0);
+  }
+  MR_HOST& this_host = g_hosts[node.host_id];
+  MR_SCRIPT& this_scrpt = g_scripts[node.script_id];
+  return salt_api_cmd_runall("10.10.10.19", 8000, this_host.minion_id, this_scrpt.script, node.id);
 }
 
 
 int run_pipeline() {
-  for (int64_t i = 0; i < igraph_vcount(&g_graph); ++i) {
+//
+//  igraph_vector_t order, rank, father, pred, succ, dist;
+//  igraph_i_set_attribute_table(&igraph_cattribute_table);
+//
+//
+//
+//  // igraph_ring(&g, 10, IGRAPH_UNDIRECTED, 0, 1);
+//  //igraph_erdos_renyi_game(&g, IGRAPH_ERDOS_RENYI_GNP, 100, 0.2,
+//  //            IGRAPH_DIRECTED, IGRAPH_NO_LOOPS);
+//  //igraph_grg_game(&g, 100, sqrt(2) / 2, 1, 0, 0);
+//  igraph_tree(&g, 20, 3, IGRAPH_TREE_IN);
+//
+//
+//  igraph_vector_init(&order, 0);
+//  igraph_vector_init(&rank, 0);
+//  igraph_vector_init(&father, 0);
+//  igraph_vector_init(&pred, 0);
+//  igraph_vector_init(&succ, 0);
+//  igraph_vector_init(&dist, 0);
+//
+//  igraph_bfs(&g, /*root=*/0, /*roots=*/ 0, /*neimode=*/ IGRAPH_ALL,
+//         /*unreachable=*/ 1, /*restricted=*/ 0,
+//         &order, &rank, &father, &pred, &succ, &dist,
+//         /*callback=*/ bfs_callback, /*extra=*/ 0);
+//
+//  // igraph_vector_print(&order);
+//  // igraph_vector_print(&rank);
+//  // igraph_vector_print(&father);
+//  // igraph_vector_print(&pred);
+//  // igraph_vector_print(&succ);
+//  // igraph_vector_print(&dist);
+//
+//  igraph_vector_destroy(&order);
+//  igraph_vector_destroy(&rank);
+//  igraph_vector_destroy(&father);
+//  igraph_vector_destroy(&pred);
+//  igraph_vector_destroy(&succ);
+//  igraph_vector_destroy(&dist);
+//
+//  //igraph_write_graph_gml(&g, stdout, 0, "in");
+//  igraph_write_graph_graphml(&g, stdout, 0);
+//  igraph_destroy(&g);
+//
 
+  for (int64_t i = 1; i < igraph_vcount(&g_graph) - 1; ++i) {
     run_task(g_nodes[i]);
-    std::this_thread::sleep_for(std::chrono::seconds(g_nodes[i].timerout));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    //g_nodes[i].timerout
   }
 
   return (0);
