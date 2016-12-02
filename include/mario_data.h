@@ -43,7 +43,7 @@ typedef struct mr_script {
   int64_t id;                         ///脚本ID
   int64_t host_id;                    ///脚本对应的主机ID
   MR_HOST* host;
-  char *script;                       ///脚本
+  char script[SHORT_TEXT_LENGTH];     ///脚本
   SCRIPT_TYPE scpt_type;              ///脚本type
   int scpt_timeout;                   /// DEFAULT '300 '执行超时时间
   time_t create_tm;                   ///创建时间
@@ -178,9 +178,7 @@ struct DataSet {
   size_t size;
   T* data;
 
-  DataSet<T> () {
-    size = 0;
-    data = nullptr;
+  DataSet<T> () :size(0), data(nullptr) {
   }
 
   DataSet<T> (size_t s) {
@@ -217,6 +215,7 @@ struct DataSet {
   }
 };
 
+
 template<typename T>
 bool operator==(T& a, T&b) {
   return (0 == (memcmp(&a, &b, sizeof(T))));
@@ -233,7 +232,7 @@ void show_data_set(struct DataSet<T>& set, std::ostream& out) {
 }
 
 
-extern void free_script_set(struct DataSet<MR_SCRIPT>& set);
+// extern void free_script_set(struct DataSet<MR_SCRIPT>& set);
 
 template<typename T>
 void insert_int2ptr_map(MapId2Ptr& map, struct DataSet<T>& set) {

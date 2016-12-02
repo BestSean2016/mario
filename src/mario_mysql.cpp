@@ -189,7 +189,13 @@ void get_script(void *script_ptr, MYSQL_ROW &mysql_row) {
   script->id = mysql_atoll(mysql_row[0]);
   mysql_scpy(script->scpt_name, NORMAL_NAME_LENGTH, mysql_row[1]);
   script->host_id = mysql_atoll(mysql_row[2]);
-  script->script = mysql_sdup(mysql_row[3]);
+  //script->script = mysql_sdup(mysql_row[3]);
+  // if (mysql_row[3]) {
+  //   script->script = new char[strlen(mysql_row[3]) + 1];
+  //   strcpy(script->script, mysql_row[3]);
+  // } else
+  //   script->script = nullptr;
+  mysql_scpy(script->script, SHORT_TEXT_LENGTH, mysql_row[3]);
   script->scpt_type = (SCRIPT_TYPE)(mysql_row[4][0] - '0');
   script->scpt_timeout = mysql_atoi(mysql_row[5]);
   mysql_scpy(script->desc, SHORT_TEXT_LENGTH, mysql_row[6]);

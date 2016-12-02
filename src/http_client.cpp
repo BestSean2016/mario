@@ -334,6 +334,7 @@ int salt_api_cmd_runall(const char *hostname, int port, const char *minion,
   (void)script;
   char buf[BUFSIZE];
   char cmd[1024];
+  if (!minion) return -1;
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_RUNALL], g_token, minion);
   return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
                      (void *)pid); // parse_cmd_return

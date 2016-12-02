@@ -44,14 +44,14 @@ int main(int argc, char *argv[]) {
   std::thread tEvent(salt_api_events, "10.10.10.19", 8000, &run);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   std::thread tTimerOut(thread_check_timer_out, &run);
-  std::thread tTestPing(run_test_cmd);
+  // std::thread tTestPing(run_test_cmd);
 
-  run_pipeline();
+  run_pipeline(&run);
   run = 0;
 
   std::this_thread::sleep_for(std::chrono::seconds(20));
 
-  tTestPing.join();
+  // tTestPing.join();
   tTimerOut.join();
   tEvent.join();
 

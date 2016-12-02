@@ -288,7 +288,8 @@ TEST(mysql, read_script) {
 
   //show_data_set(set, std::cout);
 
-  free_script_set(set);
+  //free_script_set(set);
+  set.free_data_set();
 
   disconnect_db(dbh);
 }
@@ -340,7 +341,8 @@ TEST(mysql, read_all) {
       query_data(status, dbh, select_pipeline_from_db, get_host_status),
       0);
 
-  free_script_set(scripts);
+  //free_script_set(scripts);
+  scripts.free_data_set();
 
   disconnect_db(dbh);
 }
@@ -457,7 +459,8 @@ TEST(mario_data, set_maps) {
   for (size_t i = 0; i < scripts.size; ++i)
     scripts.data[i].host = reinterpret_cast<MR_HOST *>(mapHosts[scripts.data[i].host_id]);
 
-  free_script_set(scripts);
+  //free_script_set(scripts);
+  scripts.free_data_set();
 
   disconnect_db(dbh);
 }
@@ -857,6 +860,6 @@ TEST(mario_data, set_maps) {
 TEST(gen_piple, diamond) {
   EXPECT_EQ(0, gen_diamond_pipeline(120, 4));
   salt_api_login("10.10.10.19", 8000);
-  run_pipeline();
+  // run_pipeline();
   release_pipeline();
 }
