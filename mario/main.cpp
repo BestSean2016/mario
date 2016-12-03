@@ -19,7 +19,7 @@ void run_test_cmd() {
   int i = 0;
   while(run) {
     std::this_thread::sleep_for(std::chrono::seconds(60));
-    salt_api_testping("10.10.10.19", 8000, test_ping_pid);
+    salt_api_testping("10.10.10.19", 8000, test_ping_pid, -1);
     if (!(++i % 60)) {
       salt_api_login("10.10.10.19", 8000);
       i = 0;
@@ -42,14 +42,14 @@ int main(int argc, char *argv[]) {
 
 
   std::thread tEvent(salt_api_events, "10.10.10.19", 8000, &run);
-  std::this_thread::sleep_for(std::chrono::seconds(10));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
   std::thread tTimerOut(thread_check_timer_out, &run);
   // std::thread tTestPing(run_test_cmd);
 
   run_pipeline(&run);
-  run = 0;
 
-  std::this_thread::sleep_for(std::chrono::seconds(20));
+  std::this_thread::sleep_for(std::chrono::seconds(60));
+  run = 0;
 
   // tTestPing.join();
   tTimerOut.join();

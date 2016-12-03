@@ -262,6 +262,114 @@ extern std::ostream& operator<<(std::ostream& out, MR_PIPELINE_NODE_EXEC& plen);
 extern std::ostream& operator<<(std::ostream& out, MR_HOST_STATUS& hs);
 
 
+typedef enum JOB_STATUS_TYPE {
+  JOB_STATUS_TYPE_NOSTART,
+  JOB_STATUS_TYPE_RUNNING,
+  JOB_STATUS_TYPE_PENDING,
+  JOB_STATUS_TYPE_PART_SUCCESSED,
+  JOB_STATUS_TYPE_SUCCESSED,
+  JOB_STATUS_TYPE_FAILED,
+  JOB_STATUS_TYPE_TIMEOUT_1,
+  JOB_STATUS_TYPE_TIMEOUT_2,
+} JOB_STATUS_TYPE;
+
+typedef struct salt_job {
+  int64_t     ple_id;            ///PIPELINE EXECUTIVE ID
+  int64_t     node_id;
+  time_t      stamp_sec;
+  uint32_t    timerout;
+  size_t      retnum;
+  size_t      success_num;
+  JOB_STATUS_TYPE stutus;
+  std::string tag;
+  std::string tgt_type;
+  std::string jid;
+  std::string tgt;
+  std::string stamp;
+  std::string user;
+  std::vector<std::string> arg;
+  std::string fun;
+  std::vector<std::string> minions;
+
+
+  salt_job() {
+    ple_id = 0;
+    node_id = -1;
+    stamp_sec = time(0);
+    timerout = 60;
+    success_num = 0;
+    retnum = 0;
+    stutus = JOB_STATUS_TYPE_RUNNING;
+  }
+
+  salt_job(int64_t pleid, int64_t nodeid) {
+    ple_id = pleid;
+    node_id = nodeid;
+    stamp_sec = time(0);
+    timerout = 60;
+    success_num = 0;
+    retnum = 0;
+    stutus = JOB_STATUS_TYPE_RUNNING;
+  }
+} SALT_JOB;
+
+typedef enum RETURN_TYPE {
+    RETURN_TYPE_OBJECT,
+    RETURN_TYPE_BOOL,
+    RETURN_TYPE_STRING,
+} RETURN_TYPE;
+
+typedef struct salt_job_ret {
+  int64_t ple_id;            ///PIPELINE EXECUTIVE ID
+  RETURN_TYPE rettype;
+  std::string tag;
+  std::string stamp;
+  time_t      stamp_sec;
+  uint32_t    stamp_usec;
+  uint32_t    pid;
+  int         retcode;
+  std::string stderr;
+  std::string stdout;
+  bool        success;
+  std::string cmd;
+  std::string jid;
+  std::string fun;
+  std::string minion_id;
+} SALT_JOB_RET;
+
+typedef void* SALT_JOB_PTR;
+typedef enum SALT_JOB_TYPE {
+    SALT_JOB_TYPE_IGNORE,
+    SALT_JOB_TYPE_NEW,
+    SALT_JOB_TYPE_RET,
+} SALT_JOB_TYPE;
+
+
+
+typedef struct salt_job_data {
+    SALT_JOB_TYPE type;
+    SALT_JOB_PTR  ptr;
+} SALT_JOB_DATA;
+
+
+#define ALL_TASK_FINISHED -10000000
+
+typedef std::string JOBID;
+typedef std::string MINION;
+typedef std::map<MINION, SALT_JOB_RET*> MapMinionRet;   //job return
+typedef std::map<JOBID, SALT_JOB*> MapJid2Job;      //job new
+typedef std::map<JOBID, MapMinionRet*> MapJid2Minions;
+typedef MapJid2Minions::iterator MJ2M_Iterator;
+
+typedef struct JobMap {
+  MapJid2Job     jobs;
+  MapJid2Minions minions;
+} JOBMAP;
+
+extern JOBMAP gjobmap;
+
+
+
 extern void set_host_status_map(std::vector<MR_HOST_STATUS *> &status,
                                 MapId2Ptr &ple, MapId2Ptr &mapHost);
 

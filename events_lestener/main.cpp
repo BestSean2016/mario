@@ -20,8 +20,8 @@ void run_test_cmd() {
   //while(run)
   {
     std::this_thread::sleep_for(std::chrono::seconds(20));
-    std::thread tTestRunCmd(salt_api_test_cmdrun, "10.10.10.19", 8000, pid++);
-    std::thread tTestPing(salt_api_testping, "10.10.10.19", 8000, pid++);
+    std::thread tTestRunCmd(salt_api_test_cmdrun, "10.10.10.19", 8000, pid++, -1);
+    std::thread tTestPing(salt_api_testping, "10.10.10.19", 8000, pid++, -1);
 
 
     tTestRunCmd.join();
@@ -50,15 +50,21 @@ int main(int argc, char *argv[]) {
   tEvent = new std::thread(salt_api_events, "10.10.10.19", 8000, &run);
 
   run_test_cmd();
-
   run = 0;
 
-  tEvent->join();
+  tEvent->detach();
   delete tEvent;
 
   tTimerOut.join();
 
   jobmap_cleanup(&gjobmap);
 
+  return 0;
+}
+
+int node_job_finished(SALT_JOB* job, MapMinionRet* rset)
+{
+  (void)job;
+  (void)rset;
   return 0;
 }

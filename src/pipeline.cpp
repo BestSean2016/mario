@@ -5,15 +5,18 @@
 #include <igraph.h>
 #include <thread>
 #include <vector>
+#include <set>
 
-static struct DataSet<MR_HOST> g_hosts;
-static struct DataSet<MR_PIPELINE> g_pls;
-static struct DataSet<MR_SCRIPT> g_scripts;
+struct DataSet<MR_HOST> g_hosts;
+struct DataSet<MR_PIPELINE> g_pls;
+struct DataSet<MR_SCRIPT> g_scripts;
 static igraph_t g_graph;
 static DBHANDLE g_dbh = 0;
-static struct DataSet<MR_REAL_NODE> g_nodes;
-static struct DataSet<MR_REAL_EDGE> g_edges;
+struct DataSet<MR_REAL_NODE> g_nodes;
+struct DataSet<MR_REAL_EDGE> g_edges;
 
+
+static std::set<int> end_node_set;
 static int get_host_data() {
   if (0 >
       query_data(
@@ -158,65 +161,46 @@ static int run_task(MR_REAL_NODE& node) {
     printf("node id %ld, host id %ld\n", node.id, node.host_id);
     exit(0);
   }
-  MR_HOST& this_host = g_hosts[node.host_id];
-  MR_SCRIPT& this_scrpt = g_scripts[node.script_id];
   return salt_api_cmd_runall((const char *)"10.10.10.19", 8000,
-                               this_host.minion_id,
-                               this_scrpt.script,
+                               g_hosts[node.host_id].minion_id,
+                               g_scripts[node.script_id].script,
+                               node.ple_id,
                                node.id);
 }
 
-
-static igraph_bool_t run_task_cb(const igraph_t *graph,
-               igraph_integer_t vid,
-               igraph_integer_t pred,
-               igraph_integer_t succ,
-               igraph_integer_t rank,
-               igraph_integer_t dist,
-               void *extra) {
-  if (*(int*)extra) {
-    run_task(g_nodes[vid]);
-    std::this_thread::sleep_for(std::chrono::seconds(15));
-  }
-  // printf(" %li", (long int) vid);
-  // char strid[32];
-  // snprintf(strid, 32, "%d", vid);
-  // SETVAS((igraph_t *)graph, "label", vid, strid);
-  return 0;
-}
-
 int run_pipeline(int *run) {
-  //while(*run){
+  std::vector<int> start_node;
+  igraph_vector_t y;
+  int64_t last_node_id = igraph_vcount(&g_graph) - 1;
+  igraph_vector_init(&y, 0);
+  for (int64_t i = 1; (*run) && (i < last_node_id); ++i) {
+    igraph_neighbors(&g_graph, &y, i, IGRAPH_IN);
+    if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == 0)
+      start_node.push_back((int)i);
+    igraph_neighbors(&g_graph, &y, i, IGRAPH_OUT);
+    if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == last_node_id)
+      end_node_set.insert((int)i);
+  }
+  igraph_vector_destroy(&y);
 
-    igraph_vector_t order, rank, father, pred, succ, dist;
-    igraph_vector_init(&order, 0);
-    igraph_vector_init(&rank, 0);
-    igraph_vector_init(&father, 0);
-    igraph_vector_init(&pred, 0);
-    igraph_vector_init(&succ, 0);
-    igraph_vector_init(&dist, 0);
-
-    igraph_bfs(&g_graph, /*root=*/0, /*roots=*/ 0, /*neimode=*/ IGRAPH_ALL,
-           /*unreachable=*/ 1, /*restricted=*/ 0,
-           &order, &rank, &father, &pred, &succ, &dist,
-           /*callback=*/ run_task_cb, /*extra=*/ run);
-
-    igraph_vector_destroy(&order);
-    igraph_vector_destroy(&rank);
-    igraph_vector_destroy(&father);
-    igraph_vector_destroy(&pred);
-    igraph_vector_destroy(&succ);
-    igraph_vector_destroy(&dist);
-
-    //std::this_thread::sleep_for(std::chrono::seconds(5));
-  //}
-
-  // for (int64_t i = 1; i < igraph_vcount(&g_graph) - 1; ++i) {
-  //   run_task(g_nodes[i]);
-  //   std::this_thread::sleep_for(std::chrono::seconds(5));
-  //   // g_nodes[i].timerout
-  // }
-
+  if (*run)
+    for (auto& p: start_node) {
+      run_task(g_nodes[p]);
+      // std::this_thread::sleep_for(std::chrono::seconds(120));
+    }
 
   return (0);
+}
+
+int node_job_finished(SALT_JOB* job, MapMinionRet* rset) {
+  std::set<int>::iterator iter = end_node_set.find(job->node_id);
+  if (iter != end_node_set.end()) {
+    //remove from set and check the
+    end_node_set.erase(iter);
+    if (end_node_set.size() == 0) return ALL_TASK_FINISHED;
+  } else {
+    //run next node
+
+  }
+  return 0;
 }

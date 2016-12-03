@@ -312,32 +312,34 @@ int salt_api_login(const char *hostname, int port) {
 //   return 0;
 // }
 
-int salt_api_testping(const char *hostname, int port, uint64_t pid) {
+int salt_api_testping(const char *hostname, int port, int64_t pid, int64_t nodeid) {
   char buf[BUFSIZE];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TESTPING], g_token);
-
-  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
-                     (void *)pid); // parse_cmd_return
+  SALT_JOB* job = new SALT_JOB(pid, nodeid);
+  return http_client(hostname, port, buf, cmd, parse_my_job, &gjobmap,
+                     job); // parse_cmd_return
 }
 
-int salt_api_test_cmdrun(const char *hostname, int port, uint64_t pid) {
+int salt_api_test_cmdrun(const char *hostname, int port, int64_t pid, int64_t nodeid) {
   char buf[BUFSIZE];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TEST_CMDRUN], g_token);
-  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
-                     (void *)pid); // parse_cmd_return
+  SALT_JOB* job = new SALT_JOB(pid, nodeid);
+  return http_client(hostname, port, buf, cmd, parse_my_job, &gjobmap,
+                     job); // parse_cmd_return
 }
 
 int salt_api_cmd_runall(const char *hostname, int port, const char *minion,
-                        const char *script, uint64_t pid) {
+                        const char *script, int64_t pid, int64_t nodeid) {
   (void)script;
   char buf[BUFSIZE];
   char cmd[1024];
   if (!minion) return -1;
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_RUNALL], g_token, minion);
-  return http_client(hostname, port, buf, cmd, parse_new_job, &gjobmap,
-                     (void *)pid); // parse_cmd_return
+  SALT_JOB* job = new SALT_JOB(pid, nodeid);
+  return http_client(hostname, port, buf, cmd, parse_my_job, &gjobmap,
+                     job); // parse_cmd_return
 }
 
 int salt_api_events(const char *hostname, int port, int *run) {

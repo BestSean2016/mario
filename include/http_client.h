@@ -15,10 +15,10 @@ typedef int (*parse_response) (const char* json_data, size_t datalen, void* para
 
 
 extern int salt_api_login(const char *hostname, int port);
-extern int salt_api_testping(const char *hostname, int port, uint64_t pid);
-extern int salt_api_test_cmdrun(const char* hostname, int port, uint64_t pid);
+extern int salt_api_testping(const char *hostname, int port, int64_t pid, int64_t nodeid);
+extern int salt_api_test_cmdrun(const char* hostname, int port, int64_t pid, int64_t nodeid);
 extern int salt_api_events(const char* hostname, int port, int *run);
-extern int salt_api_cmd_runall(const char* hostname, int port, const char* minion, const char* script, uint64_t pid);
+extern int salt_api_cmd_runall(const char* hostname, int port, const char* minion, const char* script, int64_t pid, int64_t nodeid);
 
 extern int http_client(const char *hostname, int portno, char* buf,
                        const char* cmd, parse_response parse_fun, void *param1, void *param2);
