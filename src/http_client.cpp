@@ -214,7 +214,7 @@ run_receive_long_data : {
     char *line = tmp;
     // {
     //   struct timeval timeout;
-    //   timeout.tv_sec = 180;
+    //   timeout.tv_sec =  30;
     //   timeout.tv_usec = 0;
     //
     //   if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,

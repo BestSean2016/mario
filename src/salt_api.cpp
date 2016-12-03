@@ -47,7 +47,7 @@ template <typename T> static void output_vector(std::vector<T> vec) {
 
 void thread_check_timer_out(int *run) {
   while (*run) {
-    std::this_thread::sleep_for(std::chrono::seconds(60));
+    std::this_thread::sleep_for(std::chrono::seconds(30));
     // printf("i want to  get a lock ... ");
     // printf("i got it ... ");
     time_t now = time(0);
@@ -58,14 +58,15 @@ void thread_check_timer_out(int *run) {
       if (((iter)->second) &&
           (now - ((iter)->second)->stamp_sec >= ((iter)->second)->timerout)) {
         // erase_return_by_jid(((iter)->second)->jid);
-        if ((iter->second)->stutus != JOB_STATUS_TYPE_SUCCESSED) {
-          (iter->second)->stutus =
+        if ((iter->second)->status != JOB_STATUS_TYPE_SUCCESSED) {
+          (iter->second)->status =
               ((iter->second)->minions.size() == (iter->second)->retnum)
                   ? JOB_STATUS_TYPE_TIMEOUT_1
                   : JOB_STATUS_TYPE_TIMEOUT_2;
           std::cout << "|--> timerout job " << (iter->second)->jid << std::endl;
           output_vector((iter->second)->minions);
           if (node_job_finished(iter->second, gjobmap.minions[(iter->second)->jid]) == ALL_TASK_FINISHED) {
+            printf("All job is over!\n");
             *run = 0;
             break;
           }
@@ -349,7 +350,7 @@ static void copy_job_status(SALT_JOB *dst_job, SALT_JOB *src_job) {
   dst_job->retnum = src_job->retnum;
   dst_job->success_num = src_job->success_num;
   dst_job->stamp_sec = src_job->stamp_sec;
-  dst_job->stutus = src_job->stutus;
+  dst_job->status = src_job->status;
   dst_job->timerout = src_job->timerout;
 }
 
@@ -548,19 +549,19 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
         ++((jobIter->second)->retnum);
         if (jobret->retcode == 0) {
           ++((jobIter->second)->success_num);
-          (jobIter->second)->stutus =
+          (jobIter->second)->status =
               ((jobIter->second)->success_num == (jobIter->second)->retnum)
                   ? JOB_STATUS_TYPE_SUCCESSED
                   : JOB_STATUS_TYPE_PART_SUCCESSED;
         } else
-          (jobIter->second)->stutus = ((jobIter->second)->success_num)
+          (jobIter->second)->status = ((jobIter->second)->success_num)
                                           ? JOB_STATUS_TYPE_PART_SUCCESSED
                                           : JOB_STATUS_TYPE_FAILED;
 
         std::cout << "update returun " << jobret->jid << ", "
                   << jobret->minion_id << "=>" << jobptr
                   << std::endl;
-        if ((jobIter->second)->stutus == JOB_STATUS_TYPE_SUCCESSED)
+        if ((jobIter->second)->status == JOB_STATUS_TYPE_SUCCESSED)
           std::cout << "All Successed!\n";
         else
           std::cout << "But NOt All Successed! "

@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  if (0 != gen_diamond_pipeline(120, 4))
+  if (0 != gen_diamond_pipeline(40, 3))
       return -1;
 
   signal(SIGINT , got_signal);
@@ -48,12 +48,10 @@ int main(int argc, char *argv[]) {
 
   run_pipeline(&run);
 
-  std::this_thread::sleep_for(std::chrono::seconds(60));
-  run = 0;
-
   // tTestPing.join();
   tTimerOut.join();
-  tEvent.join();
+  //tEvent.join();
+  tEvent.detach();
 
   jobmap_cleanup(&gjobmap);
 

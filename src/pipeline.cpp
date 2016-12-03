@@ -110,7 +110,7 @@ static int gen_nodes_edges() {
   g_nodes.init(igraph_vcount(&g_graph));
   g_edges.init(igraph_vector_size(&edge));
 
-  int64_t id_start = 100;
+  int64_t id_start = 0;
   set_start_and_stop(g_nodes, id_start);
 
   for (size_t i = 1; i < g_nodes.size - 1; ++i) {
@@ -156,16 +156,16 @@ void release_pipeline() {
   g_scripts.free_data_set();
 }
 
-static int run_task(MR_REAL_NODE& node) {
-  if ((size_t)node.host_id > g_hosts.size) {
-    printf("node id %ld, host id %ld\n", node.id, node.host_id);
-    exit(0);
-  }
-  return salt_api_cmd_runall((const char *)"10.10.10.19", 8000,
-                               g_hosts[node.host_id].minion_id,
-                               g_scripts[node.script_id].script,
-                               node.ple_id,
-                               node.id);
+static void* run_task(void* arg) {
+  MR_REAL_NODE* node = (MR_REAL_NODE*)arg;
+  int64_t ret = salt_api_cmd_runall("10.10.10.19", 8000,
+                                g_hosts  [node->host_id].minion_id,
+                                g_scripts[node->script_id].script,
+                                node->ple_id,
+                                node->id);
+  pthread_t t = pthread_self();
+  pthread_detach(t);
+  return (void*)ret;
 }
 
 int run_pipeline(int *run) {
@@ -177,30 +177,75 @@ int run_pipeline(int *run) {
     igraph_neighbors(&g_graph, &y, i, IGRAPH_IN);
     if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == 0)
       start_node.push_back((int)i);
+  }
+  igraph_vector_destroy(&y);
+
+  igraph_vector_init(&y, 0);
+  for (int64_t i = 1; (*run) && (i < last_node_id); ++i) {
     igraph_neighbors(&g_graph, &y, i, IGRAPH_OUT);
     if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == last_node_id)
       end_node_set.insert((int)i);
   }
+
   igraph_vector_destroy(&y);
 
   if (*run)
     for (auto& p: start_node) {
-      run_task(g_nodes[p]);
-      // std::this_thread::sleep_for(std::chrono::seconds(120));
+      pthread_t thread;
+      (void)pthread_create(&thread, 0, run_task, g_nodes.data + p);
+      //std::this_thread::sleep_for(std::chrono::seconds(180));
     }
 
   return (0);
 }
 
+
+static int continue_run_task(MR_REAL_NODE& node) {
+  (void)node;
+  return true;
+}
+
+static int should_run_this_node(int id) {
+  igraph_vector_t y;
+  igraph_vector_init(&y, 0);
+  igraph_neighbors(&g_graph, &y, id, IGRAPH_IN);
+  int go = 0;
+  for (int i = 0; i < igraph_vector_size(&y); ++i) {
+    if (g_nodes[(int)(VECTOR(y)[i])].status == JOB_STATUS_TYPE_SUCCESSED
+        || continue_run_task(g_nodes[(int)(VECTOR(y)[i])]))
+       ++go;
+  }
+  int ok = (go == igraph_vector_size(&y) && !(g_nodes[id].status));
+  igraph_vector_destroy(&y);
+  return ok;
+}
+
+
 int node_job_finished(SALT_JOB* job, MapMinionRet* rset) {
+  (void)rset;
+  g_nodes[job->node_id].status = job->status;
+
   std::set<int>::iterator iter = end_node_set.find(job->node_id);
   if (iter != end_node_set.end()) {
     //remove from set and check the
     end_node_set.erase(iter);
+    std::cout << "remove node " << job->node_id << std::endl;
     if (end_node_set.size() == 0) return ALL_TASK_FINISHED;
   } else {
-    //run next node
-
+    if (job->status == JOB_STATUS_TYPE_SUCCESSED
+        || continue_run_task(g_nodes[job->node_id])) {
+      //run next node
+      igraph_vector_t y;
+      igraph_vector_init(&y, 0);
+      igraph_neighbors(&g_graph, &y, job->node_id, IGRAPH_OUT);
+      for (int i = 0; i < igraph_vector_size(&y); ++i) {
+        if (should_run_this_node((int)(VECTOR(y)[i]))) {
+          pthread_t thread;
+          (void)pthread_create(&thread, 0, run_task, g_nodes.data + (int)(VECTOR(y)[i]));
+        }
+      }
+      igraph_vector_destroy(&y);
+    }
   }
   return 0;
 }

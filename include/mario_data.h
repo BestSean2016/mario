@@ -52,12 +52,24 @@ typedef struct mr_script {
   char desc[SHORT_TEXT_LENGTH];       ///说明
 } MR_SCRIPT;
 
+typedef enum JOB_STATUS_TYPE {
+  JOB_STATUS_TYPE_NOSTART,
+  JOB_STATUS_TYPE_RUNNING,
+  JOB_STATUS_TYPE_PENDING,
+  JOB_STATUS_TYPE_PART_SUCCESSED,
+  JOB_STATUS_TYPE_SUCCESSED,
+  JOB_STATUS_TYPE_FAILED,
+  JOB_STATUS_TYPE_TIMEOUT_1,
+  JOB_STATUS_TYPE_TIMEOUT_2,
+} JOB_STATUS_TYPE;
+
 typedef struct mr_real_node {
   int64_t id;
   int64_t ple_id;
   int64_t script_id;
   int64_t host_id;
   int     timerout;
+  JOB_STATUS_TYPE status;
 } MR_REAL_NODE;
 
 typedef struct mr_real_edge {
@@ -262,17 +274,6 @@ extern std::ostream& operator<<(std::ostream& out, MR_PIPELINE_NODE_EXEC& plen);
 extern std::ostream& operator<<(std::ostream& out, MR_HOST_STATUS& hs);
 
 
-typedef enum JOB_STATUS_TYPE {
-  JOB_STATUS_TYPE_NOSTART,
-  JOB_STATUS_TYPE_RUNNING,
-  JOB_STATUS_TYPE_PENDING,
-  JOB_STATUS_TYPE_PART_SUCCESSED,
-  JOB_STATUS_TYPE_SUCCESSED,
-  JOB_STATUS_TYPE_FAILED,
-  JOB_STATUS_TYPE_TIMEOUT_1,
-  JOB_STATUS_TYPE_TIMEOUT_2,
-} JOB_STATUS_TYPE;
-
 typedef struct salt_job {
   int64_t     ple_id;            ///PIPELINE EXECUTIVE ID
   int64_t     node_id;
@@ -280,7 +281,7 @@ typedef struct salt_job {
   uint32_t    timerout;
   size_t      retnum;
   size_t      success_num;
-  JOB_STATUS_TYPE stutus;
+  JOB_STATUS_TYPE status;
   std::string tag;
   std::string tgt_type;
   std::string jid;
@@ -299,7 +300,7 @@ typedef struct salt_job {
     timerout = 60;
     success_num = 0;
     retnum = 0;
-    stutus = JOB_STATUS_TYPE_RUNNING;
+    status = JOB_STATUS_TYPE_RUNNING;
   }
 
   salt_job(int64_t pleid, int64_t nodeid) {
@@ -309,7 +310,7 @@ typedef struct salt_job {
     timerout = 60;
     success_num = 0;
     retnum = 0;
-    stutus = JOB_STATUS_TYPE_RUNNING;
+    status = JOB_STATUS_TYPE_RUNNING;
   }
 } SALT_JOB;
 
