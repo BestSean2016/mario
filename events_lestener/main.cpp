@@ -12,6 +12,7 @@ int * event_socket = 0;
 std::thread* tEvent = 0;
 char server_ip[16] = {0};
 int server_port = 0;
+struct DataSet<MR_REAL_NODE> g_nodes;
 
 void got_signal(int sig) {
   printf("got signal %d\n", sig);

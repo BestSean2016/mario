@@ -16,15 +16,17 @@ JOBMAP gjobmap;
 
 static size_t _json_error_ = 0;
 extern int run;
+extern struct DataSet<MR_REAL_NODE> g_nodes;
 
 // static int curl_run_cmd(int cmd_index);
-extern int node_job_finished(SALT_JOB* job, MapMinionRet* rset);
+extern int node_job_finished(SALT_JOB *job, MapMinionRet *rset);
 
 // static void erase_return_by_jid(std::string &jid) {
 //   MapJid2Minions::iterator mj2mIter = gjobmap.minions.find(jid);
 //   MapMinionRet *retset = (mj2mIter)->second;
 //   if (retset) {
-//     for (MapMinionRet::iterator iter = retset->begin(); iter != retset->end();
+//     for (MapMinionRet::iterator iter = retset->begin(); iter !=
+//     retset->end();
 //          ++iter) {
 //       // std::cout << "erase minion -> " << (iter)->first << std::endl;
 //       if (((iter)->second))
@@ -51,26 +53,40 @@ void thread_check_timer_out() {
     std::this_thread::sleep_for(std::chrono::seconds(30));
     // printf("i want to  get a lock ... ");
     // printf("i got it ... ");
-    time_t now = time(0);
     std::lock_guard<std::mutex> *guard =
         new std::lock_guard<std::mutex>(g_maps_mutex);
+    time_t now = time(0);
     for (MapJid2Job::iterator iter = gjobmap.jobs.begin();
          iter != gjobmap.jobs.end(); ++iter) {
-      if (((iter)->second) &&
-          (now - ((iter)->second)->stamp_sec >= ((iter)->second)->timerout)) {
-        // erase_return_by_jid(((iter)->second)->jid);
-        if ((iter->second)->status != JOB_STATUS_TYPE_SUCCESSED) {
-          (iter->second)->status =
-              ((iter->second)->minions.size() == (iter->second)->retnum)
-                  ? JOB_STATUS_TYPE_TIMEOUT_1
-                  : JOB_STATUS_TYPE_TIMEOUT_2;
-          std::cout << "|--> timerout job " << (iter->second)->jid << std::endl;
-          output_vector((iter->second)->minions);
-          if (node_job_finished(iter->second, gjobmap.minions[(iter->second)->jid]) == ALL_TASK_FINISHED) {
-            // printf("All job is over!\n");
-            break;
+      SALT_JOB* job = iter->second;
+      if (!job) {
+        std::cout << "WTF WTF WTF?\n";
+        continue;
+      }
+
+      if (job->node_id >= 0) {
+        if ((job->timerout) &&
+            (now - job->stamp_sec >= job->timerout)) {
+          if (job->status != JOB_STATUS_TYPE_SUCCESSED
+             && job->status != JOB_STATUS_TYPE_FAILED) {
+            job->status = JOB_STATUS_TYPE_TIMEOUT;
+            std::cout << "|--> timerout job " << job->jid
+                      << std::endl;
+            output_vector(job->minions);
+            g_nodes[job->node_id].status = job->status;
+            if (node_job_finished(iter->second,
+                                  gjobmap.minions[job->jid]) ==
+                ALL_TASK_FINISHED) {
+              // printf("All job is over!\n");
+              break;
+            }
           }
+          job->timerout = 0;
         }
+      } else {
+        // erase_return_by_jid((iter->second)->jid);
+        // delete (iter->second);
+        // iter = gjobmap.jobs.erase(iter);
       }
     }
     delete guard;
@@ -405,20 +421,24 @@ static int parse_salt_myjob_jobmap(const char *json_data, size_t len,
   bool found2 = (jobmap->minions.find(job->jid) != jobmap->minions.end());
 
   if (!found1 && !found2) {
+    g_nodes[job->node_id].status = JOB_STATUS_TYPE_RUNNING;
     // insert new job
     jobmap->jobs.insert(std::pair<std::string, SALT_JOB *>(job->jid, job));
-    // std::cout << "=.= JOBS insert job " << job->ple_id << ", " << job->node_id
+    // std::cout << "=.= JOBS insert job " << job->ple_id << ", " <<
+    // job->node_id
     //           << ", " << job->jid << " => " << job << std::endl;
     MapMinionRet *mset = new MapMinionRet();
     jobmap->minions.insert(
         std::pair<std::string, MapMinionRet *>(job->jid, mset));
-    // std::cout << "MINIONS insert job " << ((SALT_JOB *)job)->jid << std::endl;
+    // std::cout << "MINIONS insert job " << ((SALT_JOB *)job)->jid <<
+    // std::endl;
     for (auto &p : job->minions) {
       mset->insert(std::pair<std::string, SALT_JOB_RET *>(p, nullptr));
       // std::cout << p << " => "
       //           << "nullptr" << std::endl;
     }
   } else if (found1 && found2) {
+    g_nodes[job->node_id].status = JOB_STATUS_TYPE_RUNNING;
     // update my new job
     if ((iter->second)->ple_id == 0) {
       // std::cout << "=.= Update Job " << job->ple_id << ", " << job->node_id
@@ -462,24 +482,25 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   case SALT_JOB_TYPE_NEW:
     // add job to set and map
     {
-      SALT_JOB* job = (SALT_JOB*)jobptr;
+      SALT_JOB *job = (SALT_JOB *)jobptr;
       // std::cout << "waiting for new\n";
       MapJid2Job::iterator jobIter = jobmap->jobs.find(job->jid);
       bool found1 = (jobIter != jobmap->jobs.end());
-      bool found2 = (jobmap->minions.find(job->jid) !=
-                     jobmap->minions.end());
+      bool found2 = (jobmap->minions.find(job->jid) != jobmap->minions.end());
 
       if (!found1 && !found2) {
-        // insert new job
+        if (job->node_id >= 0) g_nodes[job->node_id].status = JOB_STATUS_TYPE_RUNNING;
+
         {
-          jobmap->jobs.insert(std::pair<std::string, SALT_JOB *>(
-              job->jid, job));
+          // insert new job
+          jobmap->jobs.insert(
+              std::pair<std::string, SALT_JOB *>(job->jid, job));
           // std::cout << "^_^ JOBS insert job " << job->ple_id
           //           << ", " << job->node_id << ", "
           //           << job->jid << " => " << jobptr << std::endl;
           MapMinionRet *mset = new MapMinionRet();
-          jobmap->minions.insert(std::pair<std::string, MapMinionRet *>(
-              job->jid, mset));
+          jobmap->minions.insert(
+              std::pair<std::string, MapMinionRet *>(job->jid, mset));
           // std::cout << "    MINIONS insert job " << job->jid
           //           << std::endl;
           for (auto &p : job->minions) {
@@ -489,9 +510,10 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
           }
         }
       } else if (found1 && found2) {
+        if (job->node_id >= 0) g_nodes[job->node_id].status = JOB_STATUS_TYPE_RUNNING;
         // update new job
         if ((jobIter->second)->ple_id != 0) {
-          SALT_JOB* prevjob = jobIter->second;
+          SALT_JOB *prevjob = jobIter->second;
           // std::cout << "^_^ Update Job " << prevjob->ple_id << ", "
           //           << prevjob->node_id << ", "
           //           << prevjob->jid << std::endl;
@@ -512,7 +534,7 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   case SALT_JOB_TYPE_RET:
     // remove job from map and set
     {
-      SALT_JOB_RET* jobret = (SALT_JOB_RET*)jobptr;
+      SALT_JOB_RET *jobret = (SALT_JOB_RET *)jobptr;
       // show_json_string(json_data, len);
       MapJid2Job::iterator jobIter = jobmap->jobs.find(jobret->jid);
       bool found1 = (jobIter != jobmap->jobs.end());
@@ -525,19 +547,16 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
         found3 = ((minRetIter = mset->find(jobret->minion_id)) != mset->end());
 
       if (!found1) {
-        std::cout << "error @ jobmap->jobs.find job_new "
-                  << jobret->jid << ", "
+        std::cout << "error @ jobmap->jobs.find job_new " << jobret->jid << ", "
                   << jobret->minion_id << std::endl;
       }
       if (!found2) {
         std::cout << "error @ jobmap->jobs.minions find job_ret_set "
-                  << jobret->jid << ", "
-                  << jobret->minion_id << std::endl;
+                  << jobret->jid << ", " << jobret->minion_id << std::endl;
       }
       if (!found3) {
-        std::cout << "error @ jobmap->jobs.ret.set find job_ret "
-                  << jobret->jid << ", "
-                  << jobret->minion_id << std::endl;
+        std::cout << "error @ jobmap->jobs.ret.set find job_ret " << jobret->jid
+                  << ", " << jobret->minion_id << std::endl;
       }
 
       if (!found1 || !found2 || !found3)
@@ -545,38 +564,38 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
 
       // got job return
       if (minRetIter->second == nullptr) {
-        minRetIter->second = (SALT_JOB_RET *)jobptr;
-        ++((jobIter->second)->retnum);
-        if (jobret->retcode == 0) {
-          ++((jobIter->second)->success_num);
-          (jobIter->second)->status =
-              ((jobIter->second)->success_num == (jobIter->second)->minions.size())
-                  ? JOB_STATUS_TYPE_SUCCESSED
-                  : JOB_STATUS_TYPE_PART_SUCCESSED;
-        } else
-          (jobIter->second)->status = ((jobIter->second)->success_num)
-                                          ? JOB_STATUS_TYPE_PART_SUCCESSED
-                                          : JOB_STATUS_TYPE_FAILED;
+        SALT_JOB *job = jobIter->second;
+        minRetIter->second = jobret;
+        ++(job->retnum);
 
+        if (jobret->retcode == 0)
+          ++(job->success_num);
+
+        if (job->retnum == job->minions.size()) {
+          job->timerout = 0;  //it's over, do not check time out again
+          job->status =
+              (job->success_num == job->minions.size())
+                  ? JOB_STATUS_TYPE_SUCCESSED
+                  : JOB_STATUS_TYPE_FAILED;
+          if (job->node_id >= 0) {
+            g_nodes[job->node_id].status = job->status;
+            if (ALL_TASK_FINISHED == node_job_finished(jobIter->second, mset)) {
+              //
+            }
+          }
+        }
         // std::cout << "update returun " << jobret->jid << ", "
         //           << jobret->minion_id << "=>" << jobptr
         //           << std::endl;
-        // if ((jobIter->second)->status == JOB_STATUS_TYPE_SUCCESSED)
+        // if (job->status == JOB_STATUS_TYPE_SUCCESSED)
         //   std::cout << "All Successed!\n";
         // else
         //   std::cout << "But NOt All Successed! "
-        //             << (jobIter->second)->success_num << " but expect "
+        //             << job->success_num << " but expect "
         //             << ((jobIter)->second)->retnum << std::endl;
-
-        if ((jobIter->second)->minions.size() == (jobIter->second)->retnum) {
-          if (ALL_TASK_FINISHED == node_job_finished(jobIter->second, mset)) {
-            //
-          }
-        }
       } else {
-        std::cout << "drop duplicated return " << jobret->jid
-                  << ", " << jobret->minion_id << "=>" << jobptr
-                  << std::endl;
+        std::cout << "drop duplicated return " << jobret->jid << ", "
+                  << jobret->minion_id << "=>" << jobptr << std::endl;
         free_job(type, jobptr);
       }
     }
@@ -670,7 +689,10 @@ void jobmap_cleanup(JOBMAP *jm) {
       new std::lock_guard<std::mutex>(g_maps_mutex);
   std::cout << "erase everything\n";
   for (const auto &p : jm->jobs) {
-    std::cout << "|-- " << (p.second)->node_id << " was " << job_status((p.second)->status) << std::endl;
+    std::cout << "|-- " << (p.second)->node_id << " was "
+              << job_status((p.second)->status) << std::endl;
+    if ((p.second)->status != JOB_STATUS_TYPE_SUCCESSED)
+      output_vector((p.second)->minions);
     delete (p.second);
   }
   jm->jobs.clear();
@@ -687,5 +709,8 @@ void jobmap_cleanup(JOBMAP *jm) {
     delete set;
   }
   jm->minions.clear();
+
+  std::cout << "Done.\n";
+
   delete guard;
 }

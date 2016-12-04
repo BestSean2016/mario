@@ -26,7 +26,8 @@ HEADERS += \
 DISTFILES += \
     ../src/mario-host-ip.py \
     ../src/mario-host-minion.sql \
-    ../src/mario.sql
+    ../src/mario.sql \
+    run_mario_run.sh
 
 
 
@@ -42,8 +43,8 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -ligraph -L/usr/lib64/mysql -lmysqlclient
-    LIBS += -L/usr/local/lib -lgtest -lgtest_main
+    LIBS += -L/usr/local/lib -L/usr/lib64/mysql
+    LIBS += -lpthread -lrt -ligraph -lmysqlclient
 
     target.path = /usr/local/bin/mario
     INSTALLS += target

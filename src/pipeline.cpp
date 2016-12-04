@@ -120,7 +120,7 @@ static int gen_nodes_edges() {
     g_nodes[i].ple_id = 2;
     g_nodes[i].script_id = 11;
     g_nodes[i].host_id = (i - 1) % g_hosts.size;
-    g_nodes[i].timerout = 40;
+    g_nodes[i].timerout = 90;
   }
 
   for (size_t i = 0; i < g_edges.size; ++i) {
@@ -165,10 +165,10 @@ extern int server_port;
 static void* run_task(void* arg) {
   MR_REAL_NODE* node = (MR_REAL_NODE*)arg;
   int64_t ret = salt_api_cmd_runall(server_ip, server_port,
-                                g_hosts  [node->host_id].minion_id,
-                                g_scripts[node->script_id].script,
-                                node->ple_id,
-                                node->id);
+                                    g_hosts  [node->host_id].minion_id,
+                                    g_scripts[node->script_id].script,
+                                    node->ple_id,
+                                    node->id);
   pthread_t t = pthread_self();
   pthread_detach(t);
   return (void*)ret;
@@ -199,7 +199,6 @@ int run_pipeline(int *run) {
     for (auto& p: start_node) {
       pthread_t thread;
       (void)pthread_create(&thread, 0, run_task, g_nodes.data + p);
-      //std::this_thread::sleep_for(std::chrono::seconds(180));
     }
 
   return (0);
@@ -217,17 +216,28 @@ static int should_run_this_node(int id) {
   igraph_neighbors(&g_graph, &y, id, IGRAPH_IN);
   int go = 0;
   for (int i = 0; i < igraph_vector_size(&y); ++i) {
-    if (g_nodes[(int)(VECTOR(y)[i])].status == JOB_STATUS_TYPE_SUCCESSED
-        || g_nodes[(int)(VECTOR(y)[i])].status == JOB_STATUS_TYPE_FAILED
-        || g_nodes[(int)(VECTOR(y)[i])].status == JOB_STATUS_TYPE_TIMEOUT_1
-            || g_nodes[(int)(VECTOR(y)[i])].status == JOB_STATUS_TYPE_TIMEOUT_2
-        //|| continue_run_task(g_nodes[(int)(VECTOR(y)[i])])
-            )
+    if (g_nodes[(int)(VECTOR(y)[i])].status > JOB_STATUS_TYPE_RUNNING)
        ++go;
   }
-  int ok = (go == igraph_vector_size(&y)
-            && !(g_nodes[id].status)
-            && continue_run_task(g_nodes[id]));
+  int ok = true;
+
+  if (go != igraph_vector_size(&y)) {
+    //std::cout << "node " << id << " have not been over\n";
+    ok = false;
+  }
+
+  if (g_nodes[id].status) {
+    std::cout << "node " << id << " has alrady runing\n";
+    run = 0;
+    std::this_thread::sleep_for(std::chrono::seconds(180));
+    exit(-12345);
+    ok = false;
+  }
+
+  if (!continue_run_task(g_nodes[id])) {
+    //std::cout << "node " << id << " can not run continuely\n";
+    ok = false;
+  }
 
   igraph_vector_destroy(&y);
   return ok;
@@ -236,7 +246,6 @@ static int should_run_this_node(int id) {
 
 int node_job_finished(SALT_JOB* job, MapMinionRet* rset) {
   (void)rset;
-  g_nodes[job->node_id].status = job->status;
   //std::cout << "job finised " << job->node_id << ", result " << job->status << std::endl;
 
   std::set<int>::iterator iter = end_node_set.find(job->node_id);

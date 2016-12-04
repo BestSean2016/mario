@@ -136,16 +136,14 @@ void set_plne_map(std::vector<MR_PIPELINE_NODE_EXEC*>& array,
 static const char* strstatus[] = {
   "did not run",
   "running ...",
-  "pending ...",
-  "part successed",
   "failed",
+  "timerout",
   "successed",
-  "timerout and failed",
-  "timerout and part successed",
+  "part successed",
 };
 
 const char* job_status(JOB_STATUS_TYPE status) {
-  if (status < 0 || status > JOB_STATUS_TYPE_TIMEOUT_2)
+  if (status < 0 || status > JOB_STATUS_TYPE_PART_SUCCESSED)
     return 0;
   return strstatus[status];
 }

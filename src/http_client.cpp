@@ -214,6 +214,7 @@ run_receive_long_data : {
     char *tmp = json_data;
     char *line = tmp;
     event_socket = &sockfd;
+// #ifndef _DEBUG_
     {
       struct timeval timeout;
       timeout.tv_sec =  30;
@@ -227,7 +228,7 @@ run_receive_long_data : {
                                   (char *)&timeout, sizeof(timeout)) < 0)))
         printf("setsockopt failed\n");
     }
-
+// #endif //no _DEBUG_
     while (!ret && run) {
       while (tmp < ptr) {
         if (*tmp != '\r')
@@ -253,7 +254,8 @@ run_receive_long_data : {
       // printf("************** reading *********************\n");
       n = read(sockfd, ptr, BUFSIZE - total_len);
       if (n < 0) {
-        fprintf(stdout,
+        if (n != 11)
+          fprintf(stdout,
                 "i got n = %d bytes, error no %d, errmsg %s total_len is %d\n", n,
                 errno, strerror(errno), total_len);
         ret = (errno == 11) ? 0 : 1;
