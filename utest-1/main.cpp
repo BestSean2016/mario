@@ -9,6 +9,10 @@
 #include <curl/curl.h>
 
 using namespace std;
+int run = 0;
+int * event_socket = 0;
+char server_ip[16] = {0};
+int server_port = 0;
 
 int main(int argc, char **argv) {
 

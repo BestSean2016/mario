@@ -7,8 +7,11 @@
 
 using namespace std;
 
-static int run = 1;
+int run = 1;
+int * event_socket = 0;
 std::thread* tEvent = 0;
+char server_ip[16] = {0};
+int server_port = 0;
 
 void got_signal(int sig) {
   printf("got signal %d\n", sig);
@@ -45,9 +48,9 @@ int main(int argc, char *argv[]) {
 
   salt_api_login("10.10.10.19", 8000);
 
-  std::thread tTimerOut(thread_check_timer_out, &run);
+  std::thread tTimerOut(thread_check_timer_out);
 
-  tEvent = new std::thread(salt_api_events, "10.10.10.19", 8000, &run);
+  tEvent = new std::thread(salt_api_events, "10.10.10.19", 8000);
 
   run_test_cmd();
   run = 0;

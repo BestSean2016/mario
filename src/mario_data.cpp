@@ -131,3 +131,21 @@ void set_plne_map(std::vector<MR_PIPELINE_NODE_EXEC*>& array,
             p->edge = (MR_PIPELINE_EDGE*)(mapEdge[p->edge_id]),
             p->host = (MR_HOST*)mapHost[p->minion_id];
 }
+
+
+static const char* strstatus[] = {
+  "did not run",
+  "running ...",
+  "pending ...",
+  "part successed",
+  "failed",
+  "successed",
+  "timerout and failed",
+  "timerout and part successed",
+};
+
+const char* job_status(JOB_STATUS_TYPE status) {
+  if (status < 0 || status > JOB_STATUS_TYPE_TIMEOUT_2)
+    return 0;
+  return strstatus[status];
+}

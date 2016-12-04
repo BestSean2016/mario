@@ -13,7 +13,7 @@ extern std::ostream& operator << (std::ostream& out, SALT_JOB& jobnew);
 extern std::ostream& operator << (std::ostream& out, SALT_JOB_RET& jobret);
 extern void show_job(SALT_JOB_DATA* job);
 
-extern void thread_check_timer_out(int *run);
+extern void thread_check_timer_out();
 extern void thread_run_pipeline();
 
 extern void jobmap_cleanup(JOBMAP *jm);

@@ -1,13 +1,18 @@
 #include <iostream>
 #include "pipeline.h"
 #include "http_client.h"
-
+#include <unistd.h>
 #include <thread>
 #include <signal.h>
+#include "utility.h"
 
 using namespace std;
 
-static int run = 1;
+int run = 1;
+int *event_socket = 0;
+
+char server_ip[16] = {0};
+int server_port = 0;
 
 void got_signal(int sig) {
   printf("got signal %d\n", sig);
@@ -28,30 +33,37 @@ void run_test_cmd() {
 }
 
 int main(int argc, char *argv[]) {
-  (void)argc;
-  (void)argv;
+  if (argc != 5) {
+    std::cout << "Usage: mario <amount of node> <amont of branch> <server ip> <server port>\n";
+    return 0;
+  }
 
-  if (0 != gen_diamond_pipeline(40, 3))
+  if (0 != gen_diamond_pipeline(atoi(argv[1]), atoi(argv[2])))
       return -1;
 
   signal(SIGINT , got_signal);
   signal(SIGKILL, got_signal);
   signal(SIGSTOP, got_signal);
 
-  salt_api_login("10.10.10.19", 8000);
+  strcpy_s(server_ip, 16, argv[3]);
+  server_port = atoi(argv[4]);
+  std::cout << "Login to server, ";
+  salt_api_login(server_ip, server_port);
 
-
-  std::thread tEvent(salt_api_events, "10.10.10.19", 8000, &run);
+  std::thread tEvent(salt_api_events, server_ip, server_port);
   std::this_thread::sleep_for(std::chrono::seconds(5));
-  std::thread tTimerOut(thread_check_timer_out, &run);
+  std::thread tTimerOut(thread_check_timer_out);
   // std::thread tTestPing(run_test_cmd);
 
   run_pipeline(&run);
 
   // tTestPing.join();
   tTimerOut.join();
-  //tEvent.join();
-  tEvent.detach();
+
+  close(*event_socket);
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  std::cout << "events listener was closed \n";
+  tEvent.join();
 
   jobmap_cleanup(&gjobmap);
 

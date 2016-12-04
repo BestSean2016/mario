@@ -12,7 +12,8 @@
 #define BUFSIZE 65536
 
 char g_token[32] = {0};
-
+extern int run;
+extern int *event_socket;
 static const char *salt_api_str[] = {
     "POST /login HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
@@ -140,7 +141,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
 }
 
 int http_client(const char *hostname, int portno, char *buf, const char *cmd,
-                parse_response parse_fun, void *param1, void *param2) {
+                parse_response parse_fun, JOBMAP *jobmap, SALT_JOB *job) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
@@ -204,7 +205,7 @@ restart_client:
   }
 
   if (!ret && parse_fun)
-    ret = (0 != parse_fun(json_data, data_len, param1, param2));
+    ret = (0 != parse_fun(json_data, data_len, jobmap, job));
 
   close(sockfd);
   return ret;
@@ -212,28 +213,29 @@ restart_client:
 run_receive_long_data : {
     char *tmp = json_data;
     char *line = tmp;
-    // {
-    //   struct timeval timeout;
-    //   timeout.tv_sec =  30;
-    //   timeout.tv_usec = 0;
-    //
-    //   if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,
-    //                               (char *)&timeout, sizeof(timeout)) < 0)))
-    //     printf("setsockopt failed\n");
-    //
-    //   if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO,
-    //                               (char *)&timeout, sizeof(timeout)) < 0)))
-    //     printf("setsockopt failed\n");
-    // }
+    event_socket = &sockfd;
+    {
+      struct timeval timeout;
+      timeout.tv_sec =  30;
+      timeout.tv_usec = 0;
 
-    while (!ret && *(int *)param2) {
+      if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,
+                                  (char *)&timeout, sizeof(timeout)) < 0)))
+        printf("setsockopt failed\n");
+
+      if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO,
+                                  (char *)&timeout, sizeof(timeout)) < 0)))
+        printf("setsockopt failed\n");
+    }
+
+    while (!ret && run) {
       while (tmp < ptr) {
         if (*tmp != '\r')
           ++tmp;
         else {
           // printf("************** %s\n", line);
           if (parse_fun) // do not check error
-            parse_fun(line, tmp - line, param1, 0);
+            parse_fun(line, tmp - line, jobmap, 0);
           // ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
           // next line
@@ -267,7 +269,7 @@ run_receive_long_data : {
     close(sockfd);
   }
 
-  if (!ret && *(int *)param2) {
+  if (!ret && run) {
     fprintf(stdout, "ReStart Http Event Client!\n");
     goto restart_client;
   }
@@ -298,7 +300,7 @@ int salt_api_login(const char *hostname, int port) {
   char buf[BUFSIZE];
 
   return http_client(hostname, port, buf, salt_api_str[SALT_API_TYPE_LOGIN],
-                     parse_token, g_token, 0);
+                     parse_token, (JOBMAP*)g_token, 0);
 }
 
 // static int parse_cmd_return(const char *ptr, size_t len, void *obj) {
@@ -342,11 +344,11 @@ int salt_api_cmd_runall(const char *hostname, int port, const char *minion,
                      job); // parse_cmd_return
 }
 
-int salt_api_events(const char *hostname, int port, int *run) {
+int salt_api_events(const char *hostname, int port) {
   char buf[BUFSIZE];
   char cmd[1024];
 
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], g_token);
 
-  return http_client(hostname, port, buf, cmd, parse_job, &gjobmap, run);
+  return http_client(hostname, port, buf, cmd, parse_job, &gjobmap, nullptr);
 }
