@@ -3,42 +3,12 @@ CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
-DEFINES  += __USING_MYSQL__
-
-SOURCES += main.cpp \
-    ../src/chinese.c \
-    ../src/mario_mysql.cpp \
-    ../src/mario_data.cpp \
-    ../src/utility.c \
-    ../src/salt_api.cpp \
-    ../src/pipeline.cpp \
-    ../src/http_client.cpp \
-    ../src/graphnode.cpp \
-    ../src/threadpool.c
-
-HEADERS += \
-    ../include/chinese.h \
-    ../include/mario_mysql.h \
-    ../include/utility.h \
-    ../include/mario_data.h \
-    ../include/salt_api.h \
-    ../include/http_client.h \
-    ../include/pipeline.h \
-    ../include/graphnode.h \
-    ../include/threadpool.h
-
-DISTFILES += \
-    ../src/mario-host-ip.py \
-    ../src/mario-host-minion.sql \
-    ../src/mario.sql \
-    run_mario_run.sh
-
-
+SOURCES += main.cpp
 
 INCLUDEPATH += ../include
-INCLUDEPATH += /usr/local/include/igraph
 
-
+INCLUDEPATH += $$PWD/../itat
+DEPENDPATH += $$PWD/../itat
 
 ###################### unix ############################
 unix {
@@ -47,19 +17,21 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -L/usr/local/lib -L/usr/lib64/mysql
-    LIBS += -lpthread -lrt -ligraph -lmysqlclient
+    LIBS += -lpthread -lrt
+    LIBS += -L/usr/local/lib -lgtest -lgtest_main
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
 
     CONFIG(debug, debug|release) {
         DEFINES += _DEBUG_
-        TARGET = mario_d
+        TARGET = itat_utest_d
+        LIBS += -L$$OUT_PWD/../itat/ -litat-d
         message("Build for Debug version")
     }
     CONFIG(release, debug|release) {
-        TARGET = mario
+        TARGET = itat_utest
+        LIBS += -L$$OUT_PWD/../itat/ -litat
         message("Build for release version")
     }
 }
@@ -74,15 +46,16 @@ windows {
 
     CONFIG(debug, debug|release) {
         DEFINES += _DEBUG_
-        TARGET = mario_d
+        TARGET = utest-1d
         LIBS += -LD:/projects/md/gtest/win64 -lgtest-d -lgtest_main-d
         message("Build for Debug version")
     }
     CONFIG(release, debug|release) {
-        TARGET = mariods
+        TARGET = utest-1
         LIBS += -LD:/projects/md/gtest/win64 -lgtest -lgtest_main
         message("Build for release version")
     }
 
 }
+
 

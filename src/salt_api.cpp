@@ -19,7 +19,8 @@ extern int run;
 extern struct DataSet<MR_REAL_NODE> g_nodes;
 
 // static int curl_run_cmd(int cmd_index);
-extern int node_job_finished(SALT_JOB *job, MapMinionRet *rset);
+extern int node_job_finished(SALT_JOB *job, std::vector<int> *vec);
+extern int run_something(std::vector<int>* vec);
 
 // static void erase_return_by_jid(std::string &jid) {
 //   MapJid2Minions::iterator mj2mIter = gjobmap.minions.find(jid);
@@ -51,11 +52,12 @@ template <typename T> static void output_vector(std::vector<T> vec) {
 void thread_check_timer_out() {
   while (run) {
     std::this_thread::sleep_for(std::chrono::seconds(30));
-    // printf("i want to  get a lock ... ");
-    // printf("i got it ... ");
+    //printf("i want to  get a lock ... ");
     std::lock_guard<std::mutex> *guard =
         new std::lock_guard<std::mutex>(g_maps_mutex);
+    //printf("i got it ... ");
     time_t now = time(0);
+    std::vector<int>* should_run = new std::vector<int>;
     for (MapJid2Job::iterator iter = gjobmap.jobs.begin();
          iter != gjobmap.jobs.end(); ++iter) {
       SALT_JOB* job = iter->second;
@@ -65,32 +67,34 @@ void thread_check_timer_out() {
       }
 
       if (job->node_id >= 0) {
-        if ((job->timerout) &&
-            (now - job->stamp_sec >= job->timerout)) {
-          if (job->status != JOB_STATUS_TYPE_SUCCESSED
-             && job->status != JOB_STATUS_TYPE_FAILED) {
-            job->status = JOB_STATUS_TYPE_TIMEOUT;
-            std::cout << "|--> timerout job " << job->jid
-                      << std::endl;
-            output_vector(job->minions);
-            g_nodes[job->node_id].status = job->status;
-            if (node_job_finished(iter->second,
-                                  gjobmap.minions[job->jid]) ==
-                ALL_TASK_FINISHED) {
-              // printf("All job is over!\n");
-              break;
+        if (now - job->stamp_sec >= job->timerout) {
+          if (job->timerout) {
+            if (job->status != JOB_STATUS_TYPE_SUCCESSED
+               && job->status != JOB_STATUS_TYPE_FAILED) {
+              job->status = JOB_STATUS_TYPE_TIMEOUT;
+              //std::cout << "   |--> timerout job " << job->node_id
+              //          << std::endl;
+              //output_vector(job->minions);
+              g_nodes[job->node_id].status = job->status;
             }
+            job->timerout = 0;
           }
-          job->timerout = 0;
+
+          //std::cout << "job-finish return 1 .. ";
+          node_job_finished(iter->second,
+                            should_run);
+          //std::cout << ret << " in timerout checker\n";
         }
       } else {
+        std::cerr << "job node id is < 0, " << *job << std::endl;
         // erase_return_by_jid((iter->second)->jid);
         // delete (iter->second);
         // iter = gjobmap.jobs.erase(iter);
       }
     }
     delete guard;
-    // printf("Done.\n");
+    printf("TimerOut Checked.\n");
+    run_something(should_run);
   }
 }
 
@@ -478,6 +482,7 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
   // show_json_string(json_data, len);
   std::lock_guard<std::mutex> *guard =
       new std::lock_guard<std::mutex>(g_maps_mutex);
+  std::vector<int>* should_run = new std::vector<int>;
   switch (type) {
   case SALT_JOB_TYPE_NEW:
     // add job to set and map
@@ -571,7 +576,10 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
         if (jobret->retcode == 0)
           ++(job->success_num);
 
-        if (job->retnum == job->minions.size()) {
+        if (job->timerout == 0) {
+          /// std::cout << job->node_id << " has already ???  .>_<.!\n";
+          free_job(type, jobptr);
+        } else if (job->retnum == job->minions.size()) {
           job->timerout = 0;  //it's over, do not check time out again
           job->status =
               (job->success_num == job->minions.size())
@@ -579,9 +587,10 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
                   : JOB_STATUS_TYPE_FAILED;
           if (job->node_id >= 0) {
             g_nodes[job->node_id].status = job->status;
-            if (ALL_TASK_FINISHED == node_job_finished(jobIter->second, mset)) {
-              //
-            }
+            // std::cout << "job-finish return 2 .. ";
+            node_job_finished(jobIter->second, should_run);
+            //int ret = node_job_finished(jobIter->second, mset);
+            // std::cout << ret << " in salt return\n";
           }
         }
         // std::cout << "update returun " << jobret->jid << ", "
@@ -606,6 +615,8 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
     break;
   }
   delete guard;
+  run_something(should_run);
+
   return (0);
 
 error_exit:
@@ -663,7 +674,7 @@ int parse_my_job(const char *json_data, size_t size, void *param1,
                  void *param2) {
   (void)size;
   // show_json_string(json_data, size);
-  if (parse_salt_myjob_jobmap(json_data, size, (JOBMAP *)param1,
+  if (parse_salt_myjob_jobmap(json_data, size, (JOBMAP*)param1,
                               (SALT_JOB *)param2) < -1)
     return -1;
   return 0;
@@ -673,7 +684,7 @@ int parse_job(const char *json_data, size_t size, void *param1, void *param2) {
   // data: {\"tag\": \"salt/job/
   (void)size;
   (void)param2;
-  JOBMAP *jobmap = (JOBMAP *)param1;
+  JOBMAP *jobmap = (JOBMAP*)param1;
   // show_json_string(json_data, size);
   if (!strncmp(json_data, "data: ", 6)) {
     if (parse_salt_jobmap(json_data + 6, size - 6, jobmap) < -1)
@@ -710,7 +721,7 @@ void jobmap_cleanup(JOBMAP *jm) {
   }
   jm->minions.clear();
 
-  std::cout << "Done.\n";
+  std::cout << "|-- Done.\n";
 
   delete guard;
 }

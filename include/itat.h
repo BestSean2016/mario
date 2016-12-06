@@ -1,5 +1,7 @@
-#ifndef MARIO_TYPES_H
-#define MARIO_TYPES_H
+#ifndef ITAT_H
+#define ITAT_H
+
+#include "itat_global.h"
 
 #include <ctype.h>
 #include <memory.h>
@@ -12,6 +14,7 @@
 #include <map>
 #include <queue>
 #include <vector>
+#include <set>
 
 #define HOST_NAME_LENGTH 128
 #define HOST_MINION_ID_LENGTH 32
@@ -24,6 +27,14 @@
 #define SCHEDULE_LENGTH    128
 
 //#define new_obj(Obj, Type) Obj = (#Type*)new #Type; \ memset(Obj, 0, sizeof(#Type));
+
+typedef enum SALT_API_TYPE {
+  SALT_API_TYPE_LOGIN,
+  SALT_API_TYPE_TESTPING,
+  SALT_API_TYPE_TEST_CMDRUN,
+  SALT_API_TYPE_EVENTS,
+  SALT_API_TYPE_RUNALL,
+} SALT_API_TYPE;
 
 typedef struct mr_host {
   int64_t id;                            ///主机ID
@@ -361,20 +372,38 @@ typedef std::map<JOBID, SALT_JOB*> MapJid2Job;      //job new
 typedef std::map<JOBID, MapMinionRet*> MapJid2Minions;
 typedef MapJid2Minions::iterator MJ2M_Iterator;
 
-typedef struct JobMap {
+typedef struct SaltJob {
   MapJid2Job     jobs;
   MapJid2Minions minions;
 } JOBMAP;
 
-extern JOBMAP gjobmap;
+extern SALT_JOB g_salt_job;
+typedef void* PARAM;
+typedef int (*parse_response) (const char* data, size_t len, PARAM param1, PARAM param2);
+typedef int (*api_function) (const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
+
+typedef struct salt_callback {
+  parse_response parse_token_cb;
+  parse_response parse_job_cb;
+  parse_response parase_my_job_cb;
+  parse_response process_event_cb;
+} SALT_CALLBACK;
+
+extern ITAT_API void set_default_callback();
+
+extern ITAT_API int salt_api_login(const char *hostname, int port, const char* user, const char* pass);
+extern ITAT_API int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
+extern ITAT_API int salt_api_test_cmdrun(const char* hostname, int port, PARAM param1, PARAM param2);
+extern ITAT_API int salt_api_events(const char* hostname, int port, PARAM param1, PARAM param2);
+extern ITAT_API int salt_api_cmd_runall(const char* hostname, int port, const char* target, const char* script, PARAM param1, PARAM param2);
+extern ITAT_API int salt_api_cmd(const char* hostname, int port, const char* minion, const char* cmd);
 
 
+#define TOKEN_LEN 128
+extern ITAT_API char g_token[TOKEN_LEN];
+extern ITAT_API int g_run;
 
-extern void set_host_status_map(std::vector<MR_HOST_STATUS *> &status,
-                                MapId2Ptr &ple, MapId2Ptr &mapHost);
+const int64_t testping_pid = -1;
+const int64_t testping_nid = -1;
 
-extern void set_plne_map(std::vector<MR_PIPELINE_NODE_EXEC*>& array,
-                          MapId2Ptr& mapPle, MapId2Ptr& mapEdge, MapStr2Ptr& mapHost);
-
-
-#endif // MARIO_TYPES_H
+#endif // ITAT_H

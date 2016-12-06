@@ -12,6 +12,7 @@ extern struct DataSet<MR_REAL_EDGE> g_edges;
 extern int gen_diamond_pipeline(int node_num, int branch_num);
 extern void release_pipeline();
 extern int run_pipeline(int *run);
-extern int node_job_finished(SALT_JOB* job, MapMinionRet* rset);
+extern int node_job_finished(SALT_JOB* job, std::vector<int>* should_run);
+extern int run_something(std::vector<int>* vec);
 
 #endif // PIPELINE_H

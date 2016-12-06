@@ -1,5 +1,4 @@
-#include "mario_data.h"
-#include "http_client.h"
+#include "itat.h"
 #include <errno.h>
 #include <error.h>
 #include <netdb.h>
@@ -10,39 +9,59 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #define BUFSIZE 32768   //65536
 
-char g_token[32] = {0};
-extern int run;
-extern int *event_socket;
+int g_run = 0;
+//JOBMAP g_jobmap;
+char g_token[TOKEN_LEN] = {0};
+
+#define TEMPBUF_LEN 2048
+static SALT_CALLBACK salt_cb;
+static char global_buffer[BUFSIZE * 2 * 5 + TEMPBUF_LEN];
+static char* tmp_buf = 0;
+static char* buf_login = 0;
+static char* buf_test_ping = 0;
+static char* buf_run_cmd = 0;
+
+/**
+ * @brief http_client send cmd and receive response from salt api
+ * @param hostname in, hostname
+ * @param portno   in, port number
+ * @param buf      in, buffer for receive
+ * @param cmd      in, the command to run
+ * @param parse_fun in, the parse response function
+ * @param salt_job  in, the pointer to save salt_job
+ * @param job       in, the prepared job
+ * @return zero for good, otherwise for bad
+ */
+static int http_client(const char *hostname, int portno, char* buf, const char* cmd, parse_response parse_fn, void* param1, void *param2);
+
 static const char *salt_api_str[] = {
     "POST /login HTTP/1.1\r\n"
-    "Host: 10.10.10.19:8000\r\n"
+    "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
     "Content-Length: 43\r\n"
     "Content-Type: application/x-www-form-urlencoded\r\n"
     "\r\n"
-    "username=sean&password=hongt@8a51&eauth=pam",
+    "username=%s&password=%s&eauth=pam",
 
     "POST / HTTP/1.1\r\n"
-    "Host: 10.10.10.19:8000\r\n"
+    "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
-    "Content-Length: 41\r\n"
+    "Content-Length: %d\r\n"
     "Content-Type: application/x-www-form-urlencoded\r\n"
     "\r\n"
-    "client=local_async&fun=test.ping&tgt=old*",
+    "client=local_async&fun=test.ping&tgt=%s",
 
     "POST / HTTP/1.1\r\n"
-    "Host: 10.10.10.19:8000\r\n"
+    "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
-    "Content-Length: 90\r\n"
+    "Content-Length: %s\r\n"
     "Content-Type: application/x-www-form-urlencoded\r\n"
     "\r\n"
-    "client=local_async&fun=cmd.run_all&tgt=old08002759F4B6&arg=c:\\new-"
-    "salt\\ExecClient.exe abcd",
+    "client=local_async&fun=cmd.run_all&tgt=%s&arg=%s",
 
     "GET /events HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
@@ -88,6 +107,57 @@ Content-Length: nnn
 
 static const char *_http_header_ = {"HTTP/1.1 "};
 static const char *_conten_len_ = {"Content-Length: "};
+
+
+static int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2) {
+  // fprintf(stdout, "%s", (char *)ptr);
+  //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
+  UNUSE(len);
+  UNUSE(param1);
+  UNUSE(param2);
+
+  char *pos = strstr((char *)ptr, "\"token\": \"");
+  if (pos) {
+    pos += strlen("\"token\": \"");
+    char *end = strchr(pos, '\"');
+    if (!end)
+      return 0;
+    if (end - pos > TOKEN_LEN - 1) return -2;
+    memset(g_token, 0, TOKEN_LEN);
+    strncpy(g_token, pos, end - pos);
+  } else
+    return -1;
+  return 0;
+}
+
+void set_default_callback() {
+  tmp_buf = global_buffer;
+  buf_login = tmp_buf + TEMPBUF_LEN;
+  buf_test_ping = buf_login + BUFSIZE * 2;
+  buf_run_cmd = buf_test_ping + BUFSIZE * 2;
+
+  salt_cb.parase_my_job_cb = 0;
+  salt_cb.parse_job_cb = 0;
+  salt_cb.parse_token_cb = parse_token_fn;
+  salt_cb.process_event_cb = 0;
+}
+
+int salt_api_login(const char *hostname, int port, const char* user, const char* pass) {
+  snprintf(buf_login, BUFSIZE, salt_api_str[SALT_API_TYPE_LOGIN], hostname, port, user, pass);
+  return http_client(hostname, port, buf_login, buf_login, salt_cb.parse_token_cb, nullptr, nullptr);
+}
+
+
+int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2) {
+  char* content = strstr((char*)salt_api_str[SALT_API_TYPE_TESTPING], "client=local_async");
+  if (!content) return -1;
+
+  bzero(tmp_buf, TEMPBUF_LEN);
+  snprintf(tmp_buf, TEMPBUF_LEN - 1, content, target);
+  snprintf(buf_test_ping, BUFSIZE, salt_api_str[SALT_API_TYPE_TESTPING],
+           hostname, port, g_token, strlen(tmp_buf), tmp_buf);
+  return http_client(hostname, port, buf_test_ping, buf_test_ping, salt_cb.parase_my_job_cb, param1, param2);
+}
 
 static int get_response_code(const char *str) {
   return atoi((char *)str + strlen(_http_header_));
@@ -142,8 +212,8 @@ static int analyse_response(char **buf, int buflen, int *rescode,
   return finished;
 }
 
-int http_client(const char *hostname, int portno, char *buf, const char *cmd,
-                parse_response parse_fun, JOBMAP *jobmap, SALT_JOB *job) {
+static int http_client(const char *hostname, int portno, char *buf, const char *cmd,
+                parse_response parse_fun, void *param1, void* param2) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
@@ -207,7 +277,7 @@ restart_client:
   }
 
   if (!ret && parse_fun)
-    ret = (0 != parse_fun(json_data, data_len, jobmap, job));
+    ret = (0 != parse_fun(json_data, data_len, param1, param2));
 
   close(sockfd);
   return ret;
@@ -215,7 +285,6 @@ restart_client:
 run_receive_long_data : {
     char *tmp = json_data;
     char *line = tmp;
-    event_socket = &sockfd;
 // #ifndef _DEBUG_
     {
       struct timeval timeout;
@@ -231,14 +300,14 @@ run_receive_long_data : {
         printf("setsockopt failed\n");
     }
 // #endif //no _DEBUG_
-    while (!ret && run) {
+    while (!ret && g_run) {
       while (tmp < ptr) {
         if (*tmp != '\r')
           ++tmp;
         else {
           // printf("************** %s\n", line);
           if (parse_fun) // do not check error
-            parse_fun(line, tmp - line, jobmap, 0);
+            parse_fun(line, tmp - line, param1, param2);
           // ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
           // next line
@@ -273,7 +342,7 @@ run_receive_long_data : {
     close(sockfd);
   }
 
-  if (!ret && run) {
+  if (!ret && g_run) {
     fprintf(stdout, "ReStart Http Event Client!\n");
     goto restart_client;
   }
@@ -282,32 +351,6 @@ run_receive_long_data : {
   return ret;
 }
 
-static int parse_token(const char *ptr, size_t len, void *ptrtoken,
-                       void *param2) {
-  // fprintf(stdout, "%s", (char *)ptr);
-  //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
-  (void)len;
-  (void)param2;
-  char *pos = strstr((char *)ptr, "\"token\": \"");
-  if (pos) {
-    pos += strlen("\"token\": \"");
-    char *end = strchr(pos, '\"');
-    if (!end)
-      return 0;
-    strncpy((char *)ptrtoken, pos, end - pos);
-    *((char *)ptrtoken + (end - pos + 1)) = 0;
-    fprintf(stdout, "Token is %s\n", (char *)ptrtoken);
-  } else
-    return -1;
-  return 0;
-}
-
-int salt_api_login(const char *hostname, int port) {
-  char buf[BUFSIZE * 2];
-
-  return http_client(hostname, port, buf, salt_api_str[SALT_API_TYPE_LOGIN],
-                     parse_token, (JOBMAP*)g_token, 0);
-}
 
 // static int parse_cmd_return(const char *ptr, size_t len, void *obj) {
 //   (void)len;
@@ -320,44 +363,34 @@ int salt_api_login(const char *hostname, int port) {
 //   return 0;
 // }
 
-int salt_api_testping(const char *hostname, int port, int64_t pid, int64_t nodeid) {
-  char buf[BUFSIZE * 2];
-  char cmd[1024];
-  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TESTPING], g_token);
-  SALT_JOB* job = new SALT_JOB(pid, nodeid);
-  return http_client(hostname, port, buf, cmd, parse_my_job, &gjobmap,
-                     job); // parse_cmd_return
-}
-
-int salt_api_test_cmdrun(const char *hostname, int port, int64_t pid, int64_t nodeid) {
+int salt_api_test_cmdrun(const char *hostname, int port, PARAM param1, PARAM param2) {
   char buf[BUFSIZE * 2];
   char cmd[1024];
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TEST_CMDRUN], g_token);
-  SALT_JOB* job = new SALT_JOB(pid, nodeid);
-  return http_client(hostname, port, buf, cmd, parse_my_job, &gjobmap,
-                     job); // parse_cmd_return
+  return http_client(hostname, port, buf, cmd, salt_cb.parase_my_job_cb,
+                     param1, param2); // parse_cmd_return
 }
 
-int salt_api_cmd_runall(const char *hostname, int port, const char *minion,
-                        const char *script, int64_t pid, int64_t nodeid) {
+int salt_api_cmd_runall(const char *hostname, int port, const char *target,
+                        const char *script, PARAM param1, PARAM param2) {
   (void)script;
   char buf[BUFSIZE * 2];
   char cmd[1024];
-  if (!minion) return -1;
-  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_RUNALL], g_token, minion);
-  SALT_JOB* job = new SALT_JOB(pid, nodeid);
-  int ret = http_client(hostname, port, buf, cmd, parse_my_job, &gjobmap,
-                     job); // parse_cmd_return
+  if (!target) return -1;
+  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_RUNALL], g_token, target);
+  int ret = http_client(hostname, port, buf, cmd, salt_cb.parase_my_job_cb,
+                     param1, param2); // parse_cmd_return
   if (ret)
     std::cerr << "Wo caO!!!!\n";
   return ret;
 }
 
-int salt_api_events(const char *hostname, int port) {
+int salt_api_events(const char *hostname, int port, PARAM param1, PARAM param2) {
   char buf[BUFSIZE * 2];
   char cmd[1024];
 
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], g_token);
 
-  return http_client(hostname, port, buf, cmd, parse_job, &gjobmap, nullptr);
+  return http_client(hostname, port, buf, cmd, salt_cb.process_event_cb, param1, param2);
 }
+

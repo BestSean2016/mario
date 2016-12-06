@@ -66,9 +66,14 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int node_job_finished(SALT_JOB* job, MapMinionRet* rset)
+int node_job_finished(SALT_JOB* job, std::vector<int>* vec)
 {
   (void)job;
-  (void)rset;
+  (void)vec;
+  return 0;
+}
+
+int run_something(std::vector<int>* vec) {
+  (void)vec;
   return 0;
 }

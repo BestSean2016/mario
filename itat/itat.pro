@@ -1,24 +1,25 @@
-TEMPLATE = app
-CONFIG += console c++14
-CONFIG -= app_bundle
-CONFIG -= qt
+#-------------------------------------------------
+#
+# Project created by QtCreator 2016-12-06T16:40:42
+#
+#-------------------------------------------------
 
-SOURCES += main.cpp \
-    ../src/chinese.c \
-    ../src/mario_data.cpp \
-    ../src/mario_mysql.cpp \
-    ../src/utility.c \
-    ../src/salt_api.cpp \
-    ../src/pipeline.cpp \
-    ../src/http_client.cpp \
-    ../src/threadpool.c
-
+QT       -= core gui
 
 INCLUDEPATH += ../include
-INCLUDEPATH += /usr/local/include/igraph
 
+TARGET = itat
+TEMPLATE = lib
 
-DEFINES  += __USING_MYSQL__
+DEFINES += ITAT_LIBRARY
+
+SOURCES += \
+    ../src/itat.cpp
+
+HEADERS += \
+    ../include/itat.h \
+    ../include/itat_global.h
+
 
 
 ###################### unix ############################
@@ -28,19 +29,18 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -ligraph -L/usr/lib64/mysql -lmysqlclient
-    LIBS += -L/usr/local/lib -lgtest -lgtest_main
+    LIBS += -lpthread -lrt
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
 
     CONFIG(debug, debug|release) {
         DEFINES += _DEBUG_
-        TARGET = utest-1d
+        TARGET = itat-d
         message("Build for Debug version")
     }
     CONFIG(release, debug|release) {
-        TARGET = utest-1
+        TARGET = itat
         message("Build for release version")
     }
 }
@@ -66,4 +66,5 @@ windows {
     }
 
 }
+
 

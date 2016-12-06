@@ -5,6 +5,9 @@
 #include <thread>
 #include <signal.h>
 #include "utility.h"
+#include "threadpool.h"
+
+// extern threadpool_t* thpool;
 
 using namespace std;
 
@@ -38,6 +41,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  // thpool = threadpool_create(5, MAX_QUEUE, 0);
   if (0 != gen_diamond_pipeline(atoi(argv[1]), atoi(argv[2])))
       return -1;
 
@@ -60,15 +64,13 @@ int main(int argc, char *argv[]) {
   // tTestPing.join();
   tTimerOut.join();
 
-  close(*event_socket);
   std::this_thread::sleep_for(std::chrono::seconds(5));
-  std::cout << "events listener was closed \n";
   tEvent.join();
 
   jobmap_cleanup(&gjobmap);
 
   release_pipeline();
 
+  // threadpool_destroy(thpool, 0);
   return 0;
 }
-

@@ -3,9 +3,13 @@
 #include "mario_data.h"
 #include "mario_mysql.h"
 #include <igraph.h>
+#include <mutex>
 #include <thread>
 #include <vector>
 #include <set>
+//#include "threadpool.h"
+
+//threadpool_t *thpool;
 
 extern int run;
 
@@ -17,8 +21,10 @@ static DBHANDLE g_dbh = 0;
 struct DataSet<MR_REAL_NODE> g_nodes;
 struct DataSet<MR_REAL_EDGE> g_edges;
 
-
+static std::set<int> run_nodes;
 static std::set<int> end_node_set;
+
+
 static int get_host_data() {
   if (0 >
       query_data(
@@ -162,27 +168,76 @@ void release_pipeline() {
 extern char server_ip[16];
 extern int server_port;
 
-static void* run_task(void* arg) {
-  MR_REAL_NODE* node = (MR_REAL_NODE*)arg;
-  int64_t ret = salt_api_cmd_runall(server_ip, server_port,
-                                    g_hosts  [node->host_id].minion_id,
-                                    g_scripts[node->script_id].script,
-                                    node->ple_id,
-                                    node->id);
+static int run_task(MR_REAL_NODE* node) {
+  int64_t ret = 0;
+re_run:
+  ret = salt_api_cmd_runall(server_ip, server_port,
+                            g_hosts  [node->host_id].minion_id,
+                            g_scripts[node->script_id].script,
+                            node->ple_id,
+                            node->id);
+  if (ret) {
+    std::cerr << "Wo Cao!\n";
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    goto re_run;
+  }
+  // pthread_t t = pthread_self();
+  // pthread_detach(t);
+  // return (void*)ret;
+  return ret;
+}
+
+static int last_node_id = 0;
+
+static std::mutex g_inset_set_mutex;
+
+void* thread_run_something(void* param) {
+  std::lock_guard<std::mutex> *guard =
+      new std::lock_guard<std::mutex>(g_inset_set_mutex);
+  std::vector<int>* vec = (std::vector<int>*)param;
+  int k = 0;
+  for (auto& p: *vec) {
+    std::pair<std::set<int>::iterator,bool> ret;
+    ret = run_nodes.insert(p);
+    if (ret.second == true) {
+      ++k;
+      std::cout << p << " > ";
+      // threadpool_add(thpool, run_task, g_nodes.data + p, 0);
+      // pthread_t thread;
+      // (void)pthread_create(&thread, 0, run_task, g_nodes.data + p);
+      run_task(g_nodes.data + p);
+    }
+  }
+  if (k) std::cout << std::endl;
+  delete vec;
+
   pthread_t t = pthread_self();
   pthread_detach(t);
-  return (void*)ret;
+  delete guard;
+  return 0;
+}
+
+int run_something(std::vector<int>* vec) {
+  int ret = 0;
+
+  if (vec->size()) {
+    pthread_t t;
+    ret = pthread_create(&t, 0, thread_run_something, vec);
+  } else
+    delete vec;
+
+  return ret;
 }
 
 int run_pipeline(int *run) {
-  std::vector<int> start_node;
+  std::vector<int>* start_node = new std::vector<int>;
   igraph_vector_t y;
-  int64_t last_node_id = igraph_vcount(&g_graph) - 1;
+  last_node_id = (int)igraph_vcount(&g_graph) - 1;
   igraph_vector_init(&y, 0);
   for (int64_t i = 1; (*run) && (i < last_node_id); ++i) {
     igraph_neighbors(&g_graph, &y, i, IGRAPH_IN);
     if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == 0)
-      start_node.push_back((int)i);
+      start_node->push_back((int)i);
   }
   igraph_vector_destroy(&y);
 
@@ -195,11 +250,9 @@ int run_pipeline(int *run) {
 
   igraph_vector_destroy(&y);
 
-  if (*run)
-    for (auto& p: start_node) {
-      pthread_t thread;
-      (void)pthread_create(&thread, 0, run_task, g_nodes.data + p);
-    }
+  if (*run) {
+    run_something(start_node);
+  }
 
   return (0);
 }
@@ -211,41 +264,48 @@ static int continue_run_task(MR_REAL_NODE& node) {
 }
 
 static int should_run_this_node(int id) {
-  igraph_vector_t y;
-  igraph_vector_init(&y, 0);
-  igraph_neighbors(&g_graph, &y, id, IGRAPH_IN);
-  int go = 0;
-  for (int i = 0; i < igraph_vector_size(&y); ++i) {
-    if (g_nodes[(int)(VECTOR(y)[i])].status > JOB_STATUS_TYPE_RUNNING)
+  if (g_nodes[id].status) return 0;
+  std::vector<int> vecn;
+  //run next node
+  {
+    igraph_vector_t y;
+    igraph_vector_init(&y, 0);
+    igraph_neighbors(&g_graph, &y, id, IGRAPH_IN);
+    for (int i = 0; i < igraph_vector_size(&y); ++i)
+      vecn.push_back((int)(VECTOR(y)[i]));
+    igraph_vector_destroy(&y);
+  }
+
+  //std::cout << id << "'s amount of father is " << vecn.size() << ": ";
+  size_t go = 0;
+  for (auto& node : vecn) {
+    //std::cout << node << "->" << job_status(g_nodes[node].status) << ", ";
+    if (g_nodes[node].status > JOB_STATUS_TYPE_RUNNING)
        ++go;
   }
-  int ok = true;
+  int ok = 1;
 
-  if (go != igraph_vector_size(&y)) {
-    //std::cout << "node " << id << " have not been over\n";
-    ok = false;
+  if (go != vecn.size()) {
+    //std::cout << " have not been over. ";
+    ok = 0;
   }
 
   if (g_nodes[id].status) {
-    std::cout << "node " << id << " has alrady runing\n";
-    run = 0;
-    std::this_thread::sleep_for(std::chrono::seconds(180));
-    exit(-12345);
-    ok = false;
+    //std::cout << " has alrady runing. ";
+    ok = -1;
   }
 
   if (!continue_run_task(g_nodes[id])) {
-    //std::cout << "node " << id << " can not run continuely\n";
-    ok = false;
+    //std::cout << " can not run continuely. ";
+    ok = 0;
   }
 
-  igraph_vector_destroy(&y);
+  // std::cout << std::endl;
   return ok;
 }
 
 
-int node_job_finished(SALT_JOB* job, MapMinionRet* rset) {
-  (void)rset;
+int node_job_finished(SALT_JOB* job, std::vector<int> *should_run) {
   //std::cout << "job finised " << job->node_id << ", result " << job->status << std::endl;
 
   std::set<int>::iterator iter = end_node_set.find(job->node_id);
@@ -259,27 +319,34 @@ int node_job_finished(SALT_JOB* job, MapMinionRet* rset) {
         return ALL_TASK_FINISHED;
     }
   } else {
-    if (job->status == JOB_STATUS_TYPE_SUCCESSED
-        || continue_run_task(g_nodes[job->node_id])) {
+    if (job->status > JOB_STATUS_TYPE_RUNNING
+        && continue_run_task(g_nodes[job->node_id])) {
+      std::vector<int> vecn;
       //run next node
-      igraph_vector_t y;
-      igraph_vector_init(&y, 0);
-      igraph_neighbors(&g_graph, &y, job->node_id, IGRAPH_OUT);
-      std::cout << job->node_id << " --> ";
-      for (int i = 0; i < igraph_vector_size(&y); ++i) {
-        std::cout << (int)(VECTOR(y)[i]);
-        if (should_run_this_node((int)(VECTOR(y)[i]))) {
-          std::cout << " > ";
-          pthread_t thread;
-          (void)pthread_create(&thread, 0, run_task, g_nodes.data + (int)(VECTOR(y)[i]));
-          // std::this_thread::sleep_for(std::chrono::seconds(2));
+      {
+        igraph_vector_t y;
+        igraph_vector_init(&y, 0);
+        igraph_neighbors(&g_graph, &y, job->node_id, IGRAPH_OUT);
+        for (int i = 0; i < igraph_vector_size(&y); ++i)
+          vecn.push_back((int)(VECTOR(y)[i]));
+        igraph_vector_destroy(&y);
+      }
+
+      // std::cout << job->node_id << ",C " << vecn.size() << " --> ";
+      for (auto &node : vecn) {
+        if (node == last_node_id) continue;
+        // std::cout << node << "* : *\n";
+        int ok = should_run_this_node(node);
+        if (ok == 1) {
+          should_run->push_back(node);
+        } else if (ok == 0) {
+          // std::cout << " | ";
         } else {
-          std::cout << " | ";
+          // std::cout << " . ";
         }
       }
-      std::cout << std::endl;
-      igraph_vector_destroy(&y);
     }
   }
+  //std::cout << "i am returning ...\n";
   return 0;
 }

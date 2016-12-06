@@ -139,11 +139,10 @@ static const char* strstatus[] = {
   "failed",
   "timerout",
   "successed",
-  "part successed",
 };
 
 const char* job_status(JOB_STATUS_TYPE status) {
-  if (status < 0 || status > JOB_STATUS_TYPE_PART_SUCCESSED)
+  if (status < 0 || status > JOB_STATUS_TYPE_SUCCESSED)
     return 0;
   return strstatus[status];
 }
