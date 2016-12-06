@@ -43,7 +43,7 @@ extern "C" {
  * Large values might slow down your system
  */
 #define MAX_THREADS 64
-#define MAX_QUEUE 655360
+#define MAX_QUEUE 65536 * 2 * 2 * 2 * 2 * 2 * 2
 
 typedef enum {
     immediate_shutdown = 1,

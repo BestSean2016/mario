@@ -7,7 +7,7 @@
 #include "utility.h"
 #include "threadpool.h"
 
-// extern threadpool_t* thpool;
+extern threadpool_t* thpool;
 
 using namespace std;
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  // thpool = threadpool_create(5, MAX_QUEUE, 0);
+  thpool = threadpool_create(5, atoi(argv[1]) * 3, 0);
   if (0 != gen_diamond_pipeline(atoi(argv[1]), atoi(argv[2])))
       return -1;
 
@@ -71,6 +71,6 @@ int main(int argc, char *argv[]) {
 
   release_pipeline();
 
-  // threadpool_destroy(thpool, 0);
+  threadpool_destroy(thpool, 0);
   return 0;
 }

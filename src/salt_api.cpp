@@ -93,7 +93,7 @@ void thread_check_timer_out() {
       }
     }
     delete guard;
-    printf("TimerOut Checked.\n");
+    // printf("TimerOut Checked.\n");
     run_something(should_run);
   }
 }

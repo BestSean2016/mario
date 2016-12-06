@@ -7,9 +7,9 @@
 #include <thread>
 #include <vector>
 #include <set>
-//#include "threadpool.h"
+#include "threadpool.h"
 
-//threadpool_t *thpool;
+threadpool_t *thpool = 0;
 
 extern int run;
 
@@ -191,38 +191,47 @@ static int last_node_id = 0;
 
 static std::mutex g_inset_set_mutex;
 
-void* thread_run_something(void* param) {
+void thread_run_something(void* param) {
   std::lock_guard<std::mutex> *guard =
       new std::lock_guard<std::mutex>(g_inset_set_mutex);
   std::vector<int>* vec = (std::vector<int>*)param;
-  int k = 0;
+  //int k = 0;
   for (auto& p: *vec) {
     std::pair<std::set<int>::iterator,bool> ret;
     ret = run_nodes.insert(p);
+
+    if (!(run_nodes.size() % 1000)) {
+      time_t t = time(0);
+      char buf[64];
+      ctime_r(&t, buf);
+      std::cout << run_nodes.size() << ", " << buf << std::endl;
+    }
+
     if (ret.second == true) {
-      ++k;
-      std::cout << p << " > ";
+      //++k;
+      // std::cout << p << " > ";
       // threadpool_add(thpool, run_task, g_nodes.data + p, 0);
       // pthread_t thread;
       // (void)pthread_create(&thread, 0, run_task, g_nodes.data + p);
       run_task(g_nodes.data + p);
     }
   }
-  if (k) std::cout << std::endl;
+  //if (k) std::cout << std::endl;
   delete vec;
 
-  pthread_t t = pthread_self();
-  pthread_detach(t);
+  // pthread_t t = pthread_self();
+  // pthread_detach(t);
   delete guard;
-  return 0;
+  //return 0;
 }
 
 int run_something(std::vector<int>* vec) {
   int ret = 0;
 
   if (vec->size()) {
-    pthread_t t;
-    ret = pthread_create(&t, 0, thread_run_something, vec);
+    threadpool_add(thpool, thread_run_something, vec, 0);
+    //pthread_t t;
+    //ret = pthread_create(&t, 0, thread_run_something, vec);
   } else
     delete vec;
 
