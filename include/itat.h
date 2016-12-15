@@ -397,7 +397,8 @@ extern ITAT_API int salt_api_test_cmdrun(const char* hostname, int port, PARAM p
 extern ITAT_API int salt_api_events(const char* hostname, int port, PARAM param1, PARAM param2);
 extern ITAT_API int salt_api_cmd_runall(const char* hostname, int port, const char* target, const char* script, PARAM param1, PARAM param2);
 extern ITAT_API int salt_api_cmd(const char* hostname, int port, const char* minion, const char* cmd);
-
+extern ITAT_API int http_client(const char *hostname, int portno, char *buf, const char *cmd,
+                                parse_response parse_fun, void *param1, void* param2);
 
 #define TOKEN_LEN 128
 extern ITAT_API char g_token[TOKEN_LEN];

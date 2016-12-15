@@ -190,6 +190,7 @@ re_run:
 static int last_node_id = 0;
 
 static std::mutex g_inset_set_mutex;
+static int64_t total_tasks = -1;
 
 void thread_run_something(void* param) {
   std::lock_guard<std::mutex> *guard =
@@ -197,17 +198,19 @@ void thread_run_something(void* param) {
   std::vector<int>* vec = (std::vector<int>*)param;
   //int k = 0;
   for (auto& p: *vec) {
-    std::pair<std::set<int>::iterator,bool> ret;
-    ret = run_nodes.insert(p);
-
-    if (!(run_nodes.size() % 1000)) {
-      time_t t = time(0);
-      char buf[64];
-      ctime_r(&t, buf);
-      std::cout << run_nodes.size() << ", " << buf << std::endl;
-    }
-
+    std::pair<std::set<int>::iterator,bool> ret = run_nodes.insert(p);
     if (ret.second == true) {
+      if (!(run_nodes.size() % 4000) && (int64_t)run_nodes.size() > total_tasks) {
+        time_t t = time(0);
+        char buf[64];
+        ctime_r(&t, buf);
+        std::cout << run_nodes.size() << ", " << buf;
+        ++total_tasks;
+
+        salt_api_login("10.10.10.19", 8000);
+      }
+
+
       //++k;
       // std::cout << p << " > ";
       // threadpool_add(thpool, run_task, g_nodes.data + p, 0);

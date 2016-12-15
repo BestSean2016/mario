@@ -34,7 +34,6 @@ static char* buf_run_cmd = 0;
  * @param job       in, the prepared job
  * @return zero for good, otherwise for bad
  */
-static int http_client(const char *hostname, int portno, char* buf, const char* cmd, parse_response parse_fn, void* param1, void *param2);
 
 static const char *salt_api_str[] = {
     "POST /login HTTP/1.1\r\n"
@@ -212,7 +211,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
   return finished;
 }
 
-static int http_client(const char *hostname, int portno, char *buf, const char *cmd,
+int http_client(const char *hostname, int portno, char *buf, const char *cmd,
                 parse_response parse_fun, void *param1, void* param2) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;

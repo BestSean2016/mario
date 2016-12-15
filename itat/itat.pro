@@ -4,27 +4,38 @@
 #
 #-------------------------------------------------
 
-QT       -= core gui
+QT     -= core gui
+CONFIG += c++14
 
 INCLUDEPATH += ../include
 
-TARGET = itat
+TARGET   = itat
 TEMPLATE = lib
 
 DEFINES += ITAT_LIBRARY
 
 SOURCES += \
-    ../src/itat.cpp
+    ../src/itat.cpp \
+    ../src/mylog.c \
+    ../src/str.c \
+    ../src/threadpool.c \
+    ../src/mongoose.c \
+    ../src/http_api.cpp
 
 HEADERS += \
     ../include/itat.h \
-    ../include/itat_global.h
+    ../include/itat_global.h \
+    ../include/mylog.h \
+    ../include/str.h \
+    ../include/threadpool.h \
+    ../include/mongoose.h \
+    ../include/http_api.hpp
 
 
 
 ###################### unix ############################
 unix {
-    DEFINES += _UNIX_
+    DEFINES += _UNIX
 
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
@@ -47,21 +58,18 @@ unix {
 
 ###################### windows #########################
 windows {
-    DEFINES += _WINDOWS_
+    DEFINES += _WINDOWS
 
     message("Building for Windows")
 
-    INCLUDEPATH += D:/projects/md/gtest
 
     CONFIG(debug, debug|release) {
         DEFINES += _DEBUG_
-        TARGET = utest-1d
-        LIBS += -LD:/projects/md/gtest/win64 -lgtest-d -lgtest_main-d
+        TARGET = itat-d
         message("Build for Debug version")
     }
     CONFIG(release, debug|release) {
-        TARGET = utest-1
-        LIBS += -LD:/projects/md/gtest/win64 -lgtest -lgtest_main
+        TARGET = itat
         message("Build for release version")
     }
 

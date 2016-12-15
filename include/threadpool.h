@@ -29,6 +29,8 @@
 #ifndef _THREADPOOL_H_
 #define _THREADPOOL_H_
 
+#include "itat_global.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -112,7 +114,7 @@ typedef enum {
  * @param flags        Unused parameter.
  * @return a newly created thread pool or NULL
  */
-threadpool_t *threadpool_create(int thread_count, int queue_size, int flags);
+extern ITAT_API threadpool_t *threadpool_create(int thread_count, int queue_size, int flags);
 
 /**
  * @function threadpool_add
@@ -124,7 +126,7 @@ threadpool_t *threadpool_create(int thread_count, int queue_size, int flags);
  * @return 0 if all goes well, negative values in case of error (@see
  * threadpool_error_t for codes).
  */
-int threadpool_add(threadpool_t *pool, void (*routine)(void *),
+extern ITAT_API int threadpool_add(threadpool_t *pool, void (*routine)(void *),
                    void *arg, int flags);
 
 /**
@@ -137,7 +139,7 @@ int threadpool_add(threadpool_t *pool, void (*routine)(void *),
  * which case the thread pool doesn't accept any new tasks but
  * processes all pending tasks before shutdown.
  */
-int threadpool_destroy(threadpool_t *pool, int flags);
+extern ITAT_API int threadpool_destroy(threadpool_t *pool, int flags);
 
 #ifdef __cplusplus
 }

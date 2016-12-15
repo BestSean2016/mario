@@ -5,4 +5,5 @@ SUBDIRS += \
     utest-1 \
     events_lestener \
     itat \
-    itat_utest
+    itat_utest \
+    py-axa

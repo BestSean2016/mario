@@ -296,7 +296,7 @@ static int parse_token(const char *ptr, size_t len, void *ptrtoken,
       return 0;
     strncpy((char *)ptrtoken, pos, end - pos);
     *((char *)ptrtoken + (end - pos + 1)) = 0;
-    fprintf(stdout, "Token is %s\n", (char *)ptrtoken);
+    // fprintf(stdout, "Token is %s\n", (char *)ptrtoken);
   } else
     return -1;
   return 0;

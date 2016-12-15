@@ -42,7 +42,8 @@ extern int run_something(std::vector<int>* vec);
 //   }
 // }
 
-template <typename T> static void output_vector(std::vector<T> vec) {
+template <typename T>
+static void output_vector(std::vector<T> vec) {
   std::cout << "[";
   for (auto &p : vec)
     std::cout << p << ", ";
