@@ -1,5 +1,20 @@
 #include <iostream>
 #include <map>
+#include <string>
+
+using namespace std;
+
+typedef int (*fun_type) (const char* p);
+
+
+typedef map<string, fun_type> fMap;
+typedef pair<string, fun_type> fPair;
+
+int hello(const char* p) {
+  cout << p << endl;
+  return 0;
+}
+
 
 int main ()
 {
@@ -14,6 +29,11 @@ int main ()
   std::cout << "mymap contains:\n";
   for (std::map<char,int>::iterator it=mymap.begin(); it!=mymap.end(); ++it)
     std::cout << it->first << " => " << it->second << '\n';
+
+  fMap fmap;
+  fmap.insert(make_pair("a", hello));
+
+  std::cout << fmap["a"] << " ... " << fmap["b"] << std::endl;
 
   return 0;
 }

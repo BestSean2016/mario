@@ -19,7 +19,6 @@ SOURCES += \
     ../src/mylog.c \
     ../src/str.c \
     ../src/threadpool.c \
-    ../src/mongoose.c \
     ../src/http_api.cpp
 
 HEADERS += \
@@ -28,7 +27,6 @@ HEADERS += \
     ../include/mylog.h \
     ../include/str.h \
     ../include/threadpool.h \
-    ../include/mongoose.h \
     ../include/http_api.hpp
 
 
