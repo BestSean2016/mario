@@ -314,7 +314,7 @@ int parse_salt_job_ret(SALT_JOB_RET *job, const char *json_data) {
 }
 
 static SALT_JOB_PTR _parse_with_type_(rapidjson::Document &doc,
-                                      SALT_JOB_TYPE *type) {
+                                      SALT_JOB_EVENT_TYPE *type) {
   SALT_JOB_PTR job = 0;
   if (doc.HasMember("tag")) {
     const char *tag = doc["tag"].GetString();
@@ -345,7 +345,7 @@ static SALT_JOB_PTR _parse_with_type_(rapidjson::Document &doc,
   return job;
 }
 
-static void free_job(SALT_JOB_TYPE type, SALT_JOB_PTR job) {
+static void free_job(SALT_JOB_EVENT_TYPE type, SALT_JOB_PTR job) {
   switch (type) {
   case SALT_JOB_TYPE_NEW:
     delete (SALT_JOB *)job;
@@ -432,9 +432,9 @@ static int parse_salt_myjob_jobmap(const char *json_data, size_t len,
     // std::cout << "=.= JOBS insert job " << job->ple_id << ", " <<
     // job->node_id
     //           << ", " << job->jid << " => " << job << std::endl;
-    MapMinionRet *mset = new MapMinionRet();
+    MapRet *mset = new MapRet();
     jobmap->minions.insert(
-        std::pair<std::string, MapMinionRet *>(job->jid, mset));
+        std::pair<std::string, MapRet *>(job->jid, mset));
     // std::cout << "MINIONS insert job " << ((SALT_JOB *)job)->jid <<
     // std::endl;
     for (auto &p : job->minions) {
@@ -472,7 +472,7 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
     return -2;
   }
 
-  SALT_JOB_TYPE type = SALT_JOB_TYPE_IGNORE;
+  SALT_JOB_EVENT_TYPE type = SALT_JOB_TYPE_IGNORE;
   SALT_JOB_PTR jobptr = _parse_with_type_(doc, &type);
   if (!jobptr && type != SALT_JOB_TYPE_IGNORE) {
     std::cout << "_parse_with_type_ parser got error\n";
@@ -504,9 +504,9 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
           // std::cout << "^_^ JOBS insert job " << job->ple_id
           //           << ", " << job->node_id << ", "
           //           << job->jid << " => " << jobptr << std::endl;
-          MapMinionRet *mset = new MapMinionRet();
+          MapRet *mset = new MapRet();
           jobmap->minions.insert(
-              std::pair<std::string, MapMinionRet *>(job->jid, mset));
+              std::pair<std::string, MapRet *>(job->jid, mset));
           // std::cout << "    MINIONS insert job " << job->jid
           //           << std::endl;
           for (auto &p : job->minions) {
@@ -546,8 +546,8 @@ int parse_salt_jobmap(const char *json_data, size_t len, JOBMAP *jobmap) {
       bool found1 = (jobIter != jobmap->jobs.end());
       MapJid2Minions::iterator minionIter = jobmap->minions.find(jobret->jid);
       bool found2 = (minionIter != jobmap->minions.end());
-      MapMinionRet *mset = minionIter->second;
-      MapMinionRet::iterator minRetIter;
+      MapRet *mset = minionIter->second;
+      MapRet::iterator minRetIter;
       bool found3 = false;
       if (mset)
         found3 = ((minRetIter = mset->find(jobret->minion_id)) != mset->end());
@@ -711,7 +711,7 @@ void jobmap_cleanup(JOBMAP *jm) {
 
   for (const auto &p : jm->minions) {
     // std::cout << "erase minion set " << p.first << std::endl;
-    MapMinionRet *set = (MapMinionRet *)p.second;
+    MapRet *set = (MapRet *)p.second;
     for (const auto &k : *set) {
       if (nullptr != (k.second)) {
         // std::cout << "erase minion " << (k.second)->minion_id << std::endl;

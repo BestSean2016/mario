@@ -63,13 +63,6 @@ typedef struct mr_script {
   char desc[SHORT_TEXT_LENGTH];       ///说明
 } MR_SCRIPT;
 
-typedef enum JOB_STATUS_TYPE {
-  JOB_STATUS_TYPE_NOSTART,
-  JOB_STATUS_TYPE_RUNNING,
-  JOB_STATUS_TYPE_FAILED,
-  JOB_STATUS_TYPE_TIMEOUT,
-  JOB_STATUS_TYPE_SUCCESSED,
-} JOB_STATUS_TYPE;
 
 extern const char* job_status(JOB_STATUS_TYPE status);
 
@@ -349,16 +342,16 @@ typedef struct salt_job_ret {
 } SALT_JOB_RET;
 
 typedef void* SALT_JOB_PTR;
-typedef enum SALT_JOB_TYPE {
+typedef enum SALT_JOB_EVENT_TYPE {
     SALT_JOB_TYPE_IGNORE,
     SALT_JOB_TYPE_NEW,
     SALT_JOB_TYPE_RET,
-} SALT_JOB_TYPE;
+} SALT_JOB_EVENT_TYPE;
 
 
 
 typedef struct salt_job_data {
-    SALT_JOB_TYPE type;
+    SALT_JOB_EVENT_TYPE type;
     SALT_JOB_PTR  ptr;
 } SALT_JOB_DATA;
 
@@ -379,32 +372,7 @@ typedef struct SaltJob {
 
 extern SALT_JOB g_salt_job;
 typedef void* PARAM;
-typedef int (*parse_response) (const char* data, size_t len, PARAM param1, PARAM param2);
+typedef int (*response_function) (const char* data, size_t len, PARAM param1, PARAM param2);
 typedef int (*api_function) (const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
-
-typedef struct salt_callback {
-  parse_response parse_token_cb;
-  parse_response parse_job_cb;
-  parse_response parase_my_job_cb;
-  parse_response process_event_cb;
-} SALT_CALLBACK;
-
-extern ITAT_API void set_default_callback();
-
-extern ITAT_API int salt_api_login(const char *hostname, int port, const char* user, const char* pass);
-extern ITAT_API int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_test_cmdrun(const char* hostname, int port, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_events(const char* hostname, int port, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_cmd_runall(const char* hostname, int port, const char* target, const char* script, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_cmd(const char* hostname, int port, const char* minion, const char* cmd);
-extern ITAT_API int http_client(const char *hostname, int portno, char *buf, const char *cmd,
-                                parse_response parse_fun, void *param1, void* param2);
-
-#define TOKEN_LEN 128
-extern ITAT_API char g_token[TOKEN_LEN];
-extern ITAT_API int g_run;
-
-const int64_t testping_pid = -1;
-const int64_t testping_nid = -1;
 
 #endif // ITAT_H

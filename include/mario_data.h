@@ -338,16 +338,16 @@ typedef struct salt_job_ret {
 } SALT_JOB_RET;
 
 typedef void* SALT_JOB_PTR;
-typedef enum SALT_JOB_TYPE {
+typedef enum SALT_JOB_EVENT_TYPE {
     SALT_JOB_TYPE_IGNORE,
     SALT_JOB_TYPE_NEW,
     SALT_JOB_TYPE_RET,
-} SALT_JOB_TYPE;
+} SALT_JOB_EVENT_TYPE;
 
 
 
 typedef struct salt_job_data {
-    SALT_JOB_TYPE type;
+    SALT_JOB_EVENT_TYPE type;
     SALT_JOB_PTR  ptr;
 } SALT_JOB_DATA;
 
@@ -356,9 +356,9 @@ typedef struct salt_job_data {
 
 typedef std::string JOBID;
 typedef std::string MINION;
-typedef std::map<MINION, SALT_JOB_RET*> MapMinionRet;   //job return
+typedef std::map<MINION, SALT_JOB_RET*> MapRet;   //job return
 typedef std::map<JOBID, SALT_JOB*> MapJid2Job;      //job new
-typedef std::map<JOBID, MapMinionRet*> MapJid2Minions;
+typedef std::map<JOBID, MapRet*> MapJid2Minions;
 typedef MapJid2Minions::iterator MJ2M_Iterator;
 
 typedef struct JobMap {

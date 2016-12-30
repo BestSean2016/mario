@@ -3,7 +3,7 @@
 #include "config.h"
 
 using namespace std;
-#include "http_api.hpp"
+#include "httpapi.hpp"
 
 int main(int argc, char *argv[])
 {

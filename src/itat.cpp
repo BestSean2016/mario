@@ -212,7 +212,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
 }
 
 int http_client(const char *hostname, int portno, char *buf, const char *cmd,
-                parse_response parse_fun, void *param1, void* param2) {
+                response_function parse_fun, void *param1, void* param2) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;

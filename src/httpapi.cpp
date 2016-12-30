@@ -1,4 +1,4 @@
-#include "http_api.hpp"
+#include "httpapi.hpp"
 #include "mylog.h"
 #include "threadpool.h"
 #include <assert.h>
@@ -14,23 +14,22 @@
 #include <unistd.h>
 #include <vector>
 
+int g_run = 1;
+
 static threadpool_t *g_thpool_httpd;
 static std::mutex g_mutex_event;
 static int serv_sock;
 
-typedef struct CLIENTSOCK {
-  int socket;
-  struct sockaddr_in cli_addr;
-} CLIENTSOCK;
+static std::set<HTTP_CLIENT_PARAM *> g_event_clients;
 
-static std::set<CLIENTSOCK *> g_event_clients;
+const char *http_ret_200 = "HTTP/1.0 200 OK\r\n";
 
-const char *http_err_500 = "HTTP/1.0 500 Server Internal Error\r\n"
+const char *http_ret_500 = "HTTP/1.0 500 Server Internal Error\r\n"
                            "Content-Length: 0\r\n\r\n";
 
-const char *http_err_501 = "HTTP/1.0 501 Not Implemented\r\n"
+const char *http_ret_501 = "HTTP/1.0 501 Not Implemented\r\n"
                            "Content-Length: 0\r\n\r\n";
-const char *http_bad_req = "HTTP/1.0 400 Bad Request\r\n";
+const char *http_ret_400 = "HTTP/1.0 400 Bad Request\r\n";
 
 const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
                             "Access-Control-Expose-Headers: GET, POST\r\n"
@@ -46,7 +45,9 @@ const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
                             "Transfer-Encoding: chunked\r\n\r\n"
                             "a\r\nretry: 400\r\n\r\n";
 
+static const char *_http_header_ = {"HTTP/1.1 "};
 static const char *_content_len_ = {"Content-Length: "};
+
 // "PUT /api/v1/foo HTTP/1.1\r\n"
 // "Host: localhost:8000\r\n"
 // "User-Agent: curl/7.51.0\r\n"
@@ -56,6 +57,9 @@ static const char *_content_len_ = {"Content-Length: "};
 // "\r\n"
 // "aaa=bbb"
 
+// **************************************************************************************
+// Server Api
+// **************************************************************************************
 void split(const std::string &s, char delim, std::vector<std::string> &elems) {
   std::stringstream ss;
   ss.str(s);
@@ -176,7 +180,7 @@ int event_sender() {
 }
 
 static void do_http_request(void *param) {
-  CLIENTSOCK *clisock = (CLIENTSOCK *)param;
+  HTTP_CLIENT_PARAM *clisock = (HTTP_CLIENT_PARAM *)param;
   char buf[BUFSIZE * 2];
   memset(buf, 0, BUFSIZE * 2);
 
@@ -184,7 +188,7 @@ static void do_http_request(void *param) {
   char *line = buf;
 
   int len = 0;
-
+  bool is_api = false;
   HttpRequest hr;
   //
   // todo, asuming read onece to get all data
@@ -206,8 +210,8 @@ static void do_http_request(void *param) {
       printf("Content -> %s, %lu\n", line, strlen(line));
 #endif //_DEBUG
       if (hr.method == HTTP_REQUEST_METHOD_POST) {
-        if ((int)strlen(line) != hr.content_len)
-          return; // error
+        // if ((int)strlen(line) != hr.content_len)
+        //   return; // error
         hr.content = line;
       }
     } else {
@@ -221,12 +225,38 @@ static void do_http_request(void *param) {
     line += len + 2;
   }
 
+  if (hr.content_len > 0 && (int)(hr.content.size()) != hr.content_len) {
+    int left = hr.content_len - (int)(hr.content.size());
+    if (left != (n = read(clisock->socket, buf, left)))
+      goto error_exit;
+    else {
+      buf[n] = 0;
+      hr.content.append(buf);
+#ifdef _DEBUG_
+      printf("Content Line -> %s\n", buf);
+#endif //_DEBUG
+    }
+  }
+
   parse_http_request_(hr);
 
-  if (std::string::npos != hr.uri.find("/api/pyaxa", 0, 4)) {
-    // it's an api request
-    return;
-  } else if (hr.uri == "/event/pyaxa") {
+  if (clisock->uris.find("api") == clisock->uris.end())
+    write(clisock->socket, http_ret_400, strlen(http_ret_400));
+  else {
+    if (clisock->uris["api"].find(hr.uri) == clisock->uris["api"].end())
+      is_api = false;
+    else {
+      // it is api
+      // return 200 ok for now
+      is_api = true;
+      write(clisock->socket, http_ret_200, strlen(http_ret_200));
+    }
+  }
+
+  if (clisock->uris.find("event") == clisock->uris.end()) {
+    if (!is_api)
+      write(clisock->socket, http_ret_400, strlen(http_ret_400));
+  } else if (hr.uri == *(clisock->uris["event"].begin())) {
     // it's an event listner
     write(clisock->socket, http_chuncked, strlen(http_chuncked));
     auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
@@ -234,16 +264,14 @@ static void do_http_request(void *param) {
     g_event_clients.insert(clisock);
     delete guard;
     return;
-  } else {
-    // bad request
-    write(clisock->socket, http_bad_req, strlen(http_bad_req));
   }
+
 error_exit:
   close(clisock->socket);
   delete clisock;
 }
 
-int itat_httpd(short int portno) {
+int itat_httpd(short int portno, URI_REQUEST *uris) {
   g_thpool_httpd = threadpool_create(5, 10, 0);
   if (!g_thpool_httpd)
     return -1;
@@ -303,8 +331,9 @@ int itat_httpd(short int portno) {
         break;
       }
 
-      CLIENTSOCK *clisock = new CLIENTSOCK;
+      HTTP_CLIENT_PARAM *clisock = new HTTP_CLIENT_PARAM(*uris);
       clisock->socket = newsockfd;
+
       memcpy(&clisock->cli_addr, &cli_addr, sizeof(sockaddr_in));
       if (threadpool_add(g_thpool_httpd, do_http_request, clisock, 0)) {
         close(newsockfd);
@@ -334,12 +363,83 @@ int itat_httpd(short int portno) {
   return 0;
 }
 
-int itat_httpc(const char *hostname, int portno, char *buf, int buflen,
-               const char *cmd) {
-  int sockfd, n;
+// **************************************************************************************
+// Client Api
+// **************************************************************************************
+static int get_response_code(const char *str) {
+  return atoi((char *)str + strlen(_http_header_));
+}
+
+static size_t get_content_len(const char *str) {
+  return (size_t)atoll((char *)str + strlen(_content_len_));
+}
+
+static int analyse_response(char **buf, int buflen, int *rescode,
+                            char **json_data, int64_t *data_len) {
+  char *tmp = *buf;
+  char *line = tmp;
+  int finished = 0;
+
+  while (tmp - *buf < buflen) {
+    if (*tmp != '\r')
+      ++tmp;
+    else {
+      // this is a new line
+      if (!*rescode &&
+          (strncmp(line, _http_header_, strlen(_http_header_)) == 0)) {
+        *rescode = get_response_code(line);
+#ifdef _DEBUG_
+// printf("response code %d\n", *rescode);
+#endif //_DEBUG_
+      }
+
+      if (!*data_len &&
+          (strncmp(line, _content_len_, strlen(_content_len_)) == 0))
+        *data_len = get_content_len(line);
+
+      if (*line == '\r') {
+        *json_data = tmp + 2; // skip 2 bytes for '\r\n'
+      }
+
+      if (*json_data) {
+        if (!*data_len)
+          break;
+        if (0 != (finished = (*data_len == (((*buf) + buflen) - (*json_data)))))
+          break;
+      }
+
+      // GO TO NEXT LINE
+      tmp += 2; // skip 2 bytes for '\r\n'
+      if (!*json_data)
+        line = tmp;
+    }
+  }
+
+  *buf = line;
+  return finished;
+}
+
+int itat_httpc(const char *hostname, int portno, HTTPBUF buf, const char *cmd,
+               response_function parse_fun, void *param1, void *param2) {
+  int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
+  char *ptr;
   int ret;
+  char *json_data;
+  int64_t data_len;
+  char *anaptr;
+  int rescode;
+
+restart_client:
+  sockfd = 0, n = 0, total_len = 0;
+  server = 0;
+  ptr = buf;
+  ret = 0;
+  json_data = 0;
+  data_len = 0;
+  anaptr = ptr;
+  rescode = 0;
 
   /* socket: create the socket */
   ret = ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0);
@@ -365,13 +465,107 @@ int itat_httpc(const char *hostname, int portno, char *buf, int buflen,
 // printf("CMD: %s\n", cmd);
 #endif //_DEBUG_
 
-  write(sockfd, cmd, strlen(cmd));
+  if (!ret)
+    ret = ((n = write(sockfd, cmd, strlen(cmd))) < 0);
 
-  while ((n = read(sockfd, buf, buflen)) > 0) {
-    buf[n] = 0;
-    printf(buf);
+  while (!ret && (total_len < BUFSIZE)) {
+    ret = ((n = read(sockfd, ptr, BUFSIZE - total_len)) <= 0);
+    if (n == 0)
+      continue;
+    if (!ret) {
+      total_len += n;
+      if (analyse_response(&anaptr, ptr + n - anaptr, &rescode, &json_data,
+                           &data_len))
+        break;
+      ptr += n;
+      if (json_data && !data_len)
+        goto run_receive_long_data;
+    }
+  }
+
+  if (!ret && parse_fun)
+    ret = (0 != parse_fun(json_data, data_len, param1, param2));
+
+  if (rescode != 200)
+    ret = 200;
+
+  close(sockfd);
+  return ret;
+
+run_receive_long_data : {
+  char *tmp = json_data;
+  char *line = tmp;
+  // #ifndef _DEBUG_
+  {
+    struct timeval timeout;
+    timeout.tv_sec = 30;
+    timeout.tv_usec = 0;
+
+    if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO,
+                                (char *)&timeout, sizeof(timeout)) < 0)))
+      printf("setsockopt failed\n");
+
+    if (0 != (ret = (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO,
+                                (char *)&timeout, sizeof(timeout)) < 0)))
+      printf("setsockopt failed\n");
+  }
+  // #endif //no _DEBUG_
+  while (!ret && g_run) {
+    while (tmp < ptr) {
+      if (*tmp != '\r')
+        ++tmp;
+      else {
+        // printf("************** %s\n", line);
+        if (parse_fun) // do not check error
+          parse_fun(line, tmp - line, param1, param2);
+        // ret = (0 != parse_fun(line, tmp - line, param1, 0));
+
+        // next line
+        tmp += 2;
+        line = tmp;
+      }
+    }
+
+    // reset pointer to begin of buffer
+    if (line == tmp || (BUFSIZE - total_len < 8 * 1024)) {
+      ptr = buf, total_len = 0, tmp = buf, line = buf;
+    }
+
+    // read next package
+    // printf("************** reading *********************\n");
+    n = read(sockfd, ptr, BUFSIZE - total_len);
+    if (n < 0) {
+      if (n != 11)
+        fprintf(stdout,
+                "i got n = %d bytes, error no %d, errmsg %s total_len is %d\n",
+                n, errno, strerror(errno), total_len);
+      ret = (errno == 11) ? 0 : 1;
+    } else if (n == 0) {
+      fprintf(stdout,
+              "i got n = %d bytes, error no %d, errmsg %s total_len is %d\n", n,
+              errno, strerror(errno), total_len);
+    } else {
+      ptr += n, total_len += n;
+    }
   }
 
   close(sockfd);
-  return 0;
+
+  return ret;
+}
+
+  if (!ret && g_run) {
+    fprintf(stdout, "ReStart Http Event Client!\n");
+    goto restart_client;
+  }
+
+  fprintf(stdout, "exit http_client event listener\n");
+  return ret;
+}
+
+void show_cstring(const char *cstring, size_t len) {
+  std::cout << "|-->";
+  for (size_t i = 0; cstring && *cstring && i < len; i++)
+    std::cout << cstring[i];
+  std::cout << "<--|\n";
 }

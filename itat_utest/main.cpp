@@ -1,12 +1,14 @@
 #include <gtest/gtest.h>
 #include <iostream>
-#include "itat.h"
-#include "http_api.hpp"
 #include <thread>
 #include <chrono>
-#include <zmq.h>
+#include "httpapi.hpp"
+#include "saltapi.hpp"
 
 using namespace std;
+
+
+
 
 int main(int argc, char **argv) {
 
@@ -30,7 +32,7 @@ int main(int argc, char **argv) {
 
 
 
-static const char* send_str2[] = {
+static const char* send_str[] = {
     "GET /api/pyaxa/foo HTTP/1.1\r\n"
     "Host: localhost:8000\r\n"
     "Accept: */*\r\n"
@@ -76,19 +78,65 @@ static const char* send_str2[] = {
 };
 
 
+
+static int myfun (const char* data, size_t len, PARAM param1, PARAM param2) {
+  (void)param1;
+  (void)param2;
+  show_cstring(data, len);
+  return 0;
+}
+
+static void run_event_client() {
+    char buf[BUFSIZE];
+    itat_httpc("127.0.0.1", 32001, buf, send_str[4], myfun, nullptr, nullptr);
+}
+
 TEST(itat_httpd, server) {
   g_run = 1;
-  std::thread t(itat_httpd, 32001);
 
+  SetUri uriEvents;
+  uriEvents.insert("/event/pyaxa");
+
+  SetUri uriApis;
+  uriApis.insert("/api/pyaxa");
+
+  URI_REQUEST urireq;
+  urireq.insert(std::make_pair("event", uriEvents));
+  urireq.insert(std::make_pair("api", uriApis));
+
+  std::thread t(itat_httpd, 32001, &urireq);
   std::thread t_event_sender(event_sender);
 
-  std::this_thread::sleep_for(std::chrono::seconds(50));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
-  //char buf[BUFSIZE];
-  //itat_httpc("127.0.0.1", 32001, buf, BUFSIZE, send_str2[4]);
+  //std::thread tEventClent(run_event_client);
+
+  std::this_thread::sleep_for(std::chrono::seconds(30000));
 
   g_run = 0;
-  t_event_sender.join();
 
+  //tEventClent.join();
+  t_event_sender.join();
   t.join();
+}
+
+TEST(itat_salt, SALT_JOB) {
+  MapStr2Ptr<SALT_JOB> jobs;
+  SALT_JOB* job = new SALT_JOB;
+  SALT_JOB_RET* ret = new SALT_JOB_RET;
+  job->minion_ret.insert(std::make_pair("hahah", ret));
+
+  jobs.insert(std::make_pair("aaa", job));
+}
+
+
+TEST(itat_salt, salt_api_login) {
+  set_default_callback();
+  std::cout << "return code " << salt_api_login("10.10.10.19", 8000, "sean1", "hongt@8a51") << std::endl;
+}
+
+
+TEST(itat_salt, salt_api_testping) {
+  set_default_callback();
+  //std::cout << "return code " << salt_api_testping("10.10.10.19", 8000, nullptr, nullptr) << std::endl;
 }
