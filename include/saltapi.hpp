@@ -126,9 +126,8 @@ typedef struct salt_job {
 typedef enum SALT_API_TYPE {
   SALT_API_TYPE_LOGIN,
   SALT_API_TYPE_TESTPING,
-  SALT_API_TYPE_TEST_CMDRUN,
-  SALT_API_TYPE_EVENTS,
   SALT_API_TYPE_RUNALL,
+  SALT_API_TYPE_EVENTS,
 } SALT_API_TYPE;
 
 typedef struct salt_callback {
@@ -143,7 +142,6 @@ extern ITAT_API void set_default_callback();
 
 extern ITAT_API int salt_api_login(const char *hostname, int port, const char* user, const char* pass);
 extern ITAT_API int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_test_cmdrun(const char* hostname, int port, PARAM param1, PARAM param2);
 extern ITAT_API int salt_api_events(const char* hostname, int port, PARAM param1, PARAM param2);
 extern ITAT_API int salt_api_cmd_runall(const char* hostname, int port, const char* target, const char* script, PARAM param1, PARAM param2);
 extern ITAT_API int salt_api_cmd(const char* hostname, int port, const char* minion, const char* cmd);

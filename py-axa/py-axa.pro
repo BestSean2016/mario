@@ -56,3 +56,6 @@ windows {
 
 HEADERS += \
     config.h
+
+DISTFILES += \
+    capturing

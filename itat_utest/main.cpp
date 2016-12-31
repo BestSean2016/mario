@@ -111,7 +111,7 @@ TEST(itat_httpd, server) {
 
   //std::thread tEventClent(run_event_client);
 
-  std::this_thread::sleep_for(std::chrono::seconds(30000));
+  std::this_thread::sleep_for(std::chrono::seconds(30));
 
   g_run = 0;
 
@@ -132,11 +132,42 @@ TEST(itat_salt, SALT_JOB) {
 
 TEST(itat_salt, salt_api_login) {
   set_default_callback();
-  std::cout << "return code " << salt_api_login("10.10.10.19", 8000, "sean1", "hongt@8a51") << std::endl;
+  EXPECT_EQ(0, salt_api_login("10.10.10.19", 8000, "sean", "hongt@8a51"));
 }
 
 
 TEST(itat_salt, salt_api_testping) {
   set_default_callback();
-  //std::cout << "return code " << salt_api_testping("10.10.10.19", 8000, nullptr, nullptr) << std::endl;
+  EXPECT_EQ(0, salt_api_testping("10.10.10.19", 8000, "old*", nullptr, nullptr));
+}
+
+
+TEST(itat_ssalt, salt_api_cmd_runall) {
+  set_default_callback();
+  EXPECT_EQ(0, salt_api_cmd_runall("10.10.10.19",
+                                   8000,
+                                   "old*",
+                                   "dir",
+                                   nullptr, nullptr));
+}
+
+void events() {
+  EXPECT_EQ(0, salt_api_events("10.10.10.19", 8000, nullptr, nullptr));
+}
+
+TEST(itat_salt, salt_api_events) {
+  set_default_callback();
+  g_run = 1;
+  std::thread t(events);
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+
+  EXPECT_EQ(0, salt_api_login("10.10.10.19", 8000, "sean", "hongt@8a51"));
+  EXPECT_EQ(0, salt_api_testping("10.10.10.19", 8000, "old*", nullptr, nullptr));
+  EXPECT_EQ(0, salt_api_cmd_runall("10.10.10.19",
+                                   8000,
+                                   "old*",
+                                   "dir",
+                                   nullptr, nullptr));
+  g_run = 0;
+  t.join();
 }

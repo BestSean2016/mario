@@ -1,0 +1,185 @@
+POST /login HTTP/1.0
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 43
+Host: 42.62.125.182:8000
+Accept: text/html, */*
+Accept-Encoding: identity
+User-Agent: Mozilla/3.0 (compatible; Indy Library)
+
+username=sean&password=hongt@8a51&eauth=pam
+
+
+HTTP/1.1 200 OK
+Content-Length: 192
+Access-Control-Expose-Headers: GET, POST
+Vary: Accept-Encoding
+Server: CherryPy/3.2.2
+Allow: GET, HEAD, POST
+Access-Control-Allow-Credentials: true
+Date: Fri, 30 Dec 2016 11:21:40 GMT
+Access-Control-Allow-Origin: *
+X-Auth-Token: 2241d21955da6b37671c3173013eb19be2f65cca
+Content-Type: application/json
+Set-Cookie: session_id=2241d21955da6b37671c3173013eb19be2f65cca; expires=Fri, 30 Dec 2016 21:21:40 GMT; Path=/
+
+{"return": [{"perms": [".*", "@wheel", "@runner"], "start": 1483096900.15862, "token": "2241d21955da6b37671c3173013eb19be2f65cca", "expire": 1483140100.15862, "user": "sean", "eauth": "pam"}]}
+
+888888888888888888888888888888888888888888888888888888
+
+POST / HTTP/1.0
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 131
+X-Auth-Token: 2241d21955da6b37671c3173013eb19be2f65cca
+Content-type: application/json
+Host: 42.62.125.182:8000
+Accept: text/html, */*
+Accept-Encoding: identity
+User-Agent: Mozilla/3.0 (compatible; Indy Library)
+
+{"client":"local_async","tgt":"old080027856836","fun":"cmd.run_all","arg":"c:\\python27\\python C:\\FileMatch\\fmServer.py  30001"}
+
+HTTP/1.1 200 OK
+Content-Length: 77
+Access-Control-Expose-Headers: GET, POST
+Cache-Control: private
+Vary: Accept-Encoding
+Server: CherryPy/3.2.2
+Allow: GET, HEAD, POST
+Access-Control-Allow-Credentials: true
+Date: Fri, 30 Dec 2016 11:25:32 GMT
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Set-Cookie: session_id=2241d21955da6b37671c3173013eb19be2f65cca; expires=Fri, 30 Dec 2016 21:25:32 GMT; Path=/
+
+{"return": [{"jid": "20161230192532276631", "minions": ["old080027856836"]}]}
+
+
+start fmserver
+*****************************************************
+
+POST / HTTP/1.0
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 136
+X-Auth-Token: 2241d21955da6b37671c3173013eb19be2f65cca
+Content-type: application/json
+Host: 42.62.125.182:8000
+Accept: text/html, */*
+Accept-Encoding: identity
+User-Agent: Mozilla/3.0 (compatible; Indy Library)
+
+[{"client":"local", "tgt":"old080027856836", "fun":"cp.get_file", "arg":["salt://pyaxa/FileMatch.ini", "C:\\FileMatch\\FileMatch.ini"]}]
+
+HTTP/1.1 200 OK
+Content-Length: 65
+Access-Control-Expose-Headers: GET, POST
+Cache-Control: private
+Vary: Accept-Encoding
+Server: CherryPy/3.2.2
+Allow: GET, HEAD, POST
+Access-Control-Allow-Credentials: true
+Date: Fri, 30 Dec 2016 11:27:54 GMT
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Set-Cookie: session_id=2241d21955da6b37671c3173013eb19be2f65cca; expires=Fri, 30 Dec 2016 21:27:54 GMT; Path=/
+
+
+
+{"return": [{"old080027856836": "C:\\FileMatch\\FileMatch.ini"}]}
+
+download
+**************************************************
+
+POST / HTTP/1.0
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 119
+X-Auth-Token: 2241d21955da6b37671c3173013eb19be2f65cca
+Content-type: application/json
+Host: 42.62.125.182:8000
+Accept: text/html, */*
+Accept-Encoding: identity
+User-Agent: Mozilla/3.0 (compatible; Indy Library)
+
+{"client":"local","fun":"cmd.run_all","tgt":"old080027856836","arg":"c:\\python27\\python C:\\FileMatch\\FileMatch.py"}
+
+HTTP/1.1 200 OK
+Content-Length: 493
+Access-Control-Expose-Headers: GET, POST
+Cache-Control: private
+Vary: Accept-Encoding
+Server: CherryPy/3.2.2
+Allow: GET, HEAD, POST
+Access-Control-Allow-Credentials: true
+Date: Fri, 30 Dec 2016 11:30:36 GMT
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Set-Cookie: session_id=2241d21955da6b37671c3173013eb19be2f65cca; expires=Fri, 30 Dec 2016 21:30:36 GMT; Path=/
+
+{"return": [{"old080027856836": {"pid": 4020, "retcode": 0, "stderr": "", "stdout": "start...\r\nGroup_1\r\n624956f0-ce83-11e6-a274-080027856836|salt old080027856836 cmd.run_all 'C:\\python27\\python C:\\FileMatch\\fmClient.py 127.0.0.1 30001 C:\\test\\aaa.txt c:\\20161229\\aaa.txt -1'\r\n624956f0-ce83-11e6-a274-080027856836|salt old080027856836 cmd.run_all 'C:\\python27\\python C:\\FileMatch\\fmClient.py 127.0.0.1 30001 C:\\test\\02.jpg c:\\20161230\\02.jpg -1'\r\nGroup_2\r\nfinish."}}]}
+
+**************************
+
+POST / HTTP/1.0
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 177
+X-Auth-Token: 2241d21955da6b37671c3173013eb19be2f65cca
+Content-type: application/json
+Host: 42.62.125.182:8000
+Accept: text/html, */*
+Accept-Encoding: identity
+User-Agent: Mozilla/3.0 (compatible; Indy Library)
+
+{"client":"local","fun":"cmd.run_all","tgt":"old080027856836","arg":"C:\\python27\\python C:\\FileMatch\\fmClient.py 127.0.0.1 30001 C:\\test\\aaa.txt c:\\20161229\\aaa.txt -1"}
+
+HTTP/1.1 200 OK
+Content-Length: 90
+Access-Control-Expose-Headers: GET, POST
+Cache-Control: private
+Vary: Accept-Encoding
+Server: CherryPy/3.2.2
+Allow: GET, HEAD, POST
+Access-Control-Allow-Credentials: true
+Date: Fri, 30 Dec 2016 11:32:24 GMT
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Set-Cookie: session_id=2241d21955da6b37671c3173013eb19be2f65cca; expires=Fri, 30 Dec 2016 21:32:24 GMT; Path=/
+
+{"return": [{"old080027856836": {"pid": 3848, "retcode": 0, "stderr": "", "stdout": ""}}]}
+
+*************************************
+
+POST / HTTP/1.0
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 175
+X-Auth-Token: 2241d21955da6b37671c3173013eb19be2f65cca
+Content-type: application/json
+Host: 42.62.125.182:8000
+Accept: text/html, */*
+Accept-Encoding: identity
+User-Agent: Mozilla/3.0 (compatible; Indy Library)
+
+
+{"client":"local","fun":"cmd.run_all","tgt":"old080027856836","arg":"C:\\python27\\python C:\\FileMatch\\fmClient.py 127.0.0.1 30001 C:\\test\\02.jpg c:\\20161230\\02.jpg -1"}
+
+
+HTTP/1.1 200 OK
+Content-Length: 90
+Access-Control-Expose-Headers: GET, POST
+Cache-Control: private
+Vary: Accept-Encoding
+Server: CherryPy/3.2.2
+Allow: GET, HEAD, POST
+Access-Control-Allow-Credentials: true
+Date: Fri, 30 Dec 2016 11:32:37 GMT
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Set-Cookie: session_id=2241d21955da6b37671c3173013eb19be2f65cca; expires=Fri, 30 Dec 2016 21:32:37 GMT; Path=/
+
+
+
+{"return": [{"old080027856836": {"pid": 2828, "retcode": 0, "stderr": "", "stdout": ""}}]}

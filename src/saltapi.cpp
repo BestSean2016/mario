@@ -1,15 +1,11 @@
 #include "saltapi.hpp"
+#include "assert.h"
 
 //JOBMAP g_jobmap;
 char g_token[TOKEN_LEN] = {0};
 
 #define TEMPBUF_LEN 2048
 static SALT_CALLBACK salt_cb;
-static char global_buffer[BUFSIZE * 2 * 5 + TEMPBUF_LEN];
-static char* tmp_buf = 0;
-static char* buf_login = 0;
-static char* buf_test_ping = 0;
-static char* buf_run_cmd = 0;
 
 /**
  * @brief itat_httpc send cmd and receive response from salt api
@@ -22,33 +18,32 @@ static char* buf_run_cmd = 0;
  * @param job       in, the prepared job
  * @return zero for good, otherwise for bad
  */
-
 static const char *salt_api_str[] = {
     "POST /login HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
-    "Content-Length: 43\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
+    "Content-Length: %d\r\n"
+    "Content-type: application/json\r\n"
     "\r\n"
-    "username=%s&password=%s&eauth=pam",
+    "{\"username\":\"%s\",\"password\":\"%s\",\"eauth\":\"pam\"}",
 
     "POST / HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
     "Content-Length: %d\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
+    "Content-type: application/json\r\n"
     "\r\n"
-    "client=local_async&fun=test.ping&tgt=%s",
+    "{\"client\":\"local_async\",\"fun\":\"test.ping\",\"tgt\":\"%s\"}",
 
     "POST / HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
-    "Content-Length: %s\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
+    "Content-Length: %d\r\n"
+    "Content-type: application/json\r\n"
     "\r\n"
-    "client=local_async&fun=cmd.run_all&tgt=%s&arg=%s",
+    "{\"client\":\"local_async\",\"fun\":\"cmd.run_all\",\"tgt\":\"%s\",\"arg\":\"%s\"}",
 
     "GET /events HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
@@ -56,15 +51,12 @@ static const char *salt_api_str[] = {
     "X-Auth-Token: %s\r\n"
     "\r\n",
 
-    "POST / HTTP/1.1\r\n"
-    "Host: 10.10.10.19:8000\r\n"
-    "Accept: application/json\r\n"
-    "X-Auth-Token: %s\r\n"
-    "Content-Length: 94\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
-    "\r\n"
     "client=local_async&fun=cmd.run_all&tgt=%s&arg=c:"
     "\\hongt\\Client\\ExecClient.exe abcd",
+
+
+    "{\"client\":\"local_async\",\"tgt\":\"old080027856836\",\"fun\":\"cmd.run_all\",\"arg\":\"c:\\python27\\python C:\\FileMatch\\fmServer.py  30001\"}",
+
 };
 //client=local_async&fun=cmd.run_all&tgt=old080027C8BFA4&arg=c:\hongt\Client\ExecClient.exe abcd
 //
@@ -120,32 +112,46 @@ static int parse_token_fn(const char *ptr, size_t len, void* param1, void* param
 }
 
 void set_default_callback() {
-  tmp_buf = global_buffer;
-  buf_login = tmp_buf + TEMPBUF_LEN;
-  buf_test_ping = buf_login + BUFSIZE * 2;
-  buf_run_cmd = buf_test_ping + BUFSIZE * 2;
-
   salt_cb.parase_my_job_cb = 0;
   salt_cb.parse_job_cb = 0;
   salt_cb.parse_token_cb = parse_token_fn;
   salt_cb.process_event_cb = 0;
 }
 
+
+static char* get_contnt(const char* str) {
+  char* content = strstr((char*)str, "\r\n\r\n");
+  if (!content) return nullptr;
+  else return content + 4;
+}
+
+#define SET_CONTENT(api_str_index) \
+  char buffer[BUFSIZE * 2];\
+  char* cmd = buffer + BUFSIZE;\
+  char* tmp_buf = cmd + BUFSIZE / 2;\
+  \
+  char* content = get_contnt(salt_api_str[(api_str_index)]);\
+  assert(content != nullptr);\
+
+
+
 int salt_api_login(const char *hostname, int port, const char* user, const char* pass) {
-  snprintf(buf_login, BUFSIZE, salt_api_str[SALT_API_TYPE_LOGIN], hostname, port, user, pass);
-  return itat_httpc(hostname, port, buf_login, buf_login, salt_cb.parse_token_cb, nullptr, nullptr);
+  SET_CONTENT(SALT_API_TYPE_LOGIN);
+  snprintf(tmp_buf, BUFSIZE / 2, content, user, pass);
+  snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_LOGIN], hostname, port, strlen(tmp_buf), user, pass);
+  // show_cstring(buf_login, strlen(buf_login));
+  return itat_httpc(hostname, port, buffer, cmd, salt_cb.parse_token_cb, nullptr, nullptr);
 }
 
 
 int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2) {
-  char* content = strstr((char*)salt_api_str[SALT_API_TYPE_TESTPING], "client=local_async");
-  if (!content) return -1;
+  SET_CONTENT(SALT_API_TYPE_TESTPING);
 
-  bzero(tmp_buf, TEMPBUF_LEN);
-  snprintf(tmp_buf, TEMPBUF_LEN - 1, content, target);
-  snprintf(buf_test_ping, BUFSIZE, salt_api_str[SALT_API_TYPE_TESTPING],
-           hostname, port, g_token, strlen(tmp_buf), tmp_buf);
-  return itat_httpc(hostname, port, buf_test_ping, buf_test_ping, salt_cb.parase_my_job_cb, param1, param2);
+  snprintf(tmp_buf, BUFSIZE / 2, content, target);
+  snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_TESTPING],
+           hostname, port, g_token, strlen(tmp_buf), target);
+  // show_cstring(buf_test_ping, strlen(buf_test_ping));
+  return itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb, param1, param2);
 }
 
 
@@ -160,25 +166,18 @@ int salt_api_testping(const char *hostname, int port, const char* target, PARAM 
 //   return 0;
 // }
 
-int salt_api_test_cmdrun(const char *hostname, int port, PARAM param1, PARAM param2) {
-  char buf[BUFSIZE * 2];
-  char cmd[1024];
-  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_TEST_CMDRUN], g_token);
-  return itat_httpc(hostname, port, buf, cmd, salt_cb.parase_my_job_cb,
-                     param1, param2); // parse_cmd_return
-}
-
 int salt_api_cmd_runall(const char *hostname, int port, const char *target,
                         const char *script, PARAM param1, PARAM param2) {
-  (void)script;
-  char buf[BUFSIZE * 2];
-  char cmd[1024];
-  if (!target) return -1;
-  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_RUNALL], g_token, target);
-  int ret = itat_httpc(hostname, port, buf, cmd, salt_cb.parase_my_job_cb,
+  SET_CONTENT(SALT_API_TYPE_RUNALL);
+
+  snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
+  snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_RUNALL],
+           hostname, port, g_token, strlen(tmp_buf), target, script);
+  int ret = itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
                      param1, param2); // parse_cmd_return
   if (ret)
     std::cerr << "Wo caO!!!!\n";
+
   return ret;
 }
 
