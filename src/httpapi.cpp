@@ -260,7 +260,10 @@ static void do_http_request(void *param) {
     // it's an event listner
     write(clisock->socket, http_chuncked, strlen(http_chuncked));
     auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
+#ifdef _DEBUG_
     printf("Insert a socket %d\n", clisock->socket);
+#endif //_DEBUG_
+
     g_event_clients.insert(clisock);
     delete guard;
     return;
@@ -340,13 +343,17 @@ int itat_httpd(short int portno, URI_REQUEST *uris) {
         delete clisock;
       }
     } else {
-      // always here, even if i connect from another application
+// always here, even if i connect from another application
+#ifdef _DEBUG_
       printf("select timeout\n");
+#endif //_DEBUG_
     }
   }
 
   close(serv_sock);
+#ifdef _DEBUG_
   printf("close server socket fd");
+#endif //_DEBUG_
 
   std::this_thread::sleep_for(std::chrono::seconds(15));
   {
