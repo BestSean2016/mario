@@ -45,11 +45,30 @@ static const char *salt_api_str[] = {
     "\r\n"
     "{\"client\":\"local_async\",\"fun\":\"cmd.run_all\",\"tgt\":\"%s\",\"arg\":\"%s\"}",
 
+    "POST / HTTP/1.1\r\n"
+    "Host: %s:%d\r\n"
+    "Accept: application/json\r\n"
+    "X-Auth-Token: %s\r\n"
+    "Content-Length: %d\r\n"
+    "Content-type: application/json\r\n"
+    "\r\n"
+    "{\"client\":\"local\",\"fun\":\"cmd.run_all\",\"tgt\":\"%s\",\"arg\":\"%s\"}",
+
     "GET /events HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
     "\r\n",
+
+    "POST / HTTP/1.1\r\n"
+    "Host: %s:%d\r\n"
+    "Accept: application/json\r\n"
+    "X-Auth-Token: %s\r\n"
+    "Content-Length: %d\r\n"
+    "Content-type: application/json\r\n"
+    "\r\n"
+    "[{\"client\":\"local\", \"tgt\":\"%s\", \"fun\":\"cp.get_file\", \"arg\":[\"%s\", \"%s\"]}]"
+
 
     "client=local_async&fun=cmd.run_all&tgt=%s&arg=c:"
     "\\hongt\\Client\\ExecClient.exe abcd",
@@ -105,7 +124,9 @@ static int parse_token_fn(const char *ptr, size_t len, void* param1, void* param
     std::cout << g_token << std::endl;
 #endif //_DEBUG_
   } else {
+#ifdef _DEBUG_
     show_cstring(ptr, len);
+#endif //_DEBUG_
     return -1;
   }
   return 0;
@@ -166,6 +187,21 @@ int salt_api_testping(const char *hostname, int port, const char* target, PARAM 
 //   return 0;
 // }
 
+int salt_api_async_cmd_runall(const char *hostname, int port, const char *target,
+                        const char *script, PARAM param1, PARAM param2) {
+  SET_CONTENT(SALT_API_TYPE_ASYNC_RUNALL);
+
+  snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
+  snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
+           hostname, port, g_token, strlen(tmp_buf), target, script);
+  int ret = itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
+                     param1, param2);
+  if (ret)
+    std::cerr << "Wo caO!!!!\n";
+
+  return ret;
+}
+
 int salt_api_cmd_runall(const char *hostname, int port, const char *target,
                         const char *script, PARAM param1, PARAM param2) {
   SET_CONTENT(SALT_API_TYPE_RUNALL);
@@ -174,11 +210,20 @@ int salt_api_cmd_runall(const char *hostname, int port, const char *target,
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_RUNALL],
            hostname, port, g_token, strlen(tmp_buf), target, script);
   int ret = itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
-                     param1, param2); // parse_cmd_return
+                     param1, param2);
   if (ret)
     std::cerr << "Wo caO!!!!\n";
 
   return ret;
+}
+
+int salt_api_cp_getfile(const char* hostname, int port, const char* target, const char* src_file, const char* des_file, PARAM param1, PARAM param2) {
+    SET_CONTENT(SALT_API_TYPE_CP_GETFILE);
+    snprintf(tmp_buf, BUFSIZE / 2, content, target, src_file, des_file);
+    snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
+             hostname, port, g_token, strlen(tmp_buf), target, src_file, des_file);
+    return itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
+                         param1, param2);
 }
 
 int salt_api_events(const char *hostname, int port, PARAM param1, PARAM param2) {

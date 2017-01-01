@@ -3,7 +3,8 @@ CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    pyaxa-mysql.cpp
 
 
 INCLUDEPATH += ../include
@@ -17,7 +18,7 @@ unix {
     INCLUDEPATH += /usr/local/include
 
     LIBS += -L/usr/local/lib -lpthread -lrt
-    # LIBS += -L/usr/lib64/mysql -lmysqlclient
+    LIBS += -L/usr/lib64/mysql -lmysqlclient
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
@@ -55,7 +56,8 @@ windows {
 }
 
 HEADERS += \
-    config.h
+    config.h \
+    pyaxa-mysql.hpp
 
 DISTFILES += \
     capturing

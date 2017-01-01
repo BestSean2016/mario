@@ -171,7 +171,7 @@ extern int server_port;
 static int run_task(MR_REAL_NODE* node) {
   int64_t ret = 0;
 re_run:
-  ret = salt_api_cmd_runall(server_ip, server_port,
+  ret = salt_api_async_cmd_runall(server_ip, server_port,
                             g_hosts  [node->host_id].minion_id,
                             g_scripts[node->script_id].script,
                             node->ple_id,

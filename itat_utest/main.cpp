@@ -1,3 +1,4 @@
+#include <functional>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <thread>
@@ -142,9 +143,9 @@ TEST(itat_salt, salt_api_testping) {
 }
 
 
-TEST(itat_ssalt, salt_api_cmd_runall) {
+TEST(itat_ssalt, salt_api_async_cmd_runall) {
   set_default_callback();
-  EXPECT_EQ(0, salt_api_cmd_runall("10.10.10.19",
+  EXPECT_EQ(0, salt_api_async_cmd_runall("10.10.10.19",
                                    8000,
                                    "old*",
                                    "dir",
@@ -163,11 +164,16 @@ TEST(itat_salt, salt_api_events) {
 
   EXPECT_EQ(0, salt_api_login("10.10.10.19", 8000, "sean", "hongt@8a51"));
   EXPECT_EQ(0, salt_api_testping("10.10.10.19", 8000, "old*", nullptr, nullptr));
-  EXPECT_EQ(0, salt_api_cmd_runall("10.10.10.19",
+  EXPECT_EQ(0, salt_api_async_cmd_runall("10.10.10.19",
                                    8000,
                                    "old*",
                                    "dir",
                                    nullptr, nullptr));
   g_run = 0;
   t.join();
+}
+
+
+TEST(functional, get_rule) {
+
 }

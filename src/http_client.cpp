@@ -338,7 +338,7 @@ int salt_api_test_cmdrun(const char *hostname, int port, int64_t pid, int64_t no
                      job); // parse_cmd_return
 }
 
-int salt_api_cmd_runall(const char *hostname, int port, const char *minion,
+int salt_api_async_cmd_runall(const char *hostname, int port, const char *minion,
                         const char *script, int64_t pid, int64_t nodeid) {
   (void)script;
   char buf[BUFSIZE * 2];

@@ -20,6 +20,7 @@ unix {
     LIBS += -lpthread -lrt
     LIBS += -L/usr/local/lib -lgtest -lgtest_main
 
+
     target.path = /usr/local/bin/mario
     INSTALLS += target
 
