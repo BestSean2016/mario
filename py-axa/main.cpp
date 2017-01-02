@@ -148,6 +148,9 @@ int parase_file_match(const char* jn, size_t ln, PARAM p1, PARAM p2) {
           job.TargetPathFile = line;
           *tmp = ' ';
 
+
+          job.State = "Copying ... ";
+
           jobs->emplace_back(job);
       }
 
@@ -184,32 +187,84 @@ static int get_record_id(DBHANDLE& db) {
   return aid[0].nextid;
 }
 
+string get_retcode(const char* json) {
+  static char* retcode{"\retcode\": "};
+  char* s = strstr((char*)json, retcode) + strlen(retcode);
+  char* e = strchr(s, ',');
+  *e = 0;
+  string ret = s;
+  *e = ',';
+  return ret;
+}
 
 
+//{"return": [{"old080027856836": {"pid": 240, "retcode": 0, "stderr": "", "stdout": ""}}]}
 static int parse_copy_result(const char* json, size_t len, PARAM p1, PARAM p2) {
   (void*)p2;
   show_cstring(json, len);
   COPYFILE_EXERECORD* er = (COPYFILE_EXERECORD*)p1;
   er->Note = json;
-  er->
-  {
+  er->ResultState = get_retcode(json);
+  int retcode = atoi(er->ResultState.c_str());
+  if (retcode == 0)
+      er->State = "OK!";
+  else
+      er->State = "Error!";
 
-  }
-  return 0;
+  return retcode;
 }
+
+#include <stdarg.h>  // For va_start, etc.
+#include <memory>    // For std::unique_ptr
+
+std::string string_format(const std::string fmt_str, ...) {
+    int final_n, n = ((int)fmt_str.size()) * 2; /* Reserve two times as much as the length of the fmt_str */
+    std::unique_ptr<char[]> formatted;
+    va_list ap;
+    while(1) {
+        formatted.reset(new char[n]); /* Wrap the plain char array into the unique_ptr */
+        strcpy(&formatted[0], fmt_str.c_str());
+        va_start(ap, fmt_str);
+        final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+        va_end(ap);
+        if (final_n < 0 || final_n >= n)
+            n += abs(final_n - n + 1);
+        else
+            break;
+    }
+    return std::string(formatted.get());
+}
+
 
 int copy_file(vector<COPYFILE_EXERECORD>& jobs, DBHANDLE& db) {
   ostringstream oss;
   for (auto& p : jobs) {
     p.exeid = get_record_id(db) - 1;
 
+    //insert to db
     oss.str("");
     oss << pyaxa_write_sql[2] << p << ");";
     std::cout << oss.str() << std::endl;
 
     HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_copy_result, &p, nullptr);
     salt_api_cmd_runall(param, p.SourcePC.c_str(), p.RunCommand.c_str());
-    //save to db
+
+    // "UPDATE k_exerecord SET "
+    // "State = \'%s\', "
+    // "EndTime = now(), "
+    // "ResultState = \'%s\', "
+    // "Note = \'%s\' "
+    // "WHERE exeid = %d",
+
+    //update to db
+COPYFILE_EXERECORD job;
+    string update = string_format(pyaxa_write_sql[3],
+      job.State,
+            job.ResultState,
+            job.Note,
+            job.exeid);
+    cout << update << endl;
+
   }
   return 0;
 }

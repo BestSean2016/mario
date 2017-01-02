@@ -119,6 +119,14 @@ const char* pyaxa_write_sql[] = {
     "  ResultState,           "
     "  ResultInfo) VALUES(    ",
 
+    //3
+    "UPDATE k_exerecord SET "
+    "State = \'%s\', "
+    "EndTime = now(), "
+    "ResultState = \'%s\', "
+    "Note = \'%s\' "
+    "WHERE exeid = %d",
+
 };
 
 DBHANDLE connect_db(const char *host, int port, const char *db,
