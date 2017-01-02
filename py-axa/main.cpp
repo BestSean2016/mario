@@ -79,7 +79,7 @@ int parase_file_match(const char* jn, size_t ln, PARAM p1, PARAM p2) {
 
   char* ptr = s+ strlen(start);
   char* line = ptr;
-  auto  jobs = (vector<COPYJOB>*)p1;
+  auto  jobs = (vector<COPYFILE_EXERECORD>*)p1;
 
   while(ptr < e) {
     if (!strncmp(ptr, gnl, strlen(gnl))) {
@@ -91,61 +91,61 @@ int parase_file_match(const char* jn, size_t ln, PARAM p1, PARAM p2) {
 
           cout << line << endl;
 
-          COPYJOB job;
-          job.result = line;
+          COPYFILE_EXERECORD job;
+          //job.result = line;
 
           char* tmp = strchr(line, '|');
           *tmp = 0;
-          job.copyid = line;
+          job.MatchID = line;
           *tmp = '|';
 
           line = tmp + strlen(salt_cmd);
           tmp = strchr(line, ' ');
           *tmp = 0;
-          job.minion = line;
+          job.SourcePC = line;
           *tmp = ' ';
 
           line = tmp + strlen(cmd_runall);
           tmp = ptr - 1;
           *tmp = 0;
-          job.cmd = line;
+          job.RunCommand = line;
           *tmp = '\'';
 
           //C:\python27\python C:\FileMatch\fmClient.py 127.0.0.1 30001 C:\test\aaa.txt c:\20161229\aaa.txt -1
           tmp = line;
           tmp = strchr(tmp, ' ');
           *tmp = 0;
-          job.python = line;
+          // job.python = line;
           *tmp = ' ';
 
           line = ++tmp;
           tmp = strchr(tmp, ' ');
           *tmp = 0;
-          job.clientpy = line;
+          // job.clientpy = line;
           *tmp = ' ';
 
           line = ++tmp;
           tmp = strchr(tmp, ' ');
           *tmp = 0;
-          job.server_ip = line;
+          job.TargetPC = line;
           *tmp = ' ';
 
           line = ++tmp;
           tmp = strchr(tmp, ' ');
           *tmp = 0;
-          job.server_port = atoi(line);
+          job.TargetPort = atoi(line);
           *tmp = ' ';
 
           line = ++tmp;
           tmp = strchr(tmp, ' ');
           *tmp = 0;
-          job.source_path = line;
+          job.SourcePathFile = line;
           *tmp = ' ';
 
           line = ++tmp;
           tmp = strchr(tmp, ' ');
           *tmp = 0;
-          job.dest_path = line;
+          job.TargetPathFile = line;
           *tmp = ' ';
 
           jobs->emplace_back(job);
@@ -161,7 +161,7 @@ int parase_file_match(const char* jn, size_t ln, PARAM p1, PARAM p2) {
   return 0;
 }
 
-int match_file(std::vector<COPYFILE_FILE_MATCH>& fm, vector<COPYJOB>& jobs) {
+int match_file(std::vector<COPYFILE_FILE_MATCH>& fm, vector<COPYFILE_EXERECORD>& jobs) {
     HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_token_fn, nullptr, nullptr);
     salt_api_login(param, SALT_API_USER, SALT_API_PASS);
 
@@ -178,20 +178,37 @@ int match_file(std::vector<COPYFILE_FILE_MATCH>& fm, vector<COPYJOB>& jobs) {
 }
 
 
-int save_to_db(vector<COPYJOB>& jobs, DBHANDLE& db) {
-  return 0;
+static int get_record_id(DBHANDLE& db) {
+  vector<COPYFILE_AUTOID> aid;
+  query_data(aid, db, pyaxa_query_sql[5], get_next_record_id);
+  return aid[0].nextid;
 }
+
 
 
 static int parse_copy_result(const char* json, size_t len, PARAM p1, PARAM p2) {
+  (void*)p2;
   show_cstring(json, len);
+  COPYFILE_EXERECORD* er = (COPYFILE_EXERECORD*)p1;
+  er->Note = json;
+  er->
+  {
+
+  }
   return 0;
 }
 
-int copy_file(vector<COPYJOB>& jobs, DBHANDLE& db) {
+int copy_file(vector<COPYFILE_EXERECORD>& jobs, DBHANDLE& db) {
+  ostringstream oss;
   for (auto& p : jobs) {
+    p.exeid = get_record_id(db) - 1;
+
+    oss.str("");
+    oss << pyaxa_write_sql[2] << p << ");";
+    std::cout << oss.str() << std::endl;
+
     HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_copy_result, &p, nullptr);
-    salt_api_cmd_runall(param, p.minion.c_str(), p.cmd.c_str());
+    salt_api_cmd_runall(param, p.SourcePC.c_str(), p.RunCommand.c_str());
     //save to db
   }
   return 0;
@@ -216,29 +233,27 @@ int main(int argc, char *argv[])
   query_data(cs, db, pyaxa_query_sql[3], get_caledar);
   query_data(fm, db, pyaxa_query_sql[4], get_match_file);
 
-  cout << rules;
-  cout << scripts;
-  cout << ers;
-  cout << cs;
-  cout << fm;
+  // cout << rules;
+  // cout << scripts;
+  // cout << ers;
+  // cout << cs;
+  // cout << fm;
 
-  ostringstream oss;
-  oss << pyaxa_write_sql[1] << scripts[0] << ");";
-  std::cout << oss.str() << std::endl;
+  // ostringstream oss;
+  // oss << pyaxa_write_sql[1] << scripts[0] << ");";
+  // std::cout << oss.str() << std::endl;
+  //
+  // oss.str("");
+  // oss << pyaxa_write_sql[0] << rules[0] << ");";
+  // std::cout << oss.str() << std::endl;
 
-  oss.str("");
-  oss << pyaxa_write_sql[0] << rules[0] << ");";
-  std::cout << oss.str() << std::endl;
+  // oss.str("");
+  // oss << pyaxa_write_sql[2] << ers[0] << ");";
+  // std::cout << oss.str() << std::endl;
 
-  oss.str("");
-  oss << pyaxa_write_sql[2] << ers[0] << ");";
-  std::cout << oss.str() << std::endl;
-
-  vector<COPYJOB> jobs;
+  vector<COPYFILE_EXERECORD> jobs;
 
   int ret = match_file(fm, jobs);
-  if (!ret)
-    ret = save_to_db(jobs, db);
 
   if (!ret)
     ret = copy_file(jobs, db);

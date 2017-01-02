@@ -94,6 +94,11 @@ typedef struct COPYFILE_FILE_MATCH {
   string matchpy;
 } COPYFILE_FILE_MATCH;
 
+
+typedef struct COPYFILE_AUTOID {
+  int nextid;
+}COPYFILE_AUTOID;
+
 #include <mysql/mysql.h>
 
 #define mysql_scpy(str, len, dptr)                                             \
@@ -185,6 +190,7 @@ extern int get_scripts(void* s, MYSQL_ROW& row);
 extern int get_exec_record(void* s, MYSQL_ROW& row);
 extern int get_caledar(void* s, MYSQL_ROW& row);
 extern int get_match_file(void* s, MYSQL_ROW& row);
+extern int get_next_record_id(void*s, MYSQL_ROW& row);
 
 const char comma = ',';
 const char que = '\'';

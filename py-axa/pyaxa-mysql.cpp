@@ -3,7 +3,10 @@
 static const int SELECT_K_RULES = 0;
 
 const char* pyaxa_query_sql[] = {
+    //0
     "select * from k_rules",
+
+    //1
     "SELECT                               "
     "  exeid,                             "
     "  matchid,                           "
@@ -21,6 +24,8 @@ const char* pyaxa_query_sql[] = {
     "  RunCycle1                          "
     "FROM                                 "
     "  k_script                           ",
+
+    //2
     "SELECT                       "
     "  exeid,                     "
     "  matchid,                   "
@@ -38,6 +43,8 @@ const char* pyaxa_query_sql[] = {
     "  ResultInfo                 "
     "FROM                         "
     "  k_exerecord                ",
+
+    //3
     "SELECT               "
     "    sName,           "
     "    iYear,           "
@@ -47,12 +54,19 @@ const char* pyaxa_query_sql[] = {
     "    TimeFlag         "
     "FROM                 "
     "    k_defaultcalendar",
+
+    //4
     "select * from py_file_match",
+
+    //5
+    "SELECT `AUTO_INCREMENT` FROM  INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'copyfile' AND   TABLE_NAME   = 'k_exerecord'",
+
 };
 
 
 
 const char* pyaxa_write_sql[] = {
+    //0
     "insert into k_rules ("
     "exeid              ,"
     "matchid            ,"
@@ -71,6 +85,7 @@ const char* pyaxa_write_sql[] = {
     ") values (",
 
 
+    //1
     "INSERT INTO k_script("
     "  exeid,             "
     "  matchid,           "
@@ -88,6 +103,7 @@ const char* pyaxa_write_sql[] = {
     "  RunCycle1) VALUES( ",
 
 
+    //2
     "INSERT INTO k_exerecord ("
     "  exeid,                 "
     "  matchid,               "
@@ -98,11 +114,11 @@ const char* pyaxa_write_sql[] = {
     "  TargetPathFile,        "
     "  State,                 "
     "  BegTime,               "
-    "  EndTime,               "
     "  Note,                  "
     "  RunCommand,            "
     "  ResultState,           "
     "  ResultInfo) VALUES(    ",
+
 };
 
 DBHANDLE connect_db(const char *host, int port, const char *db,
@@ -273,20 +289,19 @@ string postfix(T& t) {
 
 ostream& operator << (ostream& out, COPYFILE_EXERECORD& er) {
   out
-     << prefix(er.exeid         ) << er.exeid          << postfix(er.exeid         ) << comma
-     << prefix(er.MatchID       ) << er.MatchID        << postfix(er.MatchID       ) << comma
-     << prefix(er.SourcePathFile) << er.SourcePathFile << postfix(er.SourcePathFile) << comma
-     << prefix(er.SourcePC      ) << er.SourcePC       << postfix(er.SourcePC      ) << comma
-     << prefix(er.TargetPC      ) << er.TargetPC       << postfix(er.TargetPC      ) << comma
-     << prefix(er.TargetPort    ) << er.TargetPort     << postfix(er.TargetPort    ) << comma
-     << prefix(er.TargetPathFile) << er.TargetPathFile << postfix(er.TargetPathFile) << comma
-     << prefix(er.State         ) << er.State          << postfix(er.State         ) << comma
-     << prefix(er.BegTime       ) << er.BegTime        << postfix(er.BegTime       ) << comma
-     << prefix(er.EndTime       ) << er.EndTime        << postfix(er.EndTime       ) << comma
-     << prefix(er.Note          ) << er.Note           << postfix(er.Note          ) << comma
-     << prefix(er.RunCommand    ) << er.RunCommand     << postfix(er.RunCommand    ) << comma
-     << prefix(er.ResultState   ) << er.ResultState    << postfix(er.ResultState   ) << comma
-     << prefix(er.ResultInfo    ) << er.ResultInfo     << postfix(er.ResultInfo    )
+     << FIELD_VALUE(er.exeid         ) << comma
+     << FIELD_VALUE(er.MatchID       ) << comma
+     << FIELD_VALUE(er.SourcePathFile) << comma
+     << FIELD_VALUE(er.SourcePC      ) << comma
+     << FIELD_VALUE(er.TargetPC      ) << comma
+     << FIELD_VALUE(er.TargetPort    ) << comma
+     << FIELD_VALUE(er.TargetPathFile) << comma
+     << FIELD_VALUE(er.State         ) << comma
+     << "now()" << comma
+     << FIELD_VALUE(er.Note          ) << comma
+     << FIELD_VALUE(er.RunCommand    ) << comma
+     << FIELD_VALUE(er.ResultState   ) << comma
+     << FIELD_VALUE(er.ResultInfo    )
   ;
 
   return out;
@@ -343,6 +358,13 @@ int get_match_file(void* s, MYSQL_ROW& row) {
   fm.minion  = mysql_str (row[1]);
   fm.python  = mysql_str (row[2]);
   fm.matchpy = mysql_str (row[3]);
+
+  return 0;
+}
+
+int get_next_record_id(void*s, MYSQL_ROW& row) {
+  COPYFILE_AUTOID& aid = *(COPYFILE_AUTOID*)s;
+  aid.nextid = mysql_atoi(row[0]);
 
   return 0;
 }
