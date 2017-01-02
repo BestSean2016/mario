@@ -143,12 +143,15 @@ typedef struct salt_callback {
 
 extern ITAT_API void set_default_callback();
 
-extern ITAT_API int salt_api_login(const char *hostname, int port, const char* user, const char* pass);
-extern ITAT_API int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_events(const char* hostname, int port, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_async_cmd_runall(const char* hostname, int port, const char* target, const char* script, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_cmd_runall(const char* hostname, int port, const char* target, const char* script, PARAM param1, PARAM param2);
-extern ITAT_API int salt_api_cp_getfile(const char* hostname, int port, const char* target, const char* src_file, const char* des_file, PARAM param1, PARAM param2);
+extern ITAT_API int salt_api_login(HTTP_API_PARAM& param, const char* user, const char* pass);
+extern ITAT_API int salt_api_testping(HTTP_API_PARAM& param, const char* target);
+extern ITAT_API int salt_api_events(HTTP_API_PARAM& param);
+extern ITAT_API int salt_api_async_cmd_runall(HTTP_API_PARAM& param, const char* target, const char* script);
+extern ITAT_API int salt_api_cmd_runall(HTTP_API_PARAM& param, const char* target, const char* script);
+extern ITAT_API int salt_api_cp_getfile(HTTP_API_PARAM& param, const char* target, const char* src_file, const char* des_file);
+
+
+extern ITAT_API int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2);
 
 #define TOKEN_LEN 128
 extern ITAT_API char g_token[TOKEN_LEN];

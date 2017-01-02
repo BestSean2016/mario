@@ -104,7 +104,7 @@ Content-Length: nnn
 */
 
 
-static int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2) {
+int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2) {
   // fprintf(stdout, "%s", (char *)ptr);
   //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
   UNUSE(len);
@@ -156,23 +156,23 @@ static char* get_contnt(const char* str) {
 
 
 
-int salt_api_login(const char *hostname, int port, const char* user, const char* pass) {
+int salt_api_login(HTTP_API_PARAM& param, const char* user, const char* pass) {
   SET_CONTENT(SALT_API_TYPE_LOGIN);
   snprintf(tmp_buf, BUFSIZE / 2, content, user, pass);
-  snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_LOGIN], hostname, port, strlen(tmp_buf), user, pass);
+  snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_LOGIN], param.hostname, param.port, strlen(tmp_buf), user, pass);
   // show_cstring(buf_login, strlen(buf_login));
-  return itat_httpc(hostname, port, buffer, cmd, salt_cb.parse_token_cb, nullptr, nullptr);
+  return itat_httpc(param, buffer, cmd);
 }
 
 
-int salt_api_testping(const char *hostname, int port, const char* target, PARAM param1, PARAM param2) {
+int salt_api_testping(HTTP_API_PARAM &param, const char* target) {
   SET_CONTENT(SALT_API_TYPE_TESTPING);
 
   snprintf(tmp_buf, BUFSIZE / 2, content, target);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_TESTPING],
-           hostname, port, g_token, strlen(tmp_buf), target);
+           param.hostname, param.port, g_token, strlen(tmp_buf), target);
   // show_cstring(buf_test_ping, strlen(buf_test_ping));
-  return itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb, param1, param2);
+  return itat_httpc(param, buffer, cmd);
 }
 
 
@@ -187,51 +187,49 @@ int salt_api_testping(const char *hostname, int port, const char* target, PARAM 
 //   return 0;
 // }
 
-int salt_api_async_cmd_runall(const char *hostname, int port, const char *target,
-                        const char *script, PARAM param1, PARAM param2) {
+int salt_api_async_cmd_runall(HTTP_API_PARAM &param, const char *target,
+                        const char *script) {
   SET_CONTENT(SALT_API_TYPE_ASYNC_RUNALL);
 
   snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
-           hostname, port, g_token, strlen(tmp_buf), target, script);
-  int ret = itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
-                     param1, param2);
+           param.hostname, param.port, g_token, strlen(tmp_buf), target, script);
+  int ret = itat_httpc(param, buffer, cmd);
   if (ret)
     std::cerr << "Wo caO!!!!\n";
 
   return ret;
 }
 
-int salt_api_cmd_runall(const char *hostname, int port, const char *target,
-                        const char *script, PARAM param1, PARAM param2) {
+int salt_api_cmd_runall(HTTP_API_PARAM& param, const char *target, const char *script) {
   SET_CONTENT(SALT_API_TYPE_RUNALL);
 
   snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_RUNALL],
-           hostname, port, g_token, strlen(tmp_buf), target, script);
-  int ret = itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
-                     param1, param2);
+           param.hostname, param.port, g_token, strlen(tmp_buf), target, script);
+  std::cout << std::endl << cmd << std::endl;
+
+  int ret = itat_httpc(param, buffer, cmd);
   if (ret)
     std::cerr << "Wo caO!!!!\n";
 
   return ret;
 }
 
-int salt_api_cp_getfile(const char* hostname, int port, const char* target, const char* src_file, const char* des_file, PARAM param1, PARAM param2) {
+int salt_api_cp_getfile(HTTP_API_PARAM &param, const char* target, const char* src_file, const char* des_file) {
     SET_CONTENT(SALT_API_TYPE_CP_GETFILE);
     snprintf(tmp_buf, BUFSIZE / 2, content, target, src_file, des_file);
     snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
-             hostname, port, g_token, strlen(tmp_buf), target, src_file, des_file);
-    return itat_httpc(hostname, port, buffer, cmd, salt_cb.parase_my_job_cb,
-                         param1, param2);
+             param.hostname, param.port, g_token, strlen(tmp_buf), target, src_file, des_file);
+    return itat_httpc(param, buffer, cmd);
 }
 
-int salt_api_events(const char *hostname, int port, PARAM param1, PARAM param2) {
+int salt_api_events(HTTP_API_PARAM& param) {
   char buf[BUFSIZE * 2];
   char cmd[1024];
 
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], g_token);
 
-  return itat_httpc(hostname, port, buf, cmd, salt_cb.process_event_cb, param1, param2);
+  return itat_httpc(param, buf, cmd);
 }
 

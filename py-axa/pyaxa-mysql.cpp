@@ -47,6 +47,7 @@ const char* pyaxa_query_sql[] = {
     "    TimeFlag         "
     "FROM                 "
     "    k_defaultcalendar",
+    "select * from py_file_match",
 };
 
 
@@ -137,6 +138,9 @@ void disconnect_db(DBHANDLE dbh) {
 }
 
 
+#define FIELD_VALUE(x) prefix((x)) << (x) << postfix((x))
+
+
 int get_rules(void *r, MYSQL_ROW& row) {
   COPYFILE_RULE& rule = *(COPYFILE_RULE*)r;
   rule.exeid = mysql_atoi(row[0]);
@@ -155,6 +159,16 @@ int get_rules(void *r, MYSQL_ROW& row) {
   rule.TargetScriptPath    = mysql_str(row[13]);
 
   return 0;
+}
+
+
+ostream& operator << (ostream& out, COPYFILE_FILE_MATCH & fm) {
+  out
+    << FIELD_VALUE(fm.id) << comma
+    << FIELD_VALUE(fm.minion) << comma
+    << FIELD_VALUE(fm.python) << comma
+    << FIELD_VALUE(fm.matchpy) ;
+  return out;
 }
 
 std::istream& operator >> (std::istream& in, COPYFILE_RULE& rule) {
@@ -178,8 +192,8 @@ std::istream& operator >> (std::istream& in, COPYFILE_RULE& rule) {
 }
 
 std::ostream& operator<<(std::ostream& out, COPYFILE_RULE& rule) {
-  out
-    << prefix(rule.exeid               ) << rule.exeid               << postfix(rule.exeid               ) << comma
+  out   
+    << FIELD_VALUE(rule.exeid           ) << comma
     << prefix(rule.MatchID             ) << rule.MatchID             << postfix(rule.MatchID             ) << comma
     << prefix(rule.ScriptID            ) << rule.ScriptID            << postfix(rule.ScriptID            ) << comma
     << prefix(rule.Rules               ) << rule.Rules               << postfix(rule.Rules               ) << comma
@@ -321,4 +335,14 @@ int get_caledar(void* s, MYSQL_ROW& row) {
     calendar.TimeFlag = mysql_str (row[5]);
 
     return 0;
+}
+
+int get_match_file(void* s, MYSQL_ROW& row) {
+  COPYFILE_FILE_MATCH& fm = *(COPYFILE_FILE_MATCH*)s;
+  fm.id      = mysql_atoi(row[0]);
+  fm.minion  = mysql_str (row[1]);
+  fm.python  = mysql_str (row[2]);
+  fm.matchpy = mysql_str (row[3]);
+
+  return 0;
 }

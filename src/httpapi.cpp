@@ -48,6 +48,8 @@ const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
 static const char *_http_header_ = {"HTTP/1.1 "};
 static const char *_content_len_ = {"Content-Length: "};
 
+
+
 // "PUT /api/v1/foo HTTP/1.1\r\n"
 // "Host: localhost:8000\r\n"
 // "User-Agent: curl/7.51.0\r\n"
@@ -426,8 +428,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
   return finished;
 }
 
-int itat_httpc(const char *hostname, int portno, HTTPBUF buf, const char *cmd,
-               response_function parse_fun, void *param1, void *param2) {
+int itat_httpc(HTTP_API_PARAM& param, HTTPBUF buf, const char *cmd) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
@@ -453,7 +454,7 @@ restart_client:
 
   /* gethostbyname: get the server's DNS entry */
   if (!ret)
-    ret = ((server = gethostbyname(hostname)) == NULL);
+    ret = ((server = gethostbyname(param.hostname)) == NULL);
 
   if (!ret) {
     /* build the server's Internet address */
@@ -461,7 +462,7 @@ restart_client:
     serveraddr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, (char *)&serveraddr.sin_addr.s_addr,
           server->h_length);
-    serveraddr.sin_port = htons(portno);
+    serveraddr.sin_port = htons(param.port);
 
     /* connect: create a connection with the server */
     ret = (connect(sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) <
@@ -490,8 +491,8 @@ restart_client:
     }
   }
 
-  if (!ret && parse_fun)
-    ret = (0 != parse_fun(json_data, data_len, param1, param2));
+  if (!ret && param.rf)
+    ret = (0 != param.rf(json_data, data_len, param.param1, param.param2));
 
   if (rescode != 200)
     ret = 200;
@@ -523,8 +524,8 @@ run_receive_long_data : {
         ++tmp;
       else {
         // printf("************** %s\n", line);
-        if (parse_fun) // do not check error
-          parse_fun(line, tmp - line, param1, param2);
+        if (param.rf) // do not check error
+          param.rf(line, tmp - line, param.param1, param.param2);
         // ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
         // next line

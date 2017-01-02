@@ -12,7 +12,7 @@ INCLUDEPATH += ../include
 
 ###################### unix ############################
 unix {
-    DEFINES += _UNIX_
+    DEFINES += _UNIX
 
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
@@ -38,7 +38,7 @@ unix {
 
 ###################### windows #########################
 windows {
-    DEFINES += _WINDOWS_
+    DEFINES += _WINDOWS
 
     message("Building for Windows")
 

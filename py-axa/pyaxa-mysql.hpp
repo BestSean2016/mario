@@ -86,6 +86,14 @@ typedef struct COPYFILE_DEFCALENDAR {
   string TimeFlag;
 } COPYFILE_DEFCALENDAR;
 
+
+typedef struct COPYFILE_FILE_MATCH {
+  int id;
+  string minion;
+  string python;
+  string matchpy;
+} COPYFILE_FILE_MATCH;
+
 #include <mysql/mysql.h>
 
 #define mysql_scpy(str, len, dptr)                                             \
@@ -176,6 +184,7 @@ extern int get_rules(void* r, MYSQL_ROW& row);
 extern int get_scripts(void* s, MYSQL_ROW& row);
 extern int get_exec_record(void* s, MYSQL_ROW& row);
 extern int get_caledar(void* s, MYSQL_ROW& row);
+extern int get_match_file(void* s, MYSQL_ROW& row);
 
 const char comma = ',';
 const char que = '\'';
@@ -193,6 +202,7 @@ extern ostream& operator << (ostream& out, COPYFILE_RULE& rule);
 extern ostream& operator << (ostream& out, COPYFILE_SCRIPT& script);
 extern ostream& operator << (ostream& out, COPYFILE_EXERECORD& script);
 extern ostream& operator << (ostream& out, COPYFILE_DEFCALENDAR& caledar);
+extern ostream& operator << (ostream& out, COPYFILE_FILE_MATCH & fm);
 
 extern istream& operator >> (istream& in, COPYFILE_RULE& rule);
 

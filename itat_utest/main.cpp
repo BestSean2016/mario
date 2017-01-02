@@ -89,7 +89,8 @@ static int myfun (const char* data, size_t len, PARAM param1, PARAM param2) {
 
 static void run_event_client() {
     char buf[BUFSIZE];
-    itat_httpc("127.0.0.1", 32001, buf, send_str[4], myfun, nullptr, nullptr);
+    HTTP_API_PARAM param("127.0.0.1", 32001, myfun, nullptr, nullptr);
+    itat_httpc(param, buf, send_str[4]);
 }
 
 TEST(itat_httpd, server) {
@@ -133,27 +134,27 @@ TEST(itat_salt, SALT_JOB) {
 
 TEST(itat_salt, salt_api_login) {
   set_default_callback();
-  EXPECT_EQ(0, salt_api_login("10.10.10.19", 8000, "sean", "hongt@8a51"));
+  HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
+  EXPECT_EQ(0, salt_api_login(param, "sean", "hongt@8a51"));
 }
 
 
 TEST(itat_salt, salt_api_testping) {
   set_default_callback();
-  EXPECT_EQ(0, salt_api_testping("10.10.10.19", 8000, "old*", nullptr, nullptr));
+  HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
+  EXPECT_EQ(0, salt_api_testping(param, "old*"));
 }
 
 
 TEST(itat_ssalt, salt_api_async_cmd_runall) {
   set_default_callback();
-  EXPECT_EQ(0, salt_api_async_cmd_runall("10.10.10.19",
-                                   8000,
-                                   "old*",
-                                   "dir",
-                                   nullptr, nullptr));
+  HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
+  EXPECT_EQ(0, salt_api_async_cmd_runall(param, "old*", "dir"));
 }
 
 void events() {
-  EXPECT_EQ(0, salt_api_events("10.10.10.19", 8000, nullptr, nullptr));
+  HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
+  EXPECT_EQ(0, salt_api_events(param));
 }
 
 TEST(itat_salt, salt_api_events) {
@@ -162,13 +163,13 @@ TEST(itat_salt, salt_api_events) {
   std::thread t(events);
   std::this_thread::sleep_for(std::chrono::seconds(5));
 
-  EXPECT_EQ(0, salt_api_login("10.10.10.19", 8000, "sean", "hongt@8a51"));
-  EXPECT_EQ(0, salt_api_testping("10.10.10.19", 8000, "old*", nullptr, nullptr));
-  EXPECT_EQ(0, salt_api_async_cmd_runall("10.10.10.19",
-                                   8000,
+  HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
+  EXPECT_EQ(0, salt_api_login(param, "sean", "hongt@8a51"));
+  param.rf = nullptr;
+  EXPECT_EQ(0, salt_api_testping(param, "old*"));
+  EXPECT_EQ(0, salt_api_async_cmd_runall(param,
                                    "old*",
-                                   "dir",
-                                   nullptr, nullptr));
+                                   "dir"));
   g_run = 0;
   t.join();
 }
