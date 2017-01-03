@@ -60,4 +60,5 @@ HEADERS += \
     pyaxa-mysql.hpp
 
 DISTFILES += \
-    capturing
+    capturing \
+    py-axa.conf

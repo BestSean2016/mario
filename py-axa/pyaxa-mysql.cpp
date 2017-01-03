@@ -162,6 +162,15 @@ void disconnect_db(DBHANDLE dbh) {
 }
 
 
+int exec_db(DBHANDLE db, const char* sql) {
+  int ret = (db == nullptr);
+
+  if (!ret)
+    ret = mysql_query((MYSQL*)db, sql);
+
+  return (ret);
+}
+
 #define FIELD_VALUE(x) prefix((x)) << (x) << postfix((x))
 
 

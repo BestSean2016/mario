@@ -63,6 +63,9 @@ typedef struct COPYFILE_EXERECORD {
   string RunCommand    ;
   string ResultState   ;
   string ResultInfo    ;
+
+  COPYFILE_EXERECORD()
+   : exeid(0), TargetPort(0) {  }
 } COPYFILE_EXERECORD;
 
 // MySQL [copyfile]> desc k_defaultcalendar;
@@ -84,6 +87,21 @@ typedef struct COPYFILE_DEFCALENDAR {
   int iDay;
   int InitFlag;
   string TimeFlag;
+
+  COPYFILE_DEFCALENDAR()
+      : iYear(0), iMonth(0), iDay(0), InitFlag(0) {}
+
+  time_t get_time_zero() {
+    time_t t = time(0);
+    struct tm stm;
+    localtime_r(&t, &stm);
+    stm.tm_sec = stm.tm_min = stm.tm_hour = 0;
+    stm.tm_year = iYear - 1900;
+    stm.tm_mon = iMonth - 1;
+    stm.tm_mday = iDay;
+    return mktime(&stm);
+  }
+
 } COPYFILE_DEFCALENDAR;
 
 
@@ -184,6 +202,7 @@ extern const char* pyaxa_write_sql[];
 extern DBHANDLE connect_db(const char *host, int port, const char *db,
                            const char *user, const char *passwd);
 extern void disconnect_db(DBHANDLE dbh);
+extern int exec_db(DBHANDLE db, const char*sql);
 
 extern int get_rules(void* r, MYSQL_ROW& row);
 extern int get_scripts(void* s, MYSQL_ROW& row);

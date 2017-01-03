@@ -495,7 +495,7 @@ restart_client:
     ret = (0 != param.rf(json_data, data_len, param.param1, param.param2));
 
   if (rescode != 200)
-    ret = 200;
+    ret = rescode;
 
   close(sockfd);
   return ret;
