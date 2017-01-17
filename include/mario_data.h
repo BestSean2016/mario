@@ -69,6 +69,7 @@ typedef struct mr_real_node {
   int64_t host_id;
   int     timerout;
   JOB_STATUS_TYPE status;
+  char    str_id[SALT_JOB_ID_LENGTH];
 } MR_REAL_NODE;
 
 typedef struct mr_real_edge {

@@ -1,11 +1,14 @@
 #include "saltapi.hpp"
 #include "assert.h"
+#include "rapidjson/document.h"
+#include <mutex>
 
 //JOBMAP g_jobmap;
 char g_token[TOKEN_LEN] = {0};
 
 #define TEMPBUF_LEN 2048
 static SALT_CALLBACK salt_cb;
+static std::mutex g_saltjob_mutex;
 
 /**
  * @brief itat_httpc send cmd and receive response from salt api
@@ -104,14 +107,14 @@ Content-Length: nnn
 */
 
 
-int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2) {
+int parse_token_fn(const char *data, size_t len, void* param1, void* param2) {
   // fprintf(stdout, "%s", (char *)ptr);
   //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
   UNUSE(len);
   UNUSE(param1);
   UNUSE(param2);
 
-  char *pos = strstr((char *)ptr, "\"token\": \"");
+  char *pos = strstr((char *)data, "\"token\": \"");
   if (pos) {
     pos += strlen("\"token\": \"");
     char *end = strchr(pos, '\"');
@@ -125,7 +128,7 @@ int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2) {
 #endif //_DEBUG_
   } else {
 #ifdef _DEBUG_
-    show_cstring(ptr, len);
+    show_cstring(data, len);
 #endif //_DEBUG_
     return -1;
   }
@@ -233,3 +236,122 @@ int salt_api_events(HTTP_API_PARAM& param) {
   return itat_httpc(param, buf, cmd);
 }
 
+
+
+//param1 is MAP_SALT_JOB type
+int parse_salt_job(const char *json, size_t len, void* param1, void* param2) {
+  return 0;
+}
+
+
+static int parse_string_array(std::vector<std::string> &vec,
+                              rapidjson::Value &array) {
+  if (array.IsArray()) {
+    for (rapidjson::SizeType i = 0; i < array.Size(); ++i)
+      vec.push_back(array[i].GetString());
+    return 0;
+  }
+  return -1;
+}
+
+/*
+{"return": [{"jid": "20161128184515112266", "minions": ["old08002759F4B6"]}]}
+*/
+static int parse_salt_my_job(SALT_JOB *job, rapidjson::Document &doc) {
+  if (doc.HasMember("return") && doc["return"].IsArray()) {
+    rapidjson::Value &array = doc["return"];
+    if (array.Size() < 1)
+      return -2;
+    rapidjson::Value &data = array[0];
+    if (data.HasMember("jid"))
+      job->jid = data["jid"].GetString();
+    else
+      return -5;
+
+    if (data.HasMember("minions")) {
+      if (parse_string_array(job->minions, data["minions"]))
+        return -12;
+    } else
+      return -3;
+    return 0;
+  }
+  return -1;
+}
+
+
+
+static void copy_job_status(SALT_JOB *dst_job, SALT_JOB *src_job) {
+  dst_job->ple_id = src_job->ple_id;
+  dst_job->node_id = src_job->node_id;
+  dst_job->retnum = src_job->retnum;
+  dst_job->success_num = src_job->success_num;
+  dst_job->stamp_sec = src_job->stamp_sec;
+  dst_job->status = src_job->status;
+  dst_job->timerout = src_job->timerout;
+}
+
+
+/*
+{"return": [{"jid": "20161128184515112266", "minions": ["old08002759F4B6"]}]}
+*/
+static int parse_salt_myjob_jobmap(const char *json_data, size_t len,
+                                   PARAM p1, PARAM p2) {
+  MAP_SALT_JOB* jobs = reinterpret_cast<MAP_SALT_JOB*>(p1);
+  HTRD_JOB* htrdjob = reinterpret_cast<HTRD_JOB*>(p2);
+
+  assert(jobs != 0);
+  assert(htrdjob != 0);
+
+  rapidjson::Document doc;
+  doc.Parse((char *)json_data, len);
+
+  if (doc.HasParseError()) {
+    std::cout << "doc has error\n";
+    show_cstring(json_data, len);
+    return -2;
+  }
+
+  SALT_JOB* job = new SALT_JOB();
+
+  if (parse_salt_my_job(job, doc) < 0) {
+    std::cout << "parse_salt_new_job error\n";
+    show_cstring(json_data, len);
+    delete job;
+    return -3;
+  }
+
+  // show_cstring(json_data, len);
+  std::lock_guard<std::mutex> *guard =
+      new std::lock_guard<std::mutex>(g_saltjob_mutex);
+
+  auto iter = jobs->find(job->jid);
+  bool found = (iter != jobs->end());
+
+  if (!found) {
+    htrdjob->status = JOB_STATUS_TYPE_RUNNING;
+    // insert new job
+    jobs->insert(std::make_pair(job->jid, job));
+    // std::cout << "=.= JOBS insert job " << job->ple_id << ", " <<
+    // job->node_id
+    //           << ", " << job->jid << " => " << job << std::endl;
+    // std::cout << "MINIONS insert job " << ((SALT_JOB *)job)->jid <<
+    // std::endl;
+    for (auto &p : job->minions) {
+      job->minion_ret.insert(std::make_pair(p, nullptr));
+      // std::cout << p << " => "
+      //           << "nullptr" << std::endl;
+    }
+  } else {
+    htrdjob->status = JOB_STATUS_TYPE_RUNNING;
+    // update my new job
+    if ((iter->second)->ple_id == 0) {
+      // std::cout << "=.= Update Job " << job->ple_id << ", " << job->node_id
+      //           << ", " << job->jid << std::endl;
+      copy_job_status(iter->second, job);
+    }
+    delete job;
+  }
+
+  delete guard;
+  return 0;
+}

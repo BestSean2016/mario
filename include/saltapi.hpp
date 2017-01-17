@@ -116,6 +116,15 @@ typedef struct salt_job {
 } SALT_JOB;
 
 
+typedef MapStr2Ptr<SALT_JOB> MAP_SALT_JOB;
+typedef MAP_SALT_JOB::iterator SaltIter;
+
+
+typedef struct htrd_job {
+  int nJobId;
+  std::string strJobId;
+  JOB_STATUS_TYPE status;
+} HTRD_JOB;
 
 #define ALL_TASK_FINISHED -10000000
 
@@ -151,7 +160,10 @@ extern ITAT_API int salt_api_cmd_runall(HTTP_API_PARAM& param, const char* targe
 extern ITAT_API int salt_api_cp_getfile(HTTP_API_PARAM& param, const char* target, const char* src_file, const char* des_file);
 
 
-extern ITAT_API int parse_token_fn(const char *ptr, size_t len, void* param1, void* param2);
+extern ITAT_API int parse_token_fn(const char *data, size_t len, void* param1, void* param2);
+
+//param1 is MAP_SALT_JOB type
+extern ITAT_API int parse_salt_job(const char *json, size_t len, void* param1, void* param2);
 
 #define TOKEN_LEN 128
 extern ITAT_API char g_token[TOKEN_LEN];
