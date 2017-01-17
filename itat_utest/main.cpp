@@ -176,5 +176,5 @@ TEST(itat_salt, salt_api_events) {
 
 
 TEST(functional, get_rule) {
-
+  EXPECT_EQ(1, 1);
 }
