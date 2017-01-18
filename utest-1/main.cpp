@@ -6,7 +6,7 @@
 #include "pipeline.h"
 #include <gtest/gtest.h>
 #include <iostream>
-#include <curl/curl.h>
+
 
 using namespace std;
 int run = 0;
