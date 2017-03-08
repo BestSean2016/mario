@@ -276,102 +276,103 @@ error_exit:
   delete clisock;
 }
 
-int itat_httpd(short int portno, URI_REQUEST *uris) {
-  g_thpool_httpd = threadpool_create(5, 10, 0);
-  if (!g_thpool_httpd)
-    return -1;
-
-  signal(SIGPIPE, SIG_IGN);
-
-  int newsockfd, clilen;
-  struct sockaddr_in serv_addr, cli_addr;
-
-  /* First call to socket() function */
-  serv_sock = socket(AF_INET, SOCK_STREAM, 0);
-
-  if (serv_sock < 0) {
-    perror("ERROR opening socket");
-    exit(1);
-  }
-
-  /* Initialize socket structure */
-  bzero((char *)&serv_addr, sizeof(serv_addr));
-
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = INADDR_ANY;
-  serv_addr.sin_port = htons(portno);
-
-  /* Now bind the host address using bind() call.*/
-  if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-    perror("ERROR on binding");
-    exit(1);
-  }
-
-  /* Now start listening for the clients, here process will
-     * go in sleep mode and will wait for the incoming connection
-  */
-
-  listen(serv_sock, 5);
-
-  while (g_run) {
-    int iResult;
-    struct timeval tv;
-    fd_set rfds;
-    FD_ZERO(&rfds);
-    FD_SET(serv_sock, &rfds);
-
-    tv.tv_sec = (long)10;
-    tv.tv_usec = 0;
-
-    iResult = select(serv_sock + 1, &rfds, (fd_set *)0, (fd_set *)0, &tv);
-    if (iResult > 0) {
-      clilen = sizeof(cli_addr);
-
-      /* Accept actual connection from the client */
-      newsockfd =
-          accept(serv_sock, (struct sockaddr *)&cli_addr, (socklen_t *)&clilen);
-
-      if (newsockfd < 0) {
-        perror("ERROR on accept");
-        break;
-      }
-
-      HTTP_CLIENT_PARAM *clisock = new HTTP_CLIENT_PARAM(*uris);
-      clisock->socket = newsockfd;
-
-      memcpy(&clisock->cli_addr, &cli_addr, sizeof(sockaddr_in));
-      if (threadpool_add(g_thpool_httpd, do_http_request, clisock, 0)) {
-        close(newsockfd);
-        delete clisock;
-      }
-    } else {
-// always here, even if i connect from another application
-#ifdef _DEBUG_
-      printf("select timeout\n");
-#endif //_DEBUG_
-    }
-  }
-
-  close(serv_sock);
-#ifdef _DEBUG_
-  printf("close server socket fd");
-#endif //_DEBUG_
-
-  std::this_thread::sleep_for(std::chrono::seconds(15));
-  {
-    auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
-    for (auto it = g_event_clients.begin(); it != g_event_clients.end(); ++it) {
-      close((*it)->socket);
-      delete (*it);
-    }
-    g_event_clients.clear();
-    delete guard;
-  }
-
-  threadpool_destroy(g_thpool_httpd, 0);
-  return 0;
-}
-
+//
+// int itat_httpd(short int portno, URI_REQUEST *uris) {
+//   g_thpool_httpd = threadpool_create(5, 10, 0);
+//   if (!g_thpool_httpd)
+//     return -1;
+//
+//   signal(SIGPIPE, SIG_IGN);
+//
+//   int newsockfd, clilen;
+//   struct sockaddr_in serv_addr, cli_addr;
+//
+//   /* First call to socket() function */
+//   serv_sock = socket(AF_INET, SOCK_STREAM, 0);
+//
+//   if (serv_sock < 0) {
+//     perror("ERROR opening socket");
+//     exit(1);
+//   }
+//
+//   /* Initialize socket structure */
+//   bzero((char *)&serv_addr, sizeof(serv_addr));
+//
+//   serv_addr.sin_family = AF_INET;
+//   serv_addr.sin_addr.s_addr = INADDR_ANY;
+//   serv_addr.sin_port = htons(portno);
+//
+//   /* Now bind the host address using bind() call.*/
+//   if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+//     perror("ERROR on binding");
+//     exit(1);
+//   }
+//
+//   /* Now start listening for the clients, here process will
+//      * go in sleep mode and will wait for the incoming connection
+//   */
+//
+//   listen(serv_sock, 5);
+//
+//   while (g_run) {
+//     int iResult;
+//     struct timeval tv;
+//     fd_set rfds;
+//     FD_ZERO(&rfds);
+//     FD_SET(serv_sock, &rfds);
+//
+//     tv.tv_sec = (long)10;
+//     tv.tv_usec = 0;
+//
+//     iResult = select(serv_sock + 1, &rfds, (fd_set *)0, (fd_set *)0, &tv);
+//     if (iResult > 0) {
+//       clilen = sizeof(cli_addr);
+//
+//       /* Accept actual connection from the client */
+//       newsockfd =
+//           accept(serv_sock, (struct sockaddr *)&cli_addr, (socklen_t *)&clilen);
+//
+//       if (newsockfd < 0) {
+//         perror("ERROR on accept");
+//         break;
+//       }
+//
+//       HTTP_CLIENT_PARAM *clisock = new HTTP_CLIENT_PARAM(*uris);
+//       clisock->socket = newsockfd;
+//
+//       memcpy(&clisock->cli_addr, &cli_addr, sizeof(sockaddr_in));
+//       if (threadpool_add(g_thpool_httpd, do_http_request, clisock, 0)) {
+//         close(newsockfd);
+//         delete clisock;
+//       }
+//     } else {
+// // always here, even if i connect from another application
+// #ifdef _DEBUG_
+//       printf("select timeout\n");
+// #endif //_DEBUG_
+//     }
+//   }
+//
+//   close(serv_sock);
+// #ifdef _DEBUG_
+//   printf("close server socket fd");
+// #endif //_DEBUG_
+//
+//   std::this_thread::sleep_for(std::chrono::seconds(15));
+//   {
+//     auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
+//     for (auto it = g_event_clients.begin(); it != g_event_clients.end(); ++it) {
+//       close((*it)->socket);
+//       delete (*it);
+//     }
+//     g_event_clients.clear();
+//     delete guard;
+//   }
+//
+//   threadpool_destroy(g_thpool_httpd, 0);
+//   return 0;
+// }
+//
 // **************************************************************************************
 // Client Api
 // **************************************************************************************
