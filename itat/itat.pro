@@ -15,11 +15,11 @@ TEMPLATE = lib
 DEFINES += ITAT_LIBRARY
 
 SOURCES += \
-    ../src/mylog.c \
     ../src/str.c \
     ../src/threadpool.c \
     ../src/saltapi.cpp \
-    ../src/httpapi.cpp
+    ../src/httpapi.cpp \
+    ../src/mylog.cpp
 
 HEADERS += \
     ../include/itat_global.h \

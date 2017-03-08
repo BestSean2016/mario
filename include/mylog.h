@@ -12,13 +12,14 @@
 #include <sys/types.h>
 #include <errno.h>
 
-#define L_DBG			1
-#define L_ERR			5
-#define L_WRN           4
-#define L_PROXY			6
-#define L_AUTH			3
-#define L_INFO			2
 #define L_CONS			128
+#define L_DBG			6
+#define L_PROXY			5
+#define L_INFO			4
+#define L_WRN           3
+#define L_AUTH			2
+#define L_ERR			1
+
 
 /* for windows
 	The following ifdef block is the standard way of creating macros which make exporting 
@@ -31,8 +32,8 @@
 
 
 typedef struct LRAD_NAME_NUMBER {
-	char	*name;
-	int		number;
+    const char	*name;
+    int		   number;
 } LRAD_NAME_NUMBER;
 
 

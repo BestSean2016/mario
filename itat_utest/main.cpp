@@ -93,34 +93,6 @@ static void run_event_client() {
     itat_httpc(param, buf, send_str[4]);
 }
 
-TEST(itat_httpd, server) {
-  g_run = 1;
-
-  SetUri uriEvents;
-  uriEvents.insert("/event/pyaxa");
-
-  SetUri uriApis;
-  uriApis.insert("/api/pyaxa");
-
-  URI_REQUEST urireq;
-  urireq.insert(std::make_pair("event", uriEvents));
-  urireq.insert(std::make_pair("api", uriApis));
-
-  std::thread t(itat_httpd, 32001, &urireq);
-  std::thread t_event_sender(event_sender);
-
-  std::this_thread::sleep_for(std::chrono::seconds(5));
-
-  //std::thread tEventClent(run_event_client);
-
-  std::this_thread::sleep_for(std::chrono::seconds(30));
-
-  g_run = 0;
-
-  //tEventClent.join();
-  t_event_sender.join();
-  t.join();
-}
 
 TEST(itat_salt, SALT_JOB) {
   MapStr2Ptr<SALT_JOB> jobs;

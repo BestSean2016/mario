@@ -27,12 +27,13 @@
 #include "mylog.h"
 #include "str.h"
 #include <locale.h>
+#include <mutex>
 
 #if HAVE_SYSLOG_H
 #	include <syslog.h>
 #endif
 
-static int g_mylog_level = L_ERR;
+static int g_mylog_level = L_AUTH;
 #ifndef MAX_PATH
 #define MAX_PATH 260
 #endif //MAX_PATH
@@ -258,22 +259,32 @@ UTILITY_API extern int mylog(const TCHAR * filename, int lvl, const char *msg, .
 }
 */
 
+
+static std::mutex mutex_mylog;
+
 int mylog(const char * filename, int lvl, const char *msg, ...)
 {
-	va_list ap;
-	int r;
+
+    if (lvl < g_mylog_level) return (0);
+
+    va_list ap;
+    int r;
+	FILE * fp;
 
     setlocale(LC_ALL, "en_US.UTF-8");
+    std::lock_guard<std::mutex> *guard =
+        new std::lock_guard<std::mutex>(mutex_mylog);
 
-	FILE * fp;
-	if (fopen_s(&fp, filename, "a"))
+    if (fopen_s(&fp, filename, "a")) {
+        delete guard;
 		return -1;
+    }
 	va_start(ap, msg);
 	r = vradlog(fp, lvl, msg, ap);
 	va_end(ap);
 	fclose(fp);
-
-	return r;
+    delete guard;
+    return r;
 }
 
 

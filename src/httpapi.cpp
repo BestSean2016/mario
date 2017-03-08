@@ -16,22 +16,15 @@
 
 int g_run = 1;
 
-static threadpool_t *g_thpool_httpd;
 static std::mutex g_mutex_event;
-static int serv_sock;
 
 static std::set<HTTP_CLIENT_PARAM *> g_event_clients;
 
-const char *http_ret_200 = "HTTP/1.0 200 OK\r\n";
+static const char *http_ret_200 = "HTTP/1.0 200 OK\r\n";
 
-const char *http_ret_500 = "HTTP/1.0 500 Server Internal Error\r\n"
-                           "Content-Length: 0\r\n\r\n";
+static const char *http_ret_400 = "HTTP/1.0 400 Bad Request\r\n";
 
-const char *http_ret_501 = "HTTP/1.0 501 Not Implemented\r\n"
-                           "Content-Length: 0\r\n\r\n";
-const char *http_ret_400 = "HTTP/1.0 400 Bad Request\r\n";
-
-const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
+static const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
                             "Access-Control-Expose-Headers: GET, POST\r\n"
                             "Cache-Control: no-cache\r\n"
                             "Vary: Accept-Encoding\r\n"
@@ -77,15 +70,6 @@ std::vector<std::string> split(const std::string &s, char delim) {
   return elems;
 }
 
-static int parse_http_request_(HttpRequest &req) {
-  std::vector<std::string> elems = split(req.content, '&');
-  for (auto &str : elems) {
-    std::vector<std::string> e = split(str, '=');
-    if (e.size() == 2)
-      req.request.insert(std::pair<std::string, std::string>(e[0], e[1]));
-  }
-  return 0;
-}
 
 static char *get_line(char *line, int *len) {
   assert(line != nullptr);
@@ -181,198 +165,7 @@ int event_sender() {
   return 0;
 }
 
-static void do_http_request(void *param) {
-  HTTP_CLIENT_PARAM *clisock = (HTTP_CLIENT_PARAM *)param;
-  char buf[BUFSIZE * 2];
-  memset(buf, 0, BUFSIZE * 2);
 
-  int n = 0;
-  char *line = buf;
-
-  int len = 0;
-  bool is_api = false;
-  HttpRequest hr;
-  //
-  // todo, asuming read onece to get all data
-  //
-  n = read(clisock->socket, buf, BUFSIZE - 1);
-  if (n <= 0)
-    goto error_exit;
-  buf[n] = 0;
-
-  while (nullptr != (line = get_line(line, &len))) {
-    char c = line[len];
-    line[len] = 0;
-
-    if (*line == 0) {
-      // get the content
-      *line = '\r';
-      line += 2;
-#ifdef _DEBUG_
-      printf("Content -> %s, %lu\n", line, strlen(line));
-#endif //_DEBUG
-      if (hr.method == HTTP_REQUEST_METHOD_POST) {
-        // if ((int)strlen(line) != hr.content_len)
-        //   return; // error
-        hr.content = line;
-      }
-    } else {
-#ifdef _DEBUG_
-      printf("Line -> %s\n", line);
-#endif //_DEBUG
-      getRequestParam(line, &hr);
-    }
-
-    line[len] = c;
-    line += len + 2;
-  }
-
-  if (hr.content_len > 0 && (int)(hr.content.size()) != hr.content_len) {
-    int left = hr.content_len - (int)(hr.content.size());
-    if (left != (n = read(clisock->socket, buf, left)))
-      goto error_exit;
-    else {
-      buf[n] = 0;
-      hr.content.append(buf);
-#ifdef _DEBUG_
-      printf("Content Line -> %s\n", buf);
-#endif //_DEBUG
-    }
-  }
-
-  parse_http_request_(hr);
-
-  if (clisock->uris.find("api") == clisock->uris.end())
-    write(clisock->socket, http_ret_400, strlen(http_ret_400));
-  else {
-    if (clisock->uris["api"].find(hr.uri) == clisock->uris["api"].end())
-      is_api = false;
-    else {
-      // it is api
-      // return 200 ok for now
-      is_api = true;
-      write(clisock->socket, http_ret_200, strlen(http_ret_200));
-    }
-  }
-
-  if (clisock->uris.find("event") == clisock->uris.end()) {
-    if (!is_api)
-      write(clisock->socket, http_ret_400, strlen(http_ret_400));
-  } else if (hr.uri == *(clisock->uris["event"].begin())) {
-    // it's an event listner
-    write(clisock->socket, http_chuncked, strlen(http_chuncked));
-    auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
-#ifdef _DEBUG_
-    printf("Insert a socket %d\n", clisock->socket);
-#endif //_DEBUG_
-
-    g_event_clients.insert(clisock);
-    delete guard;
-    return;
-  }
-
-error_exit:
-  close(clisock->socket);
-  delete clisock;
-}
-
-//
-// int itat_httpd(short int portno, URI_REQUEST *uris) {
-//   g_thpool_httpd = threadpool_create(5, 10, 0);
-//   if (!g_thpool_httpd)
-//     return -1;
-//
-//   signal(SIGPIPE, SIG_IGN);
-//
-//   int newsockfd, clilen;
-//   struct sockaddr_in serv_addr, cli_addr;
-//
-//   /* First call to socket() function */
-//   serv_sock = socket(AF_INET, SOCK_STREAM, 0);
-//
-//   if (serv_sock < 0) {
-//     perror("ERROR opening socket");
-//     exit(1);
-//   }
-//
-//   /* Initialize socket structure */
-//   bzero((char *)&serv_addr, sizeof(serv_addr));
-//
-//   serv_addr.sin_family = AF_INET;
-//   serv_addr.sin_addr.s_addr = INADDR_ANY;
-//   serv_addr.sin_port = htons(portno);
-//
-//   /* Now bind the host address using bind() call.*/
-//   if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-//     perror("ERROR on binding");
-//     exit(1);
-//   }
-//
-//   /* Now start listening for the clients, here process will
-//      * go in sleep mode and will wait for the incoming connection
-//   */
-//
-//   listen(serv_sock, 5);
-//
-//   while (g_run) {
-//     int iResult;
-//     struct timeval tv;
-//     fd_set rfds;
-//     FD_ZERO(&rfds);
-//     FD_SET(serv_sock, &rfds);
-//
-//     tv.tv_sec = (long)10;
-//     tv.tv_usec = 0;
-//
-//     iResult = select(serv_sock + 1, &rfds, (fd_set *)0, (fd_set *)0, &tv);
-//     if (iResult > 0) {
-//       clilen = sizeof(cli_addr);
-//
-//       /* Accept actual connection from the client */
-//       newsockfd =
-//           accept(serv_sock, (struct sockaddr *)&cli_addr, (socklen_t *)&clilen);
-//
-//       if (newsockfd < 0) {
-//         perror("ERROR on accept");
-//         break;
-//       }
-//
-//       HTTP_CLIENT_PARAM *clisock = new HTTP_CLIENT_PARAM(*uris);
-//       clisock->socket = newsockfd;
-//
-//       memcpy(&clisock->cli_addr, &cli_addr, sizeof(sockaddr_in));
-//       if (threadpool_add(g_thpool_httpd, do_http_request, clisock, 0)) {
-//         close(newsockfd);
-//         delete clisock;
-//       }
-//     } else {
-// // always here, even if i connect from another application
-// #ifdef _DEBUG_
-//       printf("select timeout\n");
-// #endif //_DEBUG_
-//     }
-//   }
-//
-//   close(serv_sock);
-// #ifdef _DEBUG_
-//   printf("close server socket fd");
-// #endif //_DEBUG_
-//
-//   std::this_thread::sleep_for(std::chrono::seconds(15));
-//   {
-//     auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
-//     for (auto it = g_event_clients.begin(); it != g_event_clients.end(); ++it) {
-//       close((*it)->socket);
-//       delete (*it);
-//     }
-//     g_event_clients.clear();
-//     delete guard;
-//   }
-//
-//   threadpool_destroy(g_thpool_httpd, 0);
-//   return 0;
-// }
-//
 // **************************************************************************************
 // Client Api
 // **************************************************************************************
