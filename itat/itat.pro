@@ -19,7 +19,8 @@ SOURCES += \
     ../src/threadpool.c \
     ../src/saltapi.cpp \
     ../src/httpapi.cpp \
-    ../src/mylog.cpp
+    ../src/mylog.cpp \
+    ../src/plumber.cpp
 
 HEADERS += \
     ../include/itat_global.h \
@@ -27,7 +28,8 @@ HEADERS += \
     ../include/str.h \
     ../include/threadpool.h \
     ../include/saltapi.hpp \
-    ../include/httpapi.hpp
+    ../include/httpapi.hpp \
+    ../include/plumber.hpp
 
 
 
@@ -38,7 +40,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt
+    LIBS += -lpthread -lrt -lzmq
 
     target.path = /usr/local/bin/mario
     INSTALLS += target

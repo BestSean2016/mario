@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include "plumber.hpp"
 #include "httpapi.hpp"
 #include "saltapi.hpp"
 
@@ -149,4 +150,13 @@ TEST(itat_salt, salt_api_events) {
 
 TEST(functional, get_rule) {
   EXPECT_EQ(1, 1);
+}
+
+
+TEST(plumber, 1) {
+  g_run = 1;
+  std::thread t(plumber);
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  g_run = 0;
+  t.join();
 }
