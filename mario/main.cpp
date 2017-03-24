@@ -35,6 +35,14 @@ void run_test_cmd() {
   }
 }
 
+
+
+/**
+ * @brief main standlone mario
+ * @param argc number of arguments
+ * @param argv arguments
+ * @return 0 for no error
+ */
 int main(int argc, char *argv[]) {
   if (argc != 5) {
     std::cout << "Usage: mario <amount of node> <amont of branch> <server ip> <server port>\n";
