@@ -264,7 +264,6 @@ static std::mutex mutex_mylog;
 
 int mylog(const char * filename, int lvl, const char *msg, ...)
 {
-
     if (lvl < g_mylog_level) return (0);
 
     va_list ap;

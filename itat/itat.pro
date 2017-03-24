@@ -8,6 +8,7 @@ QT     -= core gui
 CONFIG += c++14
 
 INCLUDEPATH += ../include
+INCLUDEPATH += /app/boost/include
 
 TARGET   = itat
 TEMPLATE = lib
@@ -20,7 +21,8 @@ SOURCES += \
     ../src/saltapi.cpp \
     ../src/httpapi.cpp \
     ../src/mylog.cpp \
-    ../src/plumber.cpp
+    ../src/plumber.cpp \
+    ../src/node.cpp
 
 HEADERS += \
     ../include/itat_global.h \
@@ -29,7 +31,8 @@ HEADERS += \
     ../include/threadpool.h \
     ../include/saltapi.hpp \
     ../include/httpapi.hpp \
-    ../include/plumber.hpp
+    ../include/plumber.hpp \
+    ../include/node.hpp
 
 
 
@@ -40,7 +43,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt -lzmq
+    LIBS += -lpthread -lrt
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
