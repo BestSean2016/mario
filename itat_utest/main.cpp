@@ -153,10 +153,3 @@ TEST(functional, get_rule) {
 }
 
 
-TEST(plumber, 1) {
-  g_run = 1;
-  std::thread t(plumber);
-  std::this_thread::sleep_for(std::chrono::seconds(10));
-  g_run = 0;
-  t.join();
-}

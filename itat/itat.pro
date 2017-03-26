@@ -22,7 +22,9 @@ SOURCES += \
     ../src/httpapi.cpp \
     ../src/mylog.cpp \
     ../src/plumber.cpp \
-    ../src/node.cpp
+    ../src/node.cpp \
+    ../src/state.cpp \
+    ../src/dataflow_graph.cpp
 
 HEADERS += \
     ../include/itat_global.h \
@@ -32,7 +34,10 @@ HEADERS += \
     ../include/saltapi.hpp \
     ../include/httpapi.hpp \
     ../include/plumber.hpp \
-    ../include/node.hpp
+    ../include/node.hpp \
+    ../include/state.hpp \
+    ../include/edge.hpp \
+    ../include/graph.hpp
 
 
 
@@ -43,7 +48,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
 
-    LIBS += -lpthread -lrt
+    LIBS += -lpthread -lrt -ligraph
 
     target.path = /usr/local/bin/mario
     INSTALLS += target

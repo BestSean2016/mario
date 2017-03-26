@@ -1,6 +1,7 @@
 #include "saltapi.hpp"
 #include "assert.h"
 #include "rapidjson/document.h"
+#include <mutex>
 #include "plumber.hpp"
 
 //JOBMAP g_jobmap;
@@ -8,6 +9,8 @@ char g_token[TOKEN_LEN] = {0};
 
 #define TEMPBUF_LEN 2048
 static SALT_CALLBACK salt_cb;
+
+std::mutex g_job_mutex;
 
 /**
  * @brief itat_httpc send cmd and receive response from salt api

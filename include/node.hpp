@@ -4,14 +4,22 @@
 #include <vector>
 #include <iostream>
 
-#include <boost/msm/back/state_machine.hpp>
-#include <boost/msm/front/euml/euml.hpp>
+#include <igraph/igraph.h>
+namespace dfgraph {
 
-using namespace std;
-using namespace boost::msm::front::euml;
-namespace msm = boost::msm;
+class dfnode {
+public:
+  dfnode() {}
+  dfnode(igraph_t* g) : g_(g) {}
+  virtual ~dfnode() {}
 
 
-class Node : public
+private:
+  igraph_t* g_ = nullptr;
+};
+
+}
+
+extern int generate_dataflow_nodes(igraph_t* g);
 
 #endif // NODE_HPP
