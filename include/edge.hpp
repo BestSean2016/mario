@@ -3,6 +3,7 @@
 
 #include "igraph/igraph.h"
 
+namespace itat {
 namespace dfgraph {
 class dfedge {
     dfedge() {}
@@ -12,6 +13,7 @@ class dfedge {
 private:
     igraph_t* g_ = nullptr;
 };
+}
 }
 
 #endif // EDGE_HPP

@@ -28,6 +28,12 @@ typedef std::map<std::string, action_fun> ActionSet;
 typedef std::pair<std::string, action_fun> AsPair;
 typedef std::pair<std::string, std::string> KVPair;
 
+typedef void* PARAM;
+typedef int (*response_function) (const char* data, size_t len, PARAM param1, PARAM param2);
+typedef int (*api_function) (const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
+
+
+namespace itat {
 typedef struct HttpServerParam {
   ActionSet actions;
   ApiUriSet uris;
@@ -58,13 +64,6 @@ typedef struct HTTP_CLIENT_PARAM {
 
   HTTP_CLIENT_PARAM(URI_REQUEST& ureq) : uris(ureq) {}
 } HTTP_CLIENT_PARAM;
-
-typedef void* PARAM;
-
-typedef int (*response_function) (const char* data, size_t len, PARAM param1, PARAM param2);
-typedef int (*api_function) (const char *hostname, int port, const char* target, PARAM param1, PARAM param2);
-
-
 
 typedef struct HTTP_API_PARAM {
     char hostname[32];
@@ -104,4 +103,5 @@ extern ITAT_API int g_run;
 extern ITAT_API int itat_httpc(HTTP_API_PARAM &param, HTTPBUF buf, const char *cmd);
 extern ITAT_API int event_sender();
 
+} //namespace itat
 #endif // HTTP_API_HPP

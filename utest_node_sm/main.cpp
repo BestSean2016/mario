@@ -22,6 +22,6 @@ int main(int argc, char **argv) {
 }
 
 TEST(state_machine, node) {
-  dfnode_state_mechine nsm;
+  itat::dfnode_state_mechine nsm;
   nsm.test();
 }

@@ -8,7 +8,7 @@
 #include "saltapi.hpp"
 
 using namespace std;
-
+using namespace itat;
 
 
 
@@ -84,14 +84,14 @@ static const char* send_str[] = {
 static int myfun (const char* data, size_t len, PARAM param1, PARAM param2) {
   (void)param1;
   (void)param2;
-  show_cstring(data, len);
+  itat::show_cstring(data, len);
   return 0;
 }
 
 static void run_event_client() {
     char buf[BUFSIZE];
     HTTP_API_PARAM param("127.0.0.1", 32001, myfun, nullptr, nullptr);
-    itat_httpc(param, buf, send_str[4]);
+    itat::itat_httpc(param, buf, send_str[4]);
 }
 
 

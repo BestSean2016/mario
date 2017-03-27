@@ -11,6 +11,9 @@ using namespace std;
 #include "pyaxa-mysql.hpp"
 #include "saltapi.hpp"
 
+
+using namespace itat;
+
 static char  MYSQL_DB_HOST[41] = {"10.10.250.250"};
 static short MYSQL_DB_PORT = 13579;
 static char  MYSQL_DB_NAME[41] = {"copyfile"};

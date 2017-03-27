@@ -4,11 +4,13 @@
 #include <mutex>
 #include "plumber.hpp"
 
+namespace  itat {
+
 //JOBMAP g_jobmap;
 char g_token[TOKEN_LEN] = {0};
 
 #define TEMPBUF_LEN 2048
-static SALT_CALLBACK salt_cb;
+static itat::SALT_CALLBACK salt_cb;
 
 std::mutex g_job_mutex;
 
@@ -108,7 +110,6 @@ Content-Length: nnn
 <data>
 */
 
-
 int parse_token_fn(const char *data, size_t len, void* param1, void* param2) {
   // fprintf(stdout, "%s", (char *)ptr);
   //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
@@ -130,7 +131,7 @@ int parse_token_fn(const char *data, size_t len, void* param1, void* param2) {
 #endif //_DEBUG_
   } else {
 #ifdef _DEBUG_
-    show_cstring(data, len);
+    itat::show_cstring(data, len);
 #endif //_DEBUG_
     return -1;
   }
@@ -357,3 +358,5 @@ static int parse_salt_myjob_jobmap(const char *json_data, size_t len,
   delete guard;
   return 0;
 }
+
+}//namespace itat

@@ -14,7 +14,9 @@ namespace mpl = boost::mpl;
 
 #include "node.hpp"
 
-static const char* state_name[] = {
+namespace itat {
+
+static const char* node_state_name[] = {
   "initial          ",
   "checking         ",
   "checked_err      ",
@@ -28,6 +30,22 @@ static const char* state_name[] = {
   "stoped           ",
   "paused           ",
 };
+
+
+
+typedef enum CHECK_RESULT {
+  CHECK_RESULT_UNKNOW = -1,
+  CHECK_RESULT_OK,
+  CHECK_RESULT_ERR,
+} CHECK_RESULT;
+
+typedef enum NODE_RUN_RESULT {
+  NODE_RUN_RESULT_UNKNOW = -1,
+  NODE_RUN_RESULT_SUCCEEDED,
+  NODE_RUN_RESULT_ERROR,
+  NODE_RUN_RESULT_TIMEOUT,
+} NODE_RUN_RESULT;
+
 
 class dfnode_state_mechine {
 public:
@@ -43,19 +61,6 @@ public:
   struct event_continue {};
   struct event_check_error {};
   struct event_check_successe {};
-
-  typedef enum CHECK_RESULT {
-    CHECK_RESULT_UNKNOW = -1,
-    CHECK_RESULT_OK,
-    CHECK_RESULT_ERR,
-  } CHECK_RESULT;
-
-  typedef enum NODE_RUN_RESULT {
-    NODE_RUN_RESULT_UNKNOW = -1,
-    NODE_RUN_RESULT_SUCCEEDED,
-    NODE_RUN_RESULT_ERROR,
-    NODE_RUN_RESULT_TIMEOUT,
-  } NODE_RUN_RESULT;
 
   CHECK_RESULT check_result;
   NODE_RUN_RESULT node_run_result;
@@ -215,7 +220,7 @@ public:
   // Testing utilities.
   //
   void pstate(nodesm const &p) {
-    std::cout << " -> " << state_name[p.current_state()[0]] << std::endl;
+    std::cout << " -> " << node_state_name[p.current_state()[0]] << std::endl;
   }
 
   void test() {
@@ -246,5 +251,12 @@ public:
 private:
   dfgraph::dfnode* dfnode_ = nullptr;
 };
+
+
+
+class dfgraph_state_machine {
+
+};
+} //namespace itat {
 
 #endif // STATE_HPP

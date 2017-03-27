@@ -14,11 +14,13 @@
 #include <unistd.h>
 #include <vector>
 
+namespace itat {
+
 int g_run = 1;
 
 static std::mutex g_mutex_event;
 
-static std::set<HTTP_CLIENT_PARAM *> g_event_clients;
+static std::set<itat::HTTP_CLIENT_PARAM *> g_event_clients;
 
 static const char *http_ret_200 = "HTTP/1.0 200 OK\r\n";
 
@@ -88,11 +90,11 @@ static char *get_line(char *line, int *len) {
   return nullptr;
 }
 
-static int get_uri(const char *line, HttpRequest *hr) {
+static int get_uri(const char *line, itat::HttpRequest *hr) {
   char *get_pos = 0;
   char *uri = 0;
   char spliter = 0;
-  if (hr->method == HTTP_REQUEST_METHOD_GET) {
+  if (hr->method == itat::HTTP_REQUEST_METHOD_GET) {
     uri = (char *)line + 4;
     spliter = '?';
   } else {
@@ -117,16 +119,16 @@ static int get_uri(const char *line, HttpRequest *hr) {
   return 0;
 }
 
-static void get_content(const char *line, HttpRequest *hr) {
+static void get_content(const char *line, itat::HttpRequest *hr) {
   hr->content_len = atoi((char *)line + strlen(_content_len_));
 }
 
-static int getRequestParam(const char *line, HttpRequest *hr) {
+static int getRequestParam(const char *line, itat::HttpRequest *hr) {
   if (!strncmp(line, "POST ", 5) || !strncmp(line, "GET ", 4)) {
     if (!strncmp(line, "POST ", 5))
-      hr->method = HTTP_REQUEST_METHOD_POST;
+      hr->method = itat::HTTP_REQUEST_METHOD_POST;
     else
-      hr->method = HTTP_REQUEST_METHOD_GET;
+      hr->method = itat::HTTP_REQUEST_METHOD_GET;
 
     get_uri(line, hr);
   } else if (!strncmp(line, _content_len_, strlen(_content_len_))) {
@@ -222,7 +224,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
   return finished;
 }
 
-int itat_httpc(HTTP_API_PARAM& param, HTTPBUF buf, const char *cmd) {
+int itat_httpc(itat::HTTP_API_PARAM& param, HTTPBUF buf, const char *cmd) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
@@ -371,3 +373,5 @@ void show_cstring(const char *cstring, size_t len) {
     std::cout << cstring[i];
   std::cout << "<--|\n";
 }
+
+} //namespace itat

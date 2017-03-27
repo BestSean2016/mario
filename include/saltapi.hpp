@@ -15,7 +15,9 @@
 #include <map>
 #include <set>
 #include <string.h>
+#include "httpapi.hpp"
 
+namespace itat {
 
 template<typename T>
 class MapStr2Ptr : public std::map<std::string, T*> {
@@ -128,9 +130,6 @@ typedef struct htrd_job {
 
 #define ALL_TASK_FINISHED -10000000
 
-#include "httpapi.hpp"
-
-
 
 typedef enum SALT_API_TYPE {
   SALT_API_TYPE_LOGIN,
@@ -172,5 +171,6 @@ extern ITAT_API int g_run;
 const int64_t testping_pid = -1;
 const int64_t testping_nid = -1;
 
+} //namespace itat
 
 #endif // SALT_API_HPP
