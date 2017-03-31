@@ -3,6 +3,8 @@
 #include <iostream>
 
 #include "state.hpp"
+#include "node.hpp"
+#include "graph.hpp"
 
 using namespace std;
 
@@ -21,7 +23,22 @@ int main(int argc, char **argv) {
   return RUN_ALL_TESTS();
 }
 
-TEST(state_machine, node) {
-  itat::dfnode_state_mechine nsm;
-  nsm.test();
+TEST(state_machine, empty_graph) {
+  auto pgraph = new itat::dfgraph();
+  auto pnode = new itat::dfnode(pgraph);
+
+  auto nsm = pnode->get_state_machine();
+  nsm->test();
+
+  delete pnode;
+  delete pgraph;
+}
+
+TEST(state_machine, diamond_graph) {
+  auto graph = new itat::dfgraph();
+  graph->diamod_simulator(12, 2);
+
+  graph->get_node(0)->get_state_machine()->test();
+
+  delete graph;
 }

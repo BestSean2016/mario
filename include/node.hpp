@@ -1,28 +1,26 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include <vector>
-#include <iostream>
 
-#include <igraph/igraph.h>
 
 namespace itat {
 
-namespace dfgraph {
+class dfgraph;
+class dfnode_state_machine;
 
 class dfnode {
 public:
   dfnode() {}
-  dfnode(igraph_t* g) : g_(g) {}
-  virtual ~dfnode() {}
+  dfnode(dfgraph* g);
+  virtual ~dfnode();
 
-
+  dfnode_state_machine* get_state_machine() {return sm_;}
 private:
-  igraph_t* g_ = nullptr;
+  dfgraph* g_ = nullptr;
+  dfnode_state_machine* sm_ = nullptr;
 };
 
-} //namespace dfgraph
 } //namespace itat
-extern int generate_dataflow_nodes(igraph_t* g);
+//extern int generate_dataflow_nodes(igraph_t* g);
 
 #endif // NODE_HPP

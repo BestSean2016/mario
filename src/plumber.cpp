@@ -2,3 +2,6 @@
 #include <iostream>
 #include <thread>
 
+namespace itat {
+
+} //namespace itat

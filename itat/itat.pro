@@ -24,7 +24,7 @@ SOURCES += \
     ../src/plumber.cpp \
     ../src/node.cpp \
     ../src/state.cpp \
-    ../src/dataflow_graph.cpp
+    ../src/graph.cpp
 
 HEADERS += \
     ../include/itat_global.h \
