@@ -95,6 +95,26 @@ int dfgraph::gen_node_() {
   return (0);
 }
 
+
+int dfgraph::gen_piple_graph() {
+  int ret = load_pipe_line_from_db_();
+  if (!ret)
+    ret = gen_piple_graph_();
+  if (!ret)
+    ret = gen_node_();
+
+  return ret;
+}
+
+int dfgraph::load_pipe_line_from_db_() {
+  //to do: load piple line from db by piplline id
+  return 0;
+}
+
+int dfgraph::gen_piple_graph_() {
+  return 0;
+}
+
 } //namespace itat
 
 

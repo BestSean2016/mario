@@ -23,6 +23,12 @@ public:
   int diamod_simulator(int node_num, int branch_num);
   dfnode* get_node(int i) {return (i >= 0 && i < (int)node_.size()) ? node_[i] : nullptr;}
 
+  /**
+   * @brief gen_piple_graph generate the graph of piple from db
+   * @return 0 for good
+   */
+  int gen_piple_graph();
+
 private:
   igraph_t ig_;
   std::vector<dfnode*> node_;
@@ -30,6 +36,12 @@ private:
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
   int gen_node_();
+  /**
+   * @brief load_pipe_line_from_db
+   * @return 0 for good
+   */
+  int load_pipe_line_from_db_();
+  int gen_piple_graph_();
 
 };
 
