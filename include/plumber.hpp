@@ -3,15 +3,19 @@
 
 namespace itat {
 
+class graph;
+class node;
+class state;
+
 class plumber {
 public:
     plumber() {}
-    plumber(int plid) : plid_(plid) {}
+    plumber(graph* g) : g_(g) {}
     ~plumber() {}
 
 
 private:
-    int plid_ = 0;
+    graph* g_ = nullptr;
 };
 
 
