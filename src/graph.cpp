@@ -26,7 +26,7 @@ dfgraph::~dfgraph() {
  */
 int dfgraph::diamod_simulator(int node_num, int branch_num) {
     gen_diamod_graph_(node_num, branch_num);
-    gen_node_();
+    gen_node_(true);
 
   return (0);
 }
@@ -87,9 +87,10 @@ int dfgraph::gen_diamod_graph_(int node_num, int branch_num) {
     return (0);
 }
 
-int dfgraph::gen_node_() {
+int dfgraph::gen_node_(bool mock) {
   for (int i = 0; i <ig_.n; ++i) {
     auto node = new dfnode(this);
+    if (mock) node->gen_pl_node(i);
     node_.emplace_back(node);
   }
   return (0);

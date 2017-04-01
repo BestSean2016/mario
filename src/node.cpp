@@ -13,6 +13,12 @@ dfnode::dfnode(dfgraph* g) : g_(g) {
 
 dfnode::~dfnode() {
   if (sm_) delete sm_;
+  if (plnode_) delete plnode_;
+}
+
+void dfnode::set_pipline_node(mr_pl_node *plnode) {
+  assert(plnode != nullptr);
+  plnode_ = plnode;
 }
 
 

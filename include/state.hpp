@@ -274,6 +274,8 @@ public:
     dfgraph_state_machine(dfgraph* g) : g_(g) {}
     virtual ~dfgraph_state_machine() {}
 
+    void set_graph(dfgraph* g) { g_= g; }
+
     // events
     struct event_run {};
     struct event_check {};

@@ -35,7 +35,7 @@ private:
 
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
-  int gen_node_();
+  int gen_node_(bool mock = false);
   /**
    * @brief load_pipe_line_from_db
    * @return 0 for good

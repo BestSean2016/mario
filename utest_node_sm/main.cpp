@@ -5,6 +5,7 @@
 #include "state.hpp"
 #include "node.hpp"
 #include "graph.hpp"
+#include "plumber.hpp"
 
 using namespace std;
 
@@ -41,4 +42,11 @@ TEST(state_machine, diamond_graph) {
   graph->get_node(0)->get_state_machine()->test();
 
   delete graph;
+}
+
+
+TEST(plumber, init) {
+  auto m = new itat::mario(123);
+  m->simulator(100,3);
+  delete m;
 }
