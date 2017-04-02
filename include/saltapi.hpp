@@ -153,7 +153,7 @@ extern ITAT_API void set_default_callback();
 
 extern ITAT_API int salt_api_login(HTTP_API_PARAM& param, const char* user, const char* pass);
 extern ITAT_API int salt_api_testping(HTTP_API_PARAM& param, const char* target);
-extern ITAT_API int salt_api_events(HTTP_API_PARAM& param);
+extern ITAT_API int salt_api_events(HTTP_API_PARAM *param);
 extern ITAT_API int salt_api_async_cmd_runall(HTTP_API_PARAM& param, const char* target, const char* script);
 extern ITAT_API int salt_api_cmd_runall(HTTP_API_PARAM& param, const char* target, const char* script);
 extern ITAT_API int salt_api_cp_getfile(HTTP_API_PARAM& param, const char* target, const char* src_file, const char* des_file);

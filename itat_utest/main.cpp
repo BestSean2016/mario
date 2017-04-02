@@ -32,55 +32,54 @@ int main(int argc, char **argv) {
   return RUN_ALL_TESTS();
 }
 
+//
+// static const char* send_str[] = {
+//     "GET /api/pyaxa/foo HTTP/1.1\r\n"
+//     "Host: localhost:8000\r\n"
+//     "Accept: */*\r\n"
+//     "Content-Length: 28\r\n"
+//     "Content-Type: application/x-www-form-urlencoded\r\n"
+//     "\r\n"
+//     "aaa=bbb&action=get&user=sean",
+//
+//     "POST /api/pyaxa/foo HTTP/1.1\r\n"
+//     "Host: localhost:8000\r\n"
+//     "Accept: */*\r\n"
+//     "Content-Length: 40\r\n"
+//     "Content-Type: application/x-www-form-urlencoded\r\n"
+//     "\r\n"
+//     "aaa=bbb&action=post&user=sean&pass=ooooo",
+//
+//     "DELETE /api/pyaxa/foo HTTP/1.1\r\n"
+//     "Host: localhost:8000\r\n"
+//     "Accept: */*\r\n"
+//     "Content-Length: 28\r\n"
+//     "Content-Type: application/x-www-form-urlencoded\r\n"
+//     "\r\n"
+//     "aaa=bbb&action=get&user=sean",
+//
+//     "POST /api/pyaxa/foo HTTP/1.1\r\n"
+//     "Host: localhost:8000\r\n"
+//     "Accept: */*\r\n"
+//     "Content-Length: 28\r\n"
+//     "Content-Type: application/x-www-form-urlencoded\r\n"
+//     "\r\n"
+//     "aaa=bbb&user=sean&pass=ooooo",
+//
+//
+//     "POST /event/pyaxa HTTP/1.1\r\n"
+//     "Host: localhost:8000\r\n"
+//     "Accept: */*\r\n"
+//     "Content-Length: 41\r\n"
+//     "Content-Type: application/x-www-form-urlencoded\r\n"
+//     "\r\n"
+//     "aaa=bbb&action=event&user=sean&pass=ooooo",
+//
+//     nullptr,
+// };
+//
 
-
-static const char* send_str[] = {
-    "GET /api/pyaxa/foo HTTP/1.1\r\n"
-    "Host: localhost:8000\r\n"
-    "Accept: */*\r\n"
-    "Content-Length: 28\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
-    "\r\n"
-    "aaa=bbb&action=get&user=sean",
-
-    "POST /api/pyaxa/foo HTTP/1.1\r\n"
-    "Host: localhost:8000\r\n"
-    "Accept: */*\r\n"
-    "Content-Length: 40\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
-    "\r\n"
-    "aaa=bbb&action=post&user=sean&pass=ooooo",
-
-    "DELETE /api/pyaxa/foo HTTP/1.1\r\n"
-    "Host: localhost:8000\r\n"
-    "Accept: */*\r\n"
-    "Content-Length: 28\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
-    "\r\n"
-    "aaa=bbb&action=get&user=sean",
-
-    "POST /api/pyaxa/foo HTTP/1.1\r\n"
-    "Host: localhost:8000\r\n"
-    "Accept: */*\r\n"
-    "Content-Length: 28\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
-    "\r\n"
-    "aaa=bbb&user=sean&pass=ooooo",
-
-
-    "POST /event/pyaxa HTTP/1.1\r\n"
-    "Host: localhost:8000\r\n"
-    "Accept: */*\r\n"
-    "Content-Length: 41\r\n"
-    "Content-Type: application/x-www-form-urlencoded\r\n"
-    "\r\n"
-    "aaa=bbb&action=event&user=sean&pass=ooooo",
-
-    nullptr,
-};
-
-
-
+/*
 static int myfun (const char* data, size_t len, PARAM param1, PARAM param2) {
   (void)param1;
   (void)param2;
@@ -104,11 +103,11 @@ TEST(itat_salt, SALT_JOB) {
   jobs.insert(std::make_pair("aaa", job));
 }
 
-
+*/
 TEST(itat_salt, salt_api_login) {
   set_default_callback();
   HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_login(param, "sean", "hongt@8a51"));
+  EXPECT_EQ(0, salt_api_login(param, "salt-test", "hongt@8a51"));
 }
 
 
@@ -127,17 +126,20 @@ TEST(itat_ssalt, salt_api_async_cmd_runall) {
 
 void events() {
   HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_events(param));
+  EXPECT_EQ(0, salt_api_events(&param));
 }
 
 TEST(itat_salt, salt_api_events) {
   set_default_callback();
   g_run = 1;
-  std::thread t(events);
+//  std::thread t(events);
+  HTTP_API_PARAM param_event("10.10.10.19", 8000, nullptr, nullptr, nullptr);
+  std::thread t(salt_api_events, &param_event);
+
   std::this_thread::sleep_for(std::chrono::seconds(5));
 
   HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_login(param, "sean", "hongt@8a51"));
+  EXPECT_EQ(0, salt_api_login(param, "salt-test", "hongt@8a51"));
   param.rf = nullptr;
   EXPECT_EQ(0, salt_api_testping(param, "old*"));
   EXPECT_EQ(0, salt_api_async_cmd_runall(param,

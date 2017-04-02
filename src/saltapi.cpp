@@ -230,13 +230,13 @@ int salt_api_cp_getfile(HTTP_API_PARAM &param, const char* target, const char* s
     return itat_httpc(param, buffer, cmd);
 }
 
-int salt_api_events(HTTP_API_PARAM& param) {
+int salt_api_events(HTTP_API_PARAM* param) {
   char buf[BUFSIZE * 2];
   char cmd[1024];
 
   snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], g_token);
 
-  return itat_httpc(param, buf, cmd);
+  return itat_httpc(*param, buf, cmd);
 }
 
 
