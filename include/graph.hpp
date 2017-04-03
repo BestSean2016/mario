@@ -1,18 +1,17 @@
 #ifndef DATAFLOW_GRAPH_HPP
 #define DATAFLOW_GRAPH_HPP
 
-
 #include <igraph/igraph.h>
 #include <vector>
 
 namespace itat {
 
-class dfnode;
+class inode;
 
-class dfgraph {
+class igraph {
 public:
-  dfgraph();
-  ~dfgraph();
+  igraph();
+  ~igraph();
 
   /**
    * @brief diamod_simulator generate a graph
@@ -21,7 +20,9 @@ public:
    * @return 0 for good
    */
   int diamod_simulator(int node_num, int branch_num);
-  dfnode* get_node(int i) {return (i >= 0 && i < (int)node_.size()) ? node_[i] : nullptr;}
+  inode *get_node(int i) {
+    return (i >= 0 && i < (int)node_.size()) ? node_[i] : nullptr;
+  }
 
   /**
    * @brief gen_piple_graph generate the graph of piple from db
@@ -31,7 +32,7 @@ public:
 
 private:
   igraph_t ig_;
-  std::vector<dfnode*> node_;
+  std::vector<inode *> node_;
 
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
@@ -42,9 +43,8 @@ private:
    */
   int load_pipe_line_from_db_();
   int gen_piple_graph_();
-
 };
 
-} //namespace itat
+} // namespace itat
 
 #endif // DATAFLOW_GRAPH_HPP

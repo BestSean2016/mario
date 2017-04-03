@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
 }
 
 TEST(state_machine, empty_graph) {
-  auto pgraph = new itat::dfgraph();
-  auto pnode = new itat::dfnode(pgraph);
+  auto pgraph = new itat::igraph();
+  auto pnode = new itat::inode(pgraph);
 
   auto nsm = pnode->get_state_machine();
   nsm->test();
@@ -36,7 +36,7 @@ TEST(state_machine, empty_graph) {
 }
 
 TEST(state_machine, diamond_graph) {
-  auto graph = new itat::dfgraph();
+  auto graph = new itat::igraph();
   graph->diamod_simulator(12, 2);
 
   graph->get_node(0)->get_state_machine()->test();

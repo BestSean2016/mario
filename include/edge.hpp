@@ -4,10 +4,10 @@
 #include "igraph/igraph.h"
 
 namespace itat {
-class dfedge {
-    dfedge() {}
-    dfedge(igraph_t* g) : g_(g) {}
-    virtual ~dfedge() {}
+class iedge {
+    iedge() {}
+    iedge(igraph_t* g) : g_(g) {}
+    virtual ~iedge() {}
 
 private:
     igraph_t* g_ = nullptr;

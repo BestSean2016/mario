@@ -5,7 +5,7 @@
 
 namespace itat {
 
-class dfgraph;
+class igraph;
 class dfnode_state_machine;
 
 typedef struct mr_pl_node {
@@ -24,11 +24,11 @@ typedef struct mr_pl_node {
   int modifier = 0;
 } mr_pl_node;
 
-class dfnode {
+class inode {
 public:
-  dfnode() {}
-  dfnode(dfgraph *g);
-  virtual ~dfnode();
+  inode() {}
+  inode(igraph *g);
+  virtual ~inode();
 
   void set_pipline_node(mr_pl_node *plnode);
 
@@ -40,7 +40,7 @@ public:
   }
 
 private:
-  dfgraph *g_ = nullptr;
+  igraph *g_ = nullptr;
   dfnode_state_machine *sm_ = nullptr;
 
   struct mr_pl_node *plnode_ = nullptr;

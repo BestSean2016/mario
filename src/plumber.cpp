@@ -9,7 +9,7 @@
 namespace itat {
   mario::mario(int64_t plid)
     : plid_(plid) {
-    g_ = new dfgraph();
+    g_ = new igraph();
     state_ = new dfgraph_state_machine(g_);
   }
 

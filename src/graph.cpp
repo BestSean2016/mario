@@ -6,11 +6,11 @@
 
 namespace itat {
 
-dfgraph::dfgraph() {
+igraph::igraph() {
     memset(&ig_, 0, sizeof(igraph_t));
 }
 
-dfgraph::~dfgraph() {
+igraph::~igraph() {
     for (auto& n : node_) {
       delete n;
     }
@@ -24,14 +24,14 @@ dfgraph::~dfgraph() {
  * @param b number of branches
  * @return 0 for good
  */
-int dfgraph::diamod_simulator(int node_num, int branch_num) {
+int igraph::diamod_simulator(int node_num, int branch_num) {
     gen_diamod_graph_(node_num, branch_num);
     gen_node_(true);
 
   return (0);
 }
 
-int dfgraph::gen_diamod_graph_(int node_num, int branch_num) {
+int igraph::gen_diamod_graph_(int node_num, int branch_num) {
     igraph_t gIn, gOut;
     igraph_vector_t edge;
     std::vector<int> e;
@@ -87,9 +87,9 @@ int dfgraph::gen_diamod_graph_(int node_num, int branch_num) {
     return (0);
 }
 
-int dfgraph::gen_node_(bool mock) {
+int igraph::gen_node_(bool mock) {
   for (int i = 0; i <ig_.n; ++i) {
-    auto node = new dfnode(this);
+    auto node = new inode(this);
     if (mock) node->gen_pl_node(i);
     node_.emplace_back(node);
   }
@@ -97,7 +97,7 @@ int dfgraph::gen_node_(bool mock) {
 }
 
 
-int dfgraph::gen_piple_graph() {
+int igraph::gen_piple_graph() {
   int ret = load_pipe_line_from_db_();
   if (!ret)
     ret = gen_piple_graph_();
@@ -107,12 +107,12 @@ int dfgraph::gen_piple_graph() {
   return ret;
 }
 
-int dfgraph::load_pipe_line_from_db_() {
+int igraph::load_pipe_line_from_db_() {
   //to do: load piple line from db by piplline id
   return 0;
 }
 
-int dfgraph::gen_piple_graph_() {
+int igraph::gen_piple_graph_() {
   return 0;
 }
 
