@@ -37,7 +37,8 @@ HEADERS += \
     ../include/node.hpp \
     ../include/state.hpp \
     ../include/edge.hpp \
-    ../include/graph.hpp
+    ../include/graph.hpp \
+    ../include/itat.h
 
 
 
@@ -83,7 +84,6 @@ windows {
 
 }
 
-DISTFILES += \
-    algorithms.txt
+DISTFILES +=
 
 

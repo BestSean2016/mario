@@ -2,19 +2,8 @@
 #define SALT_API_HPP
 
 #include "itat_global.h"
+#include "itat.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <memory.h>
-#include <time.h>
-
-#include <unistd.h>
-
-#include <vector>
-#include <map>
-#include <set>
-#include <string.h>
 #include "httpapi.hpp"
 #include "node.hpp"
 #include "edge.hpp"
@@ -22,15 +11,6 @@
 
 namespace itat {
 
-template<typename T>
-class MapStr2Ptr : public std::map<std::string, T*> {
-public:
-   MapStr2Ptr() {}
-   ~MapStr2Ptr() {
-     for (auto p = this->begin(); p != this->end(); ++p)
-       delete (*p).second;
-   }
-};
 
 typedef enum RETURN_TYPE {
     RETURN_TYPE_OBJECT,

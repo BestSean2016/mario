@@ -30,6 +30,8 @@
 #define _THREADPOOL_H_
 
 #include "itat_global.h"
+#include <unistd.h>
+#include <pthread.h>
 
 #ifdef __cplusplus
 extern "C" {

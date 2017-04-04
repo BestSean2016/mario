@@ -2,16 +2,8 @@
 #define HTTP_API_HPP
 
 #include "itat_global.h"
-#include <string.h>
+#include "itat.h"
 #include "str.h"
-#include <iostream>
-#include <map>
-#include <string>
-#include <vector>
-#include <set>
-
-
-#include <netdb.h>
 
 #ifdef BUFSIZE
 #undef BUFSIZE

@@ -1,8 +1,9 @@
 #ifndef STATE_HPP
 #define STATE_HPP
 
-#include <iostream>
-#include <typeinfo>
+#include "itat_global.h"
+#include "itat.h"
+
 
 // back-end
 #include <boost/msm/back/state_machine.hpp>

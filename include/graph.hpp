@@ -1,17 +1,15 @@
 #ifndef DATAFLOW_GRAPH_HPP
 #define DATAFLOW_GRAPH_HPP
 
+#include "itat_global.h"
+#include "itat.h"
+
 #include <igraph/igraph.h>
-#include <vector>
-#include <map>
 
 
 namespace itat {
 
 class inode;
-typedef std::map<int64_t, inode*> mapIdtoNode;
-typedef std::map<std::string, inode*>mapJidToNode;
-
 
 class igraph {
 public:
@@ -41,7 +39,7 @@ private:
   igraph_t ig_;
   std::vector<inode *> node_;
 
-  mapJidToNode jid_2_node_;
+  MapStr2Ptr<inode> jid_2_node_;
 
 private:
   int gen_diamod_graph_(int node_num, int branch_num);

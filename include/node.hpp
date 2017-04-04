@@ -1,7 +1,8 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include <string>
+#include "itat_global.h"
+#include "itat.h"
 
 namespace itat {
 
