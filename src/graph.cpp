@@ -11,6 +11,8 @@ igraph::igraph() {
 }
 
 igraph::~igraph() {
+    jid_2_node_.clear();
+
     for (auto& n : node_) {
       delete n;
     }
@@ -26,7 +28,7 @@ igraph::~igraph() {
  */
 int igraph::diamod_simulator(int node_num, int branch_num) {
     gen_diamod_graph_(node_num, branch_num);
-    gen_node_(true);
+    gen_node_();
 
   return (0);
 }
@@ -87,10 +89,10 @@ int igraph::gen_diamod_graph_(int node_num, int branch_num) {
     return (0);
 }
 
-int igraph::gen_node_(bool mock) {
+int igraph::gen_node_() {
   for (int i = 0; i <ig_.n; ++i) {
     auto node = new inode(this);
-    if (mock) node->gen_pl_node(i);
+    node->gen_pl_node(i);
     node_.emplace_back(node);
   }
   return (0);
@@ -114,6 +116,12 @@ int igraph::load_pipe_line_from_db_() {
 
 int igraph::gen_piple_graph_() {
   return 0;
+}
+
+
+inode* igraph::get_node_by_jid(std::string& jid) {
+    auto iter = jid_2_node_.find(jid);
+    return (iter == jid_2_node_.end()) ? nullptr : iter->second;
 }
 
 } //namespace itat

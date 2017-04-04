@@ -13,7 +13,6 @@ SOURCES += main.cpp \
     ../src/salt_api.cpp \
     ../src/pipeline.cpp \
     ../src/http_client.cpp \
-    ../src/graphnode.cpp \
     ../src/threadpool.c
 
 HEADERS += \
@@ -24,7 +23,6 @@ HEADERS += \
     ../include/salt_api.h \
     ../include/http_client.h \
     ../include/pipeline.h \
-    ../include/graphnode.h \
     ../include/threadpool.h
 
 DISTFILES += \

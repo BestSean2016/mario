@@ -107,21 +107,21 @@ TEST(itat_salt, SALT_JOB) {
 TEST(itat_salt, salt_api_login) {
   set_default_callback();
   HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_login(param, "salt-test", "hongt@8a51"));
+  EXPECT_EQ(0, salt_api_login(&param, "salt-test", "hongt@8a51"));
 }
 
 
 TEST(itat_salt, salt_api_testping) {
   set_default_callback();
   HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_testping(param, "old*"));
+  EXPECT_EQ(0, salt_api_testping(&param, "old*"));
 }
 
 
 TEST(itat_ssalt, salt_api_async_cmd_runall) {
   set_default_callback();
   HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_async_cmd_runall(param, "old*", "dir"));
+  EXPECT_EQ(0, salt_api_async_cmd_runall(&param, "old*", "dir"));
 }
 
 void events() {
@@ -139,10 +139,10 @@ TEST(itat_salt, salt_api_events) {
   std::this_thread::sleep_for(std::chrono::seconds(5));
 
   HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_login(param, "salt-test", "hongt@8a51"));
+  EXPECT_EQ(0, salt_api_login(&param, "salt-test", "hongt@8a51"));
   param.rf = nullptr;
-  EXPECT_EQ(0, salt_api_testping(param, "old*"));
-  EXPECT_EQ(0, salt_api_async_cmd_runall(param,
+  EXPECT_EQ(0, salt_api_testping(&param, "old*"));
+  EXPECT_EQ(0, salt_api_async_cmd_runall(&param,
                                    "old*",
                                    "dir"));
   g_run = 0;

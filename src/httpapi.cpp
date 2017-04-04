@@ -224,7 +224,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
   return finished;
 }
 
-int itat_httpc(itat::HTTP_API_PARAM& param, HTTPBUF buf, const char *cmd) {
+int itat_httpc(itat::HTTP_API_PARAM* param, HTTPBUF buf, const char *cmd) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
@@ -250,7 +250,7 @@ restart_client:
 
   /* gethostbyname: get the server's DNS entry */
   if (!ret)
-    ret = ((server = gethostbyname(param.hostname)) == NULL);
+    ret = ((server = gethostbyname(param->hostname)) == NULL);
 
   if (!ret) {
     /* build the server's Internet address */
@@ -258,7 +258,7 @@ restart_client:
     serveraddr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, (char *)&serveraddr.sin_addr.s_addr,
           server->h_length);
-    serveraddr.sin_port = htons(param.port);
+    serveraddr.sin_port = htons(param->port);
 
     /* connect: create a connection with the server */
     ret = (connect(sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) <
@@ -287,8 +287,8 @@ restart_client:
     }
   }
 
-  if (!ret && param.rf)
-    ret = (0 != param.rf(json_data, data_len, param.param1, param.param2));
+  if (!ret && param->rf)
+    ret = (0 != param->rf(json_data, data_len, param->param1, param->param2));
 
   if (rescode != 200)
     ret = rescode;
@@ -320,8 +320,8 @@ run_receive_long_data : {
         ++tmp;
       else {
         // printf("************** %s\n", line);
-        if (param.rf) // do not check error
-          param.rf(line, tmp - line, param.param1, param.param2);
+        if (param->rf) // do not check error
+          param->rf(line, tmp - line, param->param1, param->param2);
         // ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
         // next line

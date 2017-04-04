@@ -83,4 +83,7 @@ windows {
 
 }
 
+DISTFILES += \
+    algorithms.txt
+
 

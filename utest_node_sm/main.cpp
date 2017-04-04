@@ -39,7 +39,7 @@ TEST(state_machine, diamond_graph) {
   auto graph = new itat::igraph();
   graph->diamod_simulator(12, 2);
 
-  graph->get_node(0)->get_state_machine()->test();
+  graph->get_node_by_id(0)->get_state_machine()->test();
 
   delete graph;
 }

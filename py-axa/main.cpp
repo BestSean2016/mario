@@ -192,12 +192,12 @@ int match_file(std::vector<COPYFILE_FILE_MATCH> &fm,
                vector<COPYFILE_EXERECORD> &jobs) {
   HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_token_fn, nullptr,
                        nullptr);
-  salt_api_login(param, SALT_API_USER, SALT_API_PASS);
+  salt_api_login(&param, SALT_API_USER, SALT_API_PASS);
 
   param.rf = parase_file_match;
   param.param1 = &jobs;
 
-  if (salt_api_cmd_runall(param, fm[0].minion.c_str(),
+  if (salt_api_cmd_runall(&param, fm[0].minion.c_str(),
                           (fm[0].python + " " + fm[0].matchpy).c_str()))
     return -1;
 
@@ -296,7 +296,7 @@ static int copy_file(vector<COPYFILE_EXERECORD> &jobs, DBHANDLE &db) {
 
     HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_copy_result, &p,
                          nullptr);
-    ret = salt_api_cmd_runall(param, p.SourcePC.c_str(), p.RunCommand.c_str());
+    ret = salt_api_cmd_runall(&param, p.SourcePC.c_str(), p.RunCommand.c_str());
 
     // "UPDATE k_exerecord SET "
     // "State = \'%s\', "

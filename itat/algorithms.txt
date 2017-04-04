@@ -1,0 +1,37 @@
+4.1 The maximum-subarray problem
+
+FIND-MAX-CROSSING-SUBARRAY(A, low, mid, high)
+1     left_sum = infinite
+2     sum = 0
+3     for i = mid downto low
+4         sum = sum + A[i]
+5         if sum > left_sum
+6             left_sum = sum
+7             max_left = i
+
+8     right_sum = infinite
+9     sum = 0
+10    for j = mid = 1 to high
+11        sum = sum = A[j]
+12        if sum > right_sum
+13        right_sum = sum
+14        max_right = j
+
+15    return (max_left, max_right, left_sum + right_sum)
+
+
+
+
+FIND-MAXIMUM-SUBARRAY(A, low, high)
+1     if high == low
+2         return (low, high, A[low])))    //base case: only one element
+3     else mid = floor((low + high)/2)
+4         (left_low, left_high, left_sum) = FIND-MAXIMUM-SUBARRAY(A, low, mid)
+5         (right_low, right_high, right_sum) = FIND-MAXIMUM-SUBARRAY(A, mid + 1, high)
+6         (cross_low, cross_high, cross_sum) = FIND-MAX-CROSSING-SUBARRAY(A, low, mid, high)
+7         if left_sum >= right_sum and left_sum >= cross_sum
+8             return (left_low, left_high, left_sum)
+9         elseif right_sum >= left_sum and right_sum >= cross_sum
+10            return (right_low, right_high, right_sum)
+11        else return (cross_low, cross_high, cross_sum)
+

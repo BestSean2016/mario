@@ -100,7 +100,7 @@ ITAT_API void output_map(std::map<T1, T2> m) {
 
 
 extern ITAT_API int g_run;
-extern ITAT_API int itat_httpc(HTTP_API_PARAM &param, HTTPBUF buf, const char *cmd);
+extern ITAT_API int itat_httpc(HTTP_API_PARAM *param, HTTPBUF buf, const char *cmd);
 extern ITAT_API int event_sender();
 
 } //namespace itat

@@ -3,10 +3,15 @@
 
 #include <igraph/igraph.h>
 #include <vector>
+#include <map>
+
 
 namespace itat {
 
 class inode;
+typedef std::map<int64_t, inode*> mapIdtoNode;
+typedef std::map<std::string, inode*>mapJidToNode;
+
 
 class igraph {
 public:
@@ -20,7 +25,7 @@ public:
    * @return 0 for good
    */
   int diamod_simulator(int node_num, int branch_num);
-  inode *get_node(int i) {
+  inode *get_node_by_id(int i) {
     return (i >= 0 && i < (int)node_.size()) ? node_[i] : nullptr;
   }
 
@@ -30,13 +35,17 @@ public:
    */
   int gen_piple_graph();
 
+  inode* get_node_by_jid(std::string& jid);
+
 private:
   igraph_t ig_;
   std::vector<inode *> node_;
 
+  mapJidToNode jid_2_node_;
+
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
-  int gen_node_(bool mock = false);
+  int gen_node_();
   /**
    * @brief load_pipe_line_from_db
    * @return 0 for good
