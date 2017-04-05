@@ -2,24 +2,24 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "graph.hpp"
-#include "plumber.hpp"
+#include "mario.hpp"
 #include <iostream>
 #include <thread>
 
 namespace itat {
-  mario::mario(int64_t plid)
+  Mario::Mario(int64_t plid)
     : plid_(plid) {
-    g_ = new igraph();
-    state_ = new dfgraph_state_machine(g_);
+    g_ = new iGraph();
+    state_ = new dfGraphStateMachine(g_);
   }
 
-  mario::~mario() {
+  Mario::~Mario() {
     delete state_;
     delete g_;
   }
 
 
-  int mario::simulator(int node_num, int branch_num) {
+  int Mario::simulator(int node_num, int branch_num) {
     assert(g_ != nullptr);
     int ret = g_->diamod_simulator(node_num, branch_num);
     return ret;

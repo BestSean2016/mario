@@ -6,8 +6,8 @@
 
 namespace itat {
 
-class igraph;
-class dfnode_state_machine;
+class iGraph;
+class dfNodeStateMachine;
 
 typedef struct mr_pl_node {
   int64_t id = 0;
@@ -25,15 +25,15 @@ typedef struct mr_pl_node {
   int modifier = 0;
 } mr_pl_node;
 
-class inode {
+class iNode {
 public:
-  inode() {}
-  inode(igraph *g);
-  virtual ~inode();
+  iNode() {}
+  iNode(iGraph *g);
+  virtual ~iNode();
 
   void set_pipline_node(mr_pl_node *plnode);
 
-  dfnode_state_machine *get_state_machine() { return sm_; }
+  dfNodeStateMachine *get_state_machine() { return sm_; }
   void gen_pl_node(int nodeid) {
     if (plnode_) delete plnode_;
     plnode_ = new mr_pl_node;
@@ -41,8 +41,8 @@ public:
   }
 
 private:
-  igraph *g_ = nullptr;
-  dfnode_state_machine *sm_ = nullptr;
+  iGraph *g_ = nullptr;
+  dfNodeStateMachine *sm_ = nullptr;
 
   struct mr_pl_node *plnode_ = nullptr;
 };

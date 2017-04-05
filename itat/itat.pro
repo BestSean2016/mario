@@ -21,10 +21,10 @@ SOURCES += \
     ../src/saltapi.cpp \
     ../src/httpapi.cpp \
     ../src/mylog.cpp \
-    ../src/plumber.cpp \
     ../src/node.cpp \
     ../src/state.cpp \
-    ../src/graph.cpp
+    ../src/graph.cpp \
+    ../src/mario.cpp
 
 HEADERS += \
     ../include/itat_global.h \
@@ -33,12 +33,12 @@ HEADERS += \
     ../include/threadpool.h \
     ../include/saltapi.hpp \
     ../include/httpapi.hpp \
-    ../include/plumber.hpp \
     ../include/node.hpp \
     ../include/state.hpp \
     ../include/edge.hpp \
     ../include/graph.hpp \
-    ../include/itat.h
+    ../include/itat.h \
+    ../include/mario.hpp
 
 
 

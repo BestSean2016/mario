@@ -6,11 +6,11 @@
 
 namespace itat {
 
-igraph::igraph() {
+iGraph::iGraph() {
     memset(&ig_, 0, sizeof(igraph_t));
 }
 
-igraph::~igraph() {
+iGraph::~iGraph() {
     jid_2_node_.clear();
 
     for (auto& n : node_) {
@@ -26,14 +26,14 @@ igraph::~igraph() {
  * @param b number of branches
  * @return 0 for good
  */
-int igraph::diamod_simulator(int node_num, int branch_num) {
+int iGraph::diamod_simulator(int node_num, int branch_num) {
     gen_diamod_graph_(node_num, branch_num);
     gen_node_();
 
   return (0);
 }
 
-int igraph::gen_diamod_graph_(int node_num, int branch_num) {
+int iGraph::gen_diamod_graph_(int node_num, int branch_num) {
     igraph_t gIn, gOut;
     igraph_vector_t edge;
     std::vector<int> e;
@@ -89,9 +89,9 @@ int igraph::gen_diamod_graph_(int node_num, int branch_num) {
     return (0);
 }
 
-int igraph::gen_node_() {
+int iGraph::gen_node_() {
   for (int i = 0; i <ig_.n; ++i) {
-    auto node = new inode(this);
+    auto node = new iNode(this);
     node->gen_pl_node(i);
     node_.emplace_back(node);
   }
@@ -99,7 +99,7 @@ int igraph::gen_node_() {
 }
 
 
-int igraph::gen_piple_graph() {
+int iGraph::gen_piple_graph() {
   int ret = load_pipe_line_from_db_();
   if (!ret)
     ret = gen_piple_graph_();
@@ -109,17 +109,17 @@ int igraph::gen_piple_graph() {
   return ret;
 }
 
-int igraph::load_pipe_line_from_db_() {
+int iGraph::load_pipe_line_from_db_() {
   //to do: load piple line from db by piplline id
   return 0;
 }
 
-int igraph::gen_piple_graph_() {
+int iGraph::gen_piple_graph_() {
   return 0;
 }
 
 
-inode* igraph::get_node_by_jid(std::string& jid) {
+iNode* iGraph::get_node_by_jid(std::string& jid) {
     auto iter = jid_2_node_.find(jid);
     return (iter == jid_2_node_.end()) ? nullptr : iter->second;
 }

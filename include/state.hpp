@@ -1,5 +1,5 @@
-#ifndef STATE_HPP
-#define STATE_HPP
+#ifndef STATE_MACHINE_HPP
+#define STATE_MACHINE_HPP
 
 #include "itat_global.h"
 #include "itat.h"
@@ -14,8 +14,8 @@ namespace msm = boost::msm;
 namespace mpl = boost::mpl;
 
 namespace itat {
-class inode;
-class igraph;
+class iNode;
+class iGraph;
 
 static const char* node_state_name[] = {
   "initial          ",
@@ -64,38 +64,38 @@ typedef enum NODE_RUN_RESULT {
 
 struct event {
     event() {}
-    event(igraph* g, inode* node) : g_(g), n_(node) {}
-    inode* n_ = nullptr;
-    igraph* g_ = nullptr;
+    event(iGraph* g, iNode* node) : g_(g), n_(node) {}
+    iNode* n_ = nullptr;
+    iGraph* g_ = nullptr;
 };
 
-class dfnode_state_machine {
+class dfNodeStateMachine {
 public:
-  dfnode_state_machine() {}
-  dfnode_state_machine(igraph* graph, inode* node) : g_(graph), n_(node) {}
-  ~dfnode_state_machine() {}
+  dfNodeStateMachine() {}
+  dfNodeStateMachine(iGraph* graph, iNode* node) : g_(graph), n_(node) {}
+  ~dfNodeStateMachine() {}
 
   // events
   struct event_run : public event {
-      event_run(igraph*g, inode* n) : event(g, n) { }
+      event_run(iGraph*g, iNode* n) : event(g, n) { }
   };
   struct event_check : public event {
-      event_check(igraph*g, inode* n) : event(g, n) { }
+      event_check(iGraph*g, iNode* n) : event(g, n) { }
   };
   struct event_stop : public event {
-      event_stop(igraph*g, inode* n) : event(g, n) { }
+      event_stop(iGraph*g, iNode* n) : event(g, n) { }
   };
   struct event_pause : public event {
-      event_pause(igraph*g, inode* n) : event(g, n) { }
+      event_pause(iGraph*g, iNode* n) : event(g, n) { }
   };
   struct event_continue : public event {
-      event_continue(igraph*g, inode* n) : event(g, n) { }
+      event_continue(iGraph*g, iNode* n) : event(g, n) { }
   };
   struct event_check_error : public event {
-      event_check_error(igraph*g, inode* n) : event(g, n) { }
+      event_check_error(iGraph*g, iNode* n) : event(g, n) { }
   };
   struct event_check_successe : public event {
-      event_check_successe(igraph*g, inode* n) : event(g, n) { }
+      event_check_successe(iGraph*g, iNode* n) : event(g, n) { }
   };
 
   CHECK_RESULT check_result;
@@ -123,7 +123,7 @@ public:
       template <class Event, class FSM> void on_exit(Event const& event, FSM& fsm) {
         std::cout << "leaving: initial" << std::endl;
       }
-      template <class Event, class FSM> void on_init_entry_(Event const& event, FSM& fsm, inode* node);
+      template <class Event, class FSM> void on_init_entry_(Event const& event, FSM& fsm, iNode* node);
     };
     struct checking : public msm::front::state<> {
       template <class Event, class FSM> void on_entry(Event const &, FSM &) {
@@ -263,19 +263,19 @@ public:
 
   void test();
 private:
-  igraph* g_ = nullptr;
-  inode* n_ = nullptr;
+  iGraph* g_ = nullptr;
+  iNode* n_ = nullptr;
 };
 
 
 
-class dfgraph_state_machine {
+class dfGraphStateMachine {
 public:
-    dfgraph_state_machine() {}
-    dfgraph_state_machine(igraph* g) : g_(g) {}
-    virtual ~dfgraph_state_machine() {}
+    dfGraphStateMachine() {}
+    dfGraphStateMachine(iGraph* g) : g_(g) {}
+    virtual ~dfGraphStateMachine() {}
 
-    void set_graph(igraph* g) { g_= g; }
+    void set_graph(iGraph* g) { g_= g; }
 
     // events
     struct event_run {};
@@ -462,9 +462,9 @@ public:
     }
 
 private:
-    igraph* g_ = nullptr;
+    iGraph* g_ = nullptr;
 };
 
 } //namespace itat
 
-#endif // STATE_HPP
+#endif // STATE_MACHINE_HPP

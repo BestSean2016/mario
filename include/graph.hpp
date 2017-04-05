@@ -9,12 +9,12 @@
 
 namespace itat {
 
-class inode;
+class iNode;
 
-class igraph {
+class iGraph {
 public:
-  igraph();
-  ~igraph();
+  iGraph();
+  ~iGraph();
 
   /**
    * @brief diamod_simulator generate a graph
@@ -23,7 +23,7 @@ public:
    * @return 0 for good
    */
   int diamod_simulator(int node_num, int branch_num);
-  inode *get_node_by_id(int i) {
+  iNode *get_node_by_id(int i) {
     return (i >= 0 && i < (int)node_.size()) ? node_[i] : nullptr;
   }
 
@@ -33,13 +33,13 @@ public:
    */
   int gen_piple_graph();
 
-  inode* get_node_by_jid(std::string& jid);
+  iNode* get_node_by_jid(std::string& jid);
 
 private:
   igraph_t ig_;
-  std::vector<inode *> node_;
+  std::vector<iNode *> node_;
 
-  MapStr2Ptr<inode> jid_2_node_;
+  MapStr2Ptr<iNode> jid_2_node_;
 
 private:
   int gen_diamod_graph_(int node_num, int branch_num);

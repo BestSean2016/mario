@@ -5,7 +5,7 @@
 #include "state.hpp"
 #include "node.hpp"
 #include "graph.hpp"
-#include "plumber.hpp"
+#include "mario.hpp"
 
 using namespace std;
 
@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
 }
 
 TEST(state_machine, empty_graph) {
-  auto pgraph = new itat::igraph();
-  auto pnode = new itat::inode(pgraph);
+  auto pgraph = new itat::iGraph();
+  auto pnode = new itat::iNode(pgraph);
 
   auto nsm = pnode->get_state_machine();
   nsm->test();
@@ -36,7 +36,7 @@ TEST(state_machine, empty_graph) {
 }
 
 TEST(state_machine, diamond_graph) {
-  auto graph = new itat::igraph();
+  auto graph = new itat::iGraph();
   graph->diamod_simulator(12, 2);
 
   graph->get_node_by_id(0)->get_state_machine()->test();
@@ -46,7 +46,7 @@ TEST(state_machine, diamond_graph) {
 
 
 TEST(plumber, init) {
-  auto m = new itat::mario(123);
+  auto m = new itat::Mario(123);
   m->simulator(100,3);
   delete m;
 }

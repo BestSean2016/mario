@@ -3,7 +3,7 @@
 namespace itat {
 
 
-void dfnode_state_machine::test() {
+void dfNodeStateMachine::test() {
   nodesm p;
   p.start();
 

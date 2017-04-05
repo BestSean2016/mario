@@ -1,20 +1,20 @@
-#ifndef PLUMBER_H
-#define PLUMBER_H
+#ifndef MARIO_PLUMBER_H
+#define MARIO_PLUMBER_H
 
 #include "itat_global.h"
 #include "itat.h"
 
 namespace itat {
 
-class igraph;
-class node;
-class dfgraph_state_machine;
+class iGraph;
+class iNode;
+class dfGraphStateMachine;
 
-class mario {
+class Mario {
 public:
-  mario() {}
-  mario(int64_t plid);
-  ~mario();
+  Mario() {}
+  Mario(int64_t plid);
+  ~Mario();
 
 
   //
@@ -38,9 +38,9 @@ public:
   int simulator(int node_num, int branch_num);
 
 private:
-  igraph *g_ = nullptr;  ///the graph that will be genereted
+  iGraph *g_ = nullptr;  ///the graph that will be genereted
   int64_t plid_ = 0;    ///id of pipeline
-  dfgraph_state_machine* state_ = nullptr;
+  dfGraphStateMachine* state_ = nullptr;
 
 
 
@@ -57,4 +57,4 @@ private:
 
 } // namespace itat
 
-#endif // PLUMBER_H
+#endif // MARIO_PLUMBER_H

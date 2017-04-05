@@ -6,10 +6,10 @@
 #include "igraph/igraph.h"
 
 namespace itat {
-class ITAT_API iedge {
-    iedge() {}
-    iedge(igraph_t* g) : g_(g) {}
-    virtual ~iedge() {}
+class ITAT_API iEdge {
+    iEdge() {}
+    iEdge(igraph_t* g) : g_(g) {}
+    virtual ~iEdge() {}
 
 private:
     igraph_t* g_ = nullptr;
