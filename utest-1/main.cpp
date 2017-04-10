@@ -3,7 +3,7 @@
 #include "http_client.h"
 #include "mario_data.h"
 #include "mario_mysql.h"
-#include "pipeline.h"
+#include "pipe.h"
 #include <gtest/gtest.h>
 #include <iostream>
 

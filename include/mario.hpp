@@ -6,7 +6,7 @@
 
 namespace itat {
 
-class iGraph;
+class Pipeline;
 class iNode;
 class dfGraphStateMachine;
 
@@ -35,10 +35,10 @@ public:
    * @param branch_num the number of branch
    * @return 0 for good
    */
-  int simulator(int node_num, int branch_num);
+  int simulator_pipeline(int node_num, int branch_num);
 
 private:
-  iGraph *g_ = nullptr;  ///the graph that will be genereted
+  Pipeline *g_ = nullptr;  ///the graph that will be genereted
   int64_t plid_ = 0;    ///id of pipeline
   dfGraphStateMachine* state_ = nullptr;
 

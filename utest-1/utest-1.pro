@@ -9,7 +9,7 @@ SOURCES += main.cpp \
     ../src/mario_mysql.cpp \
     ../src/utility.c \
     ../src/salt_api.cpp \
-    ../src/pipeline.cpp \
+    ../src/pipe.cpp \
     ../src/http_client.cpp \
     ../src/threadpool.c
 

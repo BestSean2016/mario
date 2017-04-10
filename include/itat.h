@@ -18,7 +18,12 @@
 #include <vector>
 #include <set>
 #include <string>
+#include <functional>
 
+#include <assert.h>
+
+using std::cout;
+using std::endl;
 
 #define HOST_NAME_LENGTH 128
 #define HOST_MINION_ID_LENGTH 32
@@ -31,6 +36,9 @@
 #define SCHEDULE_LENGTH    128
 
 
+
+#define SafeDeletePtr(p) if (p) {delete p; p = 0;}
+#define SafeDeleteAry(a) if (a) {delete [] a; a =0;}
 
 namespace itat {
 template<typename T>

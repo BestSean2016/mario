@@ -7,7 +7,7 @@
 #include "httpapi.hpp"
 #include "node.hpp"
 #include "edge.hpp"
-#include "graph.hpp"
+#include "pipeline.hpp"
 
 namespace itat {
 

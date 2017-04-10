@@ -11,9 +11,9 @@ SOURCES += main.cpp \
     ../src/mario_data.cpp \
     ../src/utility.c \
     ../src/salt_api.cpp \
-    ../src/pipeline.cpp \
     ../src/http_client.cpp \
-    ../src/threadpool.c
+    ../src/threadpool.c \
+    ../src/pipe.cpp
 
 HEADERS += \
     ../include/chinese.h \
@@ -22,8 +22,8 @@ HEADERS += \
     ../include/mario_data.h \
     ../include/salt_api.h \
     ../include/http_client.h \
-    ../include/pipeline.h \
-    ../include/threadpool.h
+    ../include/threadpool.h \
+    ../include/pipe.h
 
 DISTFILES += \
     ../src/mario-host-ip.py \

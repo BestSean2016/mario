@@ -1,470 +1,136 @@
-#ifndef STATE_MACHINE_HPP
-#define STATE_MACHINE_HPP
-
-#include "itat_global.h"
+#ifndef STATE_HPP
+#define STATE_HPP
 #include "itat.h"
+#include "itat_global.h"
 
-
-// back-end
-#include <boost/msm/back/state_machine.hpp>
-// front-end
-#include <boost/msm/front/state_machine_def.hpp>
-
-namespace msm = boost::msm;
-namespace mpl = boost::mpl;
+#define ERROR_WRONG_STATE_TO_ACTION -10000
+#define ERROR_DONT_HAVE_FRONT_ACTION -10001
+#define NO_NODE -1
 
 namespace itat {
+
+static const char *mario_state_name[] = {
+    "initial          ", "checking         ", "checked_err      ",
+    "checked_ok       ", "waiting_for_run  ", "running          ",
+    "error            ", "timeout          ", "successed        ",
+    "waiting_for_input", "stoped           ", "paused           ",
+    "running_one      ", "run_one_ok       ", "run_one_err      ",
+    "not_doing        "
+};
+
+typedef enum MARIO_STATE_TYPE {
+  ST_unknow = -1,
+  ST_initial,
+  ST_checking,
+  ST_checked_err,
+  ST_checked_ok,
+  ST_waiting_for_run,
+  ST_running,
+  ST_error,
+  ST_timeout,
+  ST_successed,
+  ST_waiting_for_input,
+  ST_stoped,
+  ST_paused,
+  ST_running_one,
+  ST_run_one_ok,
+  ST_run_one_err,
+  ST_not_doing, //NOT (ST_checking or ST_running or ST_running_one)
+} MARIO_STATE_TYPE;
+
+class Pipeline;
 class iNode;
-class iGraph;
 
-static const char* node_state_name[] = {
-  "initial          ",
-  "checking         ",
-  "checked_err      ",
-  "checked_ok       ",
-  "waiting_for_run  ",
-  "running          ",
-  "error            ",
-  "timeout          ",
-  "successed        ",
-  "waiting_for_input",
-  "stoped           ",
-  "paused           ",
-};
+typedef void *FUN_PARAM;
 
-static const char* graph_state_name[] = {
-  "initial          ",
-  "checking         ",
-  "checked_err      ",
-  "checked_ok       ",
-  "waiting_for_run  ",
-  "running          ",
-  "error            ",
-  "timeout          ",
-  "successed        ",
-  "waiting_for_input",
-  "stoped           ",
-  "paused           ",
-};
-
-
-typedef enum CHECK_RESULT {
-  CHECK_RESULT_UNKNOW = -1,
-  CHECK_RESULT_OK,
-  CHECK_RESULT_ERR,
-} CHECK_RESULT;
-
-typedef enum NODE_RUN_RESULT {
-  NODE_RUN_RESULT_UNKNOW = -1,
-  NODE_RUN_RESULT_SUCCEEDED,
-  NODE_RUN_RESULT_ERROR,
-  NODE_RUN_RESULT_TIMEOUT,
-} NODE_RUN_RESULT;
-
-
-struct event {
-    event() {}
-    event(iGraph* g, iNode* node) : g_(g), n_(node) {}
-    iNode* n_ = nullptr;
-    iGraph* g_ = nullptr;
-};
-
-class dfNodeStateMachine {
+template <typename Action, typename Object> class STATE_TRANS {
 public:
-  dfNodeStateMachine() {}
-  dfNodeStateMachine(iGraph* graph, iNode* node) : g_(graph), n_(node) {}
-  ~dfNodeStateMachine() {}
+  MARIO_STATE_TYPE source;
+  Action front_action;
+  MARIO_STATE_TYPE target;
+  Action back_action;
 
-  // events
-  struct event_run : public event {
-      event_run(iGraph*g, iNode* n) : event(g, n) { }
-  };
-  struct event_check : public event {
-      event_check(iGraph*g, iNode* n) : event(g, n) { }
-  };
-  struct event_stop : public event {
-      event_stop(iGraph*g, iNode* n) : event(g, n) { }
-  };
-  struct event_pause : public event {
-      event_pause(iGraph*g, iNode* n) : event(g, n) { }
-  };
-  struct event_continue : public event {
-      event_continue(iGraph*g, iNode* n) : event(g, n) { }
-  };
-  struct event_check_error : public event {
-      event_check_error(iGraph*g, iNode* n) : event(g, n) { }
-  };
-  struct event_check_successe : public event {
-      event_check_successe(iGraph*g, iNode* n) : event(g, n) { }
-  };
-
-  CHECK_RESULT check_result;
-  NODE_RUN_RESULT node_run_result;
-
-  // A "complicated" event type that carries some data.
-  // struct cd_detected
-  // {
-  //     cd_detected(std::string name)
-  //         : name(name)
-  //     {}
-  //
-  //     std::string name;
-  // };
-
-  // front-end: define the FSM structure
-  struct nodesm_ : public msm::front::state_machine_def<nodesm_> {
-    // The list of FSM states
-    // the initial state of the player SM. Must be defined
-    struct initial : public msm::front::state<> {
-      // every (optional) entry/exit methods get the event passed
-      template <class Event, class FSM> void on_entry(Event const& event, FSM& fsm) {
-        std::cout << "entering: initial" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const& event, FSM& fsm) {
-        std::cout << "leaving: initial" << std::endl;
-      }
-      template <class Event, class FSM> void on_init_entry_(Event const& event, FSM& fsm, iNode* node);
-    };
-    struct checking : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "\tstarting: Cheking" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "\tfinishing: Cheking" << std::endl;
-      }
-    };
-    struct checked_ok : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "\tstarting: Checking_OK" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "\tfinishing: Checking_OK" << std::endl;
-      }
-    };
-    struct checked_err : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "\tstarting: Checking_Err" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "\tfinishing: Checking_Err" << std::endl;
-      }
-    };
-    struct waiting_for_run : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: waiting_for_run" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: waiting_for_run" << std::endl;
-      }
-    };
-    struct running : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: running" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: running" << std::endl;
-      }
-    };
-    struct error : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: error" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: error" << std::endl;
-      }
-    };
-    struct timeout : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: timeout" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: timeout" << std::endl;
-      }
-    };
-    struct successed : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: successed" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: successed" << std::endl;
-      }
-    };
-    struct waiting_for_input : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: waiting_for_input" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: waiting_for_input" << std::endl;
-      }
-    };
-    struct stoped : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: stoped" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: stoped" << std::endl;
-      }
-    };
-    struct paused : public msm::front::state<> {
-      template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-        std::cout << "entering: paused" << std::endl;
-      }
-      template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-        std::cout << "leaving: paused" << std::endl;
-      }
-    };
-
-
-
-    typedef initial initial_state;
-    // guard conditions
-
-    // transition actions
-    void start_job(event_run const &) { std::cout << "node_sm::start_job\n"; }
-    void check_node(event_check const &) { std::cout << "node_sm::check_node status\n"; }
-    void check_error_occured(event_check_error const &) { std::cout << "node_sm::check::error occured\n"; }
-    void check_successed(event_check_successe const &) { std::cout << "node_sm::check::Succeeded!\n"; }
-    void recheck(event_check const &) { std::cout << "node_sm::check::Recheck!\n"; }
-
-    // guard conditions
-
-    // Transition table for player
-    struct transition_table
-        : mpl::vector<
-              //      Start       Event                 Next          Action                Guard
-              //    +-----------+---------------------+-------------+---------------------+----------------------+
-              a_row<initial,     event_check,           checking,    &nodesm_::check_node                   >,
-              a_row<checking,    event_check_error,     checked_err, &nodesm_::check_error_occured          >,
-              a_row<checking,    event_check_successe,  checked_ok,  &nodesm_::check_successed              >,
-              a_row<checked_err, event_check,           checking,    &nodesm_::recheck                      >,
-              a_row<checked_ok,  event_check,           checking,    &nodesm_::recheck                      >,
-              //    +-----------+----------------------+-------------+-------------------------+--------+
-              a_row<checking,  event_run,      running,   &nodesm_::start_job>
-              //    +-----------+- ------------+---------+---------------------+----------------------+
-              > {};
-
-    // Replaces the default no-transition response.
-    template <class FSM, class Event>
-    void no_transition(Event const &e, FSM &, int state) {
-      std::cout << "NodeSM no transition from state " << state << " on event "
-                << typeid(e).name() << std::endl;
+  int do_front_action(Object *o, FUN_PARAM p) {
+    if (this->front_action) {
+      int (Object::*front_action)(FUN_PARAM p) = this->front_action;
+      return (o->*front_action)(p);
     }
-  };
-  // Pick a back-end
-  typedef msm::back::state_machine<nodesm_> nodesm;
 
-  //
-  // Testing utilities.
-  //
-  void pstate(nodesm const &p) {
-    std::cout << " -> " << node_state_name[p.current_state()[0]] << std::endl;
+    // whould never happend
+    return ERROR_DONT_HAVE_FRONT_ACTION;
   }
 
+  int do_back_action(Object *o, FUN_PARAM p) {
+    if (this->back_action) {
+      int (Object::*back_action)(FUN_PARAM p) = this->back_action;
+      return (o->*back_action)(p);
+    }
+  }
 
-  void test();
-private:
-  iGraph* g_ = nullptr;
-  iNode* n_ = nullptr;
+  STATE_TRANS(MARIO_STATE_TYPE s, Action f, MARIO_STATE_TYPE t, Action b)
+      : source(s), front_action(f), target(t), back_action(b) {}
 };
 
-
-
-class dfGraphStateMachine {
+template <typename Action, typename Object> class STATE_TRANS_SOURCE {
 public:
-    dfGraphStateMachine() {}
-    dfGraphStateMachine(iGraph* g) : g_(g) {}
-    virtual ~dfGraphStateMachine() {}
+  MARIO_STATE_TYPE source;
+  Action front_action;
 
-    void set_graph(iGraph* g) { g_= g; }
+  STATE_TRANS_SOURCE(MARIO_STATE_TYPE s, Action f)
+      : source(s), front_action(f) {}
 
-    // events
-    struct event_run {};
-    struct event_check {};
-    struct event_stop {};
-    struct event_pause {};
-    struct event_continue {};
-    struct event_check_error {};
-    struct event_check_successe {};
-
-    CHECK_RESULT check_result;
-    NODE_RUN_RESULT run_result;
-
-    // front-end: define the FSM structure
-    struct graph_sm_ : public msm::front::state_machine_def<graph_sm_> {
-      // The list of FSM states
-      // the initial state of the player SM. Must be defined
-      struct initial : public msm::front::state<> {
-        // every (optional) entry/exit methods get the event passed
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: initial" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: initial" << std::endl;
-        }
-      };
-      struct checking : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "\tstarting: Cheking" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "\tfinishing: Cheking" << std::endl;
-        }
-      };
-      struct checked_ok : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "\tstarting: Checking_OK" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "\tfinishing: Checking_OK" << std::endl;
-        }
-      };
-      struct checked_err : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "\tstarting: Checking_Err" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "\tfinishing: Checking_Err" << std::endl;
-        }
-      };
-      struct waiting_for_run : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: waiting_for_run" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: waiting_for_run" << std::endl;
-        }
-      };
-      struct running : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: running" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: running" << std::endl;
-        }
-      };
-      struct error : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: error" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: error" << std::endl;
-        }
-      };
-      struct timeout : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: timeout" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: timeout" << std::endl;
-        }
-      };
-      struct successed : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: successed" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: successed" << std::endl;
-        }
-      };
-      struct waiting_for_input : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: waiting_for_input" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: waiting_for_input" << std::endl;
-        }
-      };
-      struct stoped : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: stoped" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: stoped" << std::endl;
-        }
-      };
-      struct paused : public msm::front::state<> {
-        template <class Event, class FSM> void on_entry(Event const &, FSM &) {
-          std::cout << "entering: paused" << std::endl;
-        }
-        template <class Event, class FSM> void on_exit(Event const &, FSM &) {
-          std::cout << "leaving: paused" << std::endl;
-        }
-      };
-
-
-
-      typedef initial initial_state;
-      // guard conditions
-
-      // transition actions
-      void start_job(event_run const &) { std::cout << "node_sm::start_job\n"; }
-      void check_node(event_check const &) { std::cout << "node_sm::check_node status\n"; }
-      void check_error_occured(event_check_error const &) { std::cout << "node_sm::check::error occured\n"; }
-      void check_successed(event_check_successe const &) { std::cout << "node_sm::check::Succeeded!\n"; }
-      void recheck(event_check const &) { std::cout << "node_sm::check::Recheck!\n"; }
-
-      // guard conditions
-
-      // Transition table for player
-      struct transition_table
-          : mpl::vector<
-                //      Start       Event                 Next          Action                Guard
-                //    +-----------+---------------------+-------------+---------------------+----------------------+
-                a_row<initial,     event_check,           checking,    &graph_sm_::check_node                   >,
-                a_row<checking,    event_check_error,     checked_err, &graph_sm_::check_error_occured          >,
-                a_row<checking,    event_check_successe,  checked_ok,  &graph_sm_::check_successed              >,
-                a_row<checked_err, event_check,           checking,    &graph_sm_::recheck                      >,
-                a_row<checked_ok,  event_check,           checking,    &graph_sm_::recheck                      >,
-                //    +-----------+----------------------+-------------+-------------------------+--------+
-                a_row<checking,  event_run,      running,   &graph_sm_::start_job>
-                //    +-----------+- ------------+---------+---------------------+----------------------+
-                > {};
-
-      // Replaces the default no-transition response.
-      template <class FSM, class Event>
-      void no_transition(Event const &e, FSM &, int state) {
-        std::cout << "NodeSM no transition from state " << state << " on event "
-                  << typeid(e).name() << std::endl;
-      }
-    };
-    // Pick a back-end
-    typedef msm::back::state_machine<graph_sm_> graph_sm;
-
-    //
-    // Testing utilities.
-    //
-    void pstate(graph_sm const &p) {
-      std::cout << " -> " << node_state_name[p.current_state()[0]] << std::endl;
-    }
-
-    void test() {
-      graph_sm p;
-      p.start();
-
-      p.process_event(event_check());
-      pstate(p);
-
-      p.process_event(event_check_successe());
-      pstate(p);
-
-      p.process_event(event_check());
-      pstate(p);
-
-      p.process_event(event_check_error());
-      pstate(p);
-
-      p.process_event(event_check());
-      pstate(p);
-
-      p.process_event(event_check_successe());
-      pstate(p);
-
-    }
-
-private:
-    iGraph* g_ = nullptr;
+  bool operator<(const STATE_TRANS_SOURCE<Action, Object> &sts) const {
+    if (source < sts.source)
+      return true;
+    if ((uint64_t)((void *)front_action) < (uint64_t)((void *)sts.front_action))
+      return true;
+    else
+      return false;
+  }
 };
 
-} //namespace itat
+template <typename Action, typename Object> class SateMachine {
+public:
+  SateMachine() {}
+  virtual ~SateMachine() {}
 
-#endif // STATE_MACHINE_HPP
+  void add_state_trans(MARIO_STATE_TYPE s, Action f, MARIO_STATE_TYPE t,
+                       Action b) {
+    STATE_TRANS<Action, Object> st(s, f, t, b);
+    STATE_TRANS_SOURCE<Action, Object> sts(s, f);
+    mapStateMachine.insert(std::make_pair(sts, st));
+  }
+
+  int do_trans(MARIO_STATE_TYPE s, Action f, Object *o, FUN_PARAM p) {
+    STATE_TRANS_SOURCE<Action, Object> sts(s, f);
+    auto iter = mapStateMachine.find(sts);
+    if (iter == mapStateMachine.end())
+      return ERROR_WRONG_STATE_TO_ACTION;
+    STATE_TRANS<Action, Object> st = iter->second;
+    st.do_front_action(o, p);
+    return st.do_back_action(o, p);
+  }
+
+private:
+  std::map<STATE_TRANS_SOURCE<Action, Object>, STATE_TRANS<Action, Object>>
+      mapStateMachine;
+};
+
+
+class Pipeline;
+class iNode;
+
+typedef int (Pipeline::*graph_action)(FUN_PARAM);
+typedef int (iNode::*node_action)(FUN_PARAM);
+
+typedef STATE_TRANS<graph_action, Pipeline> iGraphStateTrans;
+typedef STATE_TRANS_SOURCE<graph_action, Pipeline> iGraphTransSource;
+typedef SateMachine<graph_action, Pipeline> iGraphStateMachine;
+
+typedef STATE_TRANS<node_action, iNode> iNodeStateTrans;
+typedef STATE_TRANS_SOURCE<node_action, iNode> iNodeTransSource;
+typedef SateMachine<node_action, iNode> iNodeStateMachine;
+
+} // namespace itat
+
+#endif // STATE_HPP

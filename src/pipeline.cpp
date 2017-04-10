@@ -1,69 +1,73 @@
-#include "pipeline.h"
-#include "http_client.h"
-#include "mario_data.h"
-#include "mario_mysql.h"
-#include <igraph.h>
-#include <mutex>
-#include <thread>
+#include "pipeline.hpp"
+#include "djagoapi.hpp"
+#include "node.hpp"
+#include "saltapi.hpp"
+
+#include <memory.h>
 #include <vector>
-#include <set>
-#include "threadpool.h"
 
-threadpool_t *thpool = 0;
+#define USERNAME "salt-test"
+#define PASSWORD "hongt@8a51"
+#define SALTAPI_SERVER_IP "10.10.10.19"
+#define SALTAPI_SERVER_PORT 8000
 
-extern int run;
+namespace itat {
 
-struct DataSet<MR_HOST> g_hosts;
-struct DataSet<MR_PIPELINE> g_pls;
-struct DataSet<MR_SCRIPT> g_scripts;
-static igraph_t g_graph;
-static DBHANDLE g_dbh = 0;
-struct DataSet<MR_REAL_NODE> g_nodes;
-struct DataSet<MR_REAL_EDGE> g_edges;
-
-static std::set<int> run_nodes;
-static std::set<int> end_node_set;
-
-
-static int get_host_data() {
-  if (0 >
-      query_data(
-          g_hosts, g_dbh, select_host_from_db, get_hosts,
-          (const char *)"minion_id like 'old%' and ip not like '10.10.205%'"))
-    return -1;
-
-  return 0;
+Pipeline::Pipeline() {
+  memset(&ig_, 0, sizeof(igraph_t));
+  gsm_ = new iGraphStateMachine();
+  nsm_ = new iNodeStateMachine();
 }
 
-static int get_scripts_data() {
-  if (0 > query_data(g_scripts, g_dbh, select_script_from_db, get_script,
-                     (const char *)"host_id = 0"))
-    return -1;
+Pipeline::~Pipeline() {
+  SafeDeletePtr(gsm_);
+  SafeDeletePtr(nsm_);
 
-  return 0;
+  jid_2_node_.clear();
+
+  for (auto &n : node_) {
+    delete n;
+  }
+  node_.clear();
+  if (ig_.n > 0)
+    igraph_destroy(&ig_);
 }
 
-static int gen_tree(int node_num, int branch_num) {
+/**
+ * @brief diamod_simulator generate a graph
+ * @param n number of nodes
+ * @param b number of branches
+ * @return 0 for good
+ */
+int Pipeline::diamod_simulator(int node_num, int branch_num) {
+  gen_diamod_graph_(node_num, branch_num);
+  gen_node_();
+
+  return (0);
+}
+
+int Pipeline::gen_diamod_graph_(int node_num, int branch_num) {
   igraph_t gIn, gOut;
   igraph_vector_t edge;
   std::vector<int> e;
   int half = node_num / 2;
 
-  igraph_vector_init(&edge, 0);
-
+  // generate 2 tree type graphs with in and out style
   igraph_tree(&gIn, half, branch_num, IGRAPH_TREE_IN);
   igraph_tree(&gOut, half, branch_num, IGRAPH_TREE_OUT);
 
+  // get the out style tree's all edges, the put them to vector e
+  igraph_vector_init(&edge, 0);
   igraph_get_edgelist(&gOut, &edge, false);
-
   for (int64_t i = 0; i < igraph_vector_size(&edge); ++i)
     e.push_back(VECTOR(edge)[i]);
 
-  {
+  { // connect out-tree to in-tree
     igraph_vector_t neinode;
     igraph_vector_init(&neinode, 0);
     for (int i = 0; i < half; ++i) {
       igraph_neighbors(&gOut, &neinode, i, IGRAPH_OUT);
+      // if this node have no neighbors, then connect to the next part of graph
       if (0 == igraph_vector_size(&neinode)) {
         e.push_back(i);
         e.push_back(i + ((half - i) - 1) * 2 + 1);
@@ -72,6 +76,7 @@ static int gen_tree(int node_num, int branch_num) {
     igraph_vector_destroy(&neinode);
   }
 
+  // get all edges of in style graph
   igraph_get_edgelist(&gIn, &edge, false);
   for (int64_t i = 0; i < igraph_vector_size(&edge); ++i) {
     int vid = VECTOR(edge)[i];
@@ -79,286 +84,274 @@ static int gen_tree(int node_num, int branch_num) {
   }
 
   igraph_vector_destroy(&edge);
+  igraph_destroy(&gOut);
+  igraph_destroy(&gIn);
 
+  //
+  // generate new graph with diamod style
+  //
+  // get all edges from vector e
   igraph_vector_init(&edge, e.size());
   for (int i = 0; i < (int)e.size(); ++i)
     VECTOR(edge)[i] = e[i];
 
-  igraph_destroy(&gOut);
-  igraph_destroy(&gIn);
-
   igraph_i_set_attribute_table(&igraph_cattribute_table);
-  igraph_create(&g_graph, &edge, half * 2, 1);
+  igraph_create(&ig_, &edge, half * 2, 1);
   igraph_vector_destroy(&edge);
 
   return (0);
 }
 
-static void set_start_and_stop(struct DataSet<MR_REAL_NODE> &nodes,
-                               int64_t id_start) {
-  nodes[0].id = id_start;
-  nodes[0].ple_id = 2;
-  nodes[0].script_id = 1;
-  nodes[0].host_id = 0;
-  nodes[0].timerout = 0;
-
-  nodes[g_nodes.size - 1].id = g_nodes[0].id + g_nodes.size - 1;
-  nodes[g_nodes.size - 1].ple_id = 2;
-  nodes[g_nodes.size - 1].script_id = 2;
-  nodes[g_nodes.size - 1].host_id = 0;
-  nodes[g_nodes.size - 1].timerout = 0;
-}
-
-static int gen_nodes_edges() {
-  igraph_vector_t edge;
-
-  igraph_vector_init(&edge, 0);
-  igraph_get_edgelist(&g_graph, &edge, false);
-
-  g_nodes.init(igraph_vcount(&g_graph));
-  g_edges.init(igraph_vector_size(&edge));
-
-  int64_t id_start = 0;
-  set_start_and_stop(g_nodes, id_start);
-
-  for (size_t i = 1; i < g_nodes.size - 1; ++i) {
-    g_nodes[i].id = id_start + i;
-    g_nodes[i].ple_id = 2;
-    g_nodes[i].script_id = 11;
-    g_nodes[i].host_id = (i - 1) % g_hosts.size;
-    g_nodes[i].timerout = 90;
+int Pipeline::gen_node_() {
+  for (int i = 0; i < ig_.n; ++i) {
+    auto node = new iNode(this);
+    node->init(i, gsm_, nsm_);
+    node_.emplace_back(node);
   }
-
-  for (size_t i = 0; i < g_edges.size; ++i) {
-    // set edge to ...
-  }
-
-  igraph_vector_destroy(&edge);
   return (0);
 }
 
-int gen_diamond_pipeline(int node_num, int branch_num) {
-  int ret = 0;
-  ret = (nullptr == (g_dbh = connect_db("localhost", 3306, "mario", "mario",
-                                        "chaojimali")));
+int Pipeline::gen_piple_graph() {
+  int ret = load_pipe_line_from_db_();
   if (!ret)
-    ret = (0 != get_host_data());
+    ret = gen_piple_graph_();
   if (!ret)
-    ret = (0 != get_scripts_data());
-
-  disconnect_db(g_dbh);
-
-  if (!ret)
-    ret = (0 != gen_tree(node_num, branch_num));
-
-  if (!ret)
-    ret = (0 != gen_nodes_edges());
+    ret = gen_node_();
 
   return ret;
 }
 
-void release_pipeline() {
-  igraph_destroy(&g_graph);
-  g_hosts.free_data_set();
-  //free_script_set(g_scripts);
-  g_scripts.free_data_set();
-}
-
-
-extern char server_ip[16];
-extern int server_port;
-
-static int run_task(MR_REAL_NODE* node) {
-  int64_t ret = 0;
-re_run:
-  ret = salt_api_async_cmd_runall(server_ip, server_port,
-                            g_hosts  [node->host_id].minion_id,
-                            g_scripts[node->script_id].script,
-                            node->ple_id,
-                            node->id);
-  if (ret) {
-    std::cerr << "Wo Cao!\n";
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    goto re_run;
-  }
-  // pthread_t t = pthread_self();
-  // pthread_detach(t);
-  // return (void*)ret;
-  return ret;
-}
-
-static int last_node_id = 0;
-
-static std::mutex g_inset_set_mutex;
-static int64_t total_tasks = -1;
-
-void thread_run_something(void* param) {
-  std::lock_guard<std::mutex> *guard =
-      new std::lock_guard<std::mutex>(g_inset_set_mutex);
-  std::vector<int>* vec = (std::vector<int>*)param;
-  //int k = 0;
-  for (auto& p: *vec) {
-    std::pair<std::set<int>::iterator,bool> ret = run_nodes.insert(p);
-    if (ret.second == true) {
-      if (!(run_nodes.size() % 4000) && (int64_t)run_nodes.size() > total_tasks) {
-        time_t t = time(0);
-        char buf[64];
-        ctime_r(&t, buf);
-        std::cout << run_nodes.size() << ", " << buf;
-        ++total_tasks;
-
-        salt_api_login("10.10.10.19", 8000);
-      }
-
-
-      //++k;
-      // std::cout << p << " > ";
-      // threadpool_add(thpool, run_task, g_nodes.data + p, 0);
-      // pthread_t thread;
-      // (void)pthread_create(&thread, 0, run_task, g_nodes.data + p);
-      run_task(g_nodes.data + p);
-    }
-  }
-  //if (k) std::cout << std::endl;
-  delete vec;
-
-  // pthread_t t = pthread_self();
-  // pthread_detach(t);
-  delete guard;
-  //return 0;
-}
-
-int run_something(std::vector<int>* vec) {
-  int ret = 0;
-
-  if (vec->size()) {
-    threadpool_add(thpool, thread_run_something, vec, 0);
-    //pthread_t t;
-    //ret = pthread_create(&t, 0, thread_run_something, vec);
-  } else
-    delete vec;
-
-  return ret;
-}
-
-int run_pipeline(int *run) {
-  std::vector<int>* start_node = new std::vector<int>;
-  igraph_vector_t y;
-  last_node_id = (int)igraph_vcount(&g_graph) - 1;
-  igraph_vector_init(&y, 0);
-  for (int64_t i = 1; (*run) && (i < last_node_id); ++i) {
-    igraph_neighbors(&g_graph, &y, i, IGRAPH_IN);
-    if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == 0)
-      start_node->push_back((int)i);
-  }
-  igraph_vector_destroy(&y);
-
-  igraph_vector_init(&y, 0);
-  for (int64_t i = 1; (*run) && (i < last_node_id); ++i) {
-    igraph_neighbors(&g_graph, &y, i, IGRAPH_OUT);
-    if (igraph_vector_size(&y) == 1 && VECTOR(y)[0] == last_node_id)
-      end_node_set.insert((int)i);
-  }
-
-  igraph_vector_destroy(&y);
-
-  if (*run) {
-    run_something(start_node);
-  }
-
-  return (0);
-}
-
-
-static int continue_run_task(MR_REAL_NODE& node) {
-  (void)node;
-  return true;
-}
-
-static int should_run_this_node(int id) {
-  if (g_nodes[id].status) return 0;
-  std::vector<int> vecn;
-  //run next node
-  {
-    igraph_vector_t y;
-    igraph_vector_init(&y, 0);
-    igraph_neighbors(&g_graph, &y, id, IGRAPH_IN);
-    for (int i = 0; i < igraph_vector_size(&y); ++i)
-      vecn.push_back((int)(VECTOR(y)[i]));
-    igraph_vector_destroy(&y);
-  }
-
-  //std::cout << id << "'s amount of father is " << vecn.size() << ": ";
-  size_t go = 0;
-  for (auto& node : vecn) {
-    //std::cout << node << "->" << job_status(g_nodes[node].status) << ", ";
-    if (g_nodes[node].status > JOB_STATUS_TYPE_RUNNING)
-       ++go;
-  }
-  int ok = 1;
-
-  if (go != vecn.size()) {
-    //std::cout << " have not been over. ";
-    ok = 0;
-  }
-
-  if (g_nodes[id].status) {
-    //std::cout << " has alrady runing. ";
-    ok = -1;
-  }
-
-  if (!continue_run_task(g_nodes[id])) {
-    //std::cout << " can not run continuely. ";
-    ok = 0;
-  }
-
-  // std::cout << std::endl;
-  return ok;
-}
-
-
-int node_job_finished(SALT_JOB* job, std::vector<int> *should_run) {
-  //std::cout << "job finised " << job->node_id << ", result " << job->status << std::endl;
-
-  std::set<int>::iterator iter = end_node_set.find(job->node_id);
-  if (iter != end_node_set.end()) {
-    //remove from set and check the
-    end_node_set.erase(iter);
-    std::cout << "remove node " << job->node_id << std::endl;
-    if (end_node_set.size() == 0) {
-        std::cout << "All Tasks have been just over!\n";
-        run = 0;
-        return ALL_TASK_FINISHED;
-    }
-  } else {
-    if (job->status > JOB_STATUS_TYPE_RUNNING
-        && continue_run_task(g_nodes[job->node_id])) {
-      std::vector<int> vecn;
-      //run next node
-      {
-        igraph_vector_t y;
-        igraph_vector_init(&y, 0);
-        igraph_neighbors(&g_graph, &y, job->node_id, IGRAPH_OUT);
-        for (int i = 0; i < igraph_vector_size(&y); ++i)
-          vecn.push_back((int)(VECTOR(y)[i]));
-        igraph_vector_destroy(&y);
-      }
-
-      // std::cout << job->node_id << ",C " << vecn.size() << " --> ";
-      for (auto &node : vecn) {
-        if (node == last_node_id) continue;
-        // std::cout << node << "* : *\n";
-        int ok = should_run_this_node(node);
-        if (ok == 1) {
-          should_run->push_back(node);
-        } else if (ok == 0) {
-          // std::cout << " | ";
-        } else {
-          // std::cout << " . ";
-        }
-      }
-    }
-  }
-  //std::cout << "i am returning ...\n";
+int Pipeline::load_pipe_line_from_db_() {
+  // to do: load piple line from db by piplline id
   return 0;
 }
+
+int Pipeline::gen_piple_graph_() { return 0; }
+
+iNode *Pipeline::get_node_by_jid(std::string &jid) {
+  auto iter = jid_2_node_.find(jid);
+  return (iter == jid_2_node_.end()) ? nullptr : iter->second;
+}
+
+int Pipeline::init() {
+  setup_state_machine_();
+  HTTP_API_PARAM param(SALTAPI_SERVER_IP, SALTAPI_SERVER_PORT, parse_token_fn,
+                       nullptr, nullptr);
+  return salt_api_login(&param, USERNAME, PASSWORD);
+}
+
+int Pipeline::check() {
+  // do_check_
+  return gsm_->do_trans(ST_initial, &Pipeline::do_check_, this, nullptr);
+}
+
+int Pipeline::run(int start_id) { return 0; }
+
+int Pipeline::run_node(int node_id) { return 0; }
+
+int Pipeline::pause() { return 0; }
+
+int Pipeline::goon() { return 0; }
+
+int Pipeline::stop() { return 0; }
+
+int Pipeline::skip() { return 0; }
+
+int Pipeline::redo() { return 0; }
+
+int Pipeline::on_check_error(int64_t node_id, bool hosterr, std::string &errmsg) {
+  state_ = ST_checked_err;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  // set node's state to check error
+  return 0;
+}
+
+int Pipeline::on_check_ok(int64_t node_id, bool hosterr, std::string &errmsg) {
+  return 0;
+}
+
+int Pipeline::on_check_allok() {
+  state_ = ST_checked_ok;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_run_start() {
+  state_ = ST_running;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_run_error(int64_t node_id, int code, std::string &stdout,
+                         std::string &stderr) {
+  state_ = ST_error;
+  djagno_api_send_graph_status(graph_id_, node_id, state_, chk_state_, code,
+                               stdout, stderr);
+  return 0;
+}
+
+int Pipeline::on_run_ok(int64_t node_id, int code, std::string &stdout,
+                      std::string &stderr) {
+  return 0;
+}
+
+int Pipeline::on_run_allok() {
+  state_ = ST_successed;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_pause() {
+  state_ = ST_paused;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_continue() {
+  state_ = ST_running;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_stop() {
+  state_ = ST_stoped;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_wait_for_user(int64_t node_id) {
+  state_ = ST_waiting_for_input;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_user_confirmed(int64_t node_id) {
+  state_ = ST_running;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::on_wait_ror_run() {
+  state_ = ST_waiting_for_run;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+  return 0;
+}
+
+int Pipeline::test_check_error(int node_id, bool hosterr, std::string &errmsg) {
+  on_check_error(node_id, hosterr, errmsg);
+  return 0;
+}
+
+int Pipeline::test_check_ok(int node_id, bool hosterr, std::string &errmsg) {
+  return 0;
+}
+
+int Pipeline::test_run_error(int node_id, int code, std::string &stdout,
+                           std::string &stderr) {
+  on_run_error(node_id, code, stdout, stderr);
+  return 0;
+}
+
+int Pipeline::test_run_ok(int node_id, int code, std::string &stdout,
+                        std::string &stderr) {
+  return 0;
+}
+
+int Pipeline::test_user_confirmed(int node_id) {
+  on_wait_for_user(node_id);
+  return 0;
+}
+
+int Pipeline::test_1(FUN_PARAM) {
+  cout << "test 1 " << (uint64_t)this << endl;
+  return 1;
+}
+
+int Pipeline::test_2(FUN_PARAM) {
+  cout << "test 2 " << (uint64_t)this << endl;
+  return 2;
+}
+
+#define DOCHECK &Pipeline::do_check_
+#define DOCHECKING &Pipeline::do_checking_
+#define DORUN &Pipeline::do_run_
+#define DORUNNING &Pipeline::do_running_
+
+int Pipeline::setup_state_machine_() {
+  // check
+  gsm_->add_state_trans(ST_initial, DOCHECK, ST_checking, DOCHECKING);
+  gsm_->add_state_trans(ST_paused, DOCHECK, ST_checking, DOCHECKING);
+  gsm_->add_state_trans(ST_error, DOCHECK, ST_checking, DOCHECKING);
+  gsm_->add_state_trans(ST_successed, DOCHECK, ST_checking, DOCHECKING);
+  gsm_->add_state_trans(ST_timeout, DOCHECK, ST_checking, DOCHECKING);
+  gsm_->add_state_trans(ST_stoped, DOCHECK, ST_checking, DOCHECKING);
+
+  // run
+  gsm_->add_state_trans(ST_initial, DORUN, ST_running, DORUNNING);
+
+  return 0;
+}
+
+
+//Check Action
+int Pipeline::do_check_(FUN_PARAM) {
+  chk_state_ = ST_checking;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+#ifdef _DEBUG_
+  cout << "igraph " << graph_id_ << ": do_check_" << endl;
+#endif //_DEBUG_
+
+  return 0;
+}
+
+int Pipeline::do_node_check_(const igraph_t *graph, igraph_integer_t vid,
+                           igraph_integer_t /*pred*/, igraph_integer_t /*succ*/,
+                           igraph_integer_t /*rank*/, igraph_integer_t /*dist*/,
+                           void *extra) {
+  Pipeline *g = (Pipeline *)extra;
+  assert(graph == &g->ig_);
+
+  iNode *node = g->get_node_by_id(vid);
+  assert(node != nullptr);
+
+  if (node->check()) {
+    g->chk_state_ = ST_checked_err;
+  }
+
+  return 0;
+}
+
+int Pipeline::do_checking_(FUN_PARAM) {
+  assert(ig_.n > 0);
+
+  igraph_vector_t order;
+  igraph_vector_init(&order, igraph_vcount(&ig_));
+  igraph_bfs(&ig_, 0, nullptr, IGRAPH_OUT, true, nullptr, &order, nullptr,
+             nullptr, nullptr, nullptr, nullptr, &Pipeline::do_node_check_, this);
+  igraph_vector_destroy(&order);
+
+  if (chk_state_ == ST_checking)
+    chk_state_ = ST_checked_ok;
+  djagno_api_send_graph_status(graph_id_, NO_NODE, state_, chk_state_);
+
+  return 0;
+}
+
+
+//Run Action
+int Pipeline::do_run_(FUN_PARAM node_id) {
+    return 0;
+}
+
+int Pipeline::do_running_(FUN_PARAM node_id) {
+    return 0;
+}
+
+//the running callback function for igraph's visitor
+int Pipeline::do_node_run_(const igraph_t *graph, igraph_integer_t vid,
+                        igraph_integer_t, igraph_integer_t,
+                        igraph_integer_t, igraph_integer_t, void *extra) {
+    return 0;
+}
+
+} // namespace itat

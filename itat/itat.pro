@@ -22,23 +22,25 @@ SOURCES += \
     ../src/httpapi.cpp \
     ../src/mylog.cpp \
     ../src/node.cpp \
+    ../src/mario.cpp \
+    ../src/djiagoapi.cpp \
     ../src/state.cpp \
-    ../src/graph.cpp \
-    ../src/mario.cpp
+    ../src/pipeline.cpp
 
 HEADERS += \
     ../include/itat_global.h \
     ../include/mylog.h \
     ../include/str.h \
     ../include/threadpool.h \
-    ../include/saltapi.hpp \
     ../include/httpapi.hpp \
     ../include/node.hpp \
-    ../include/state.hpp \
     ../include/edge.hpp \
-    ../include/graph.hpp \
     ../include/itat.h \
-    ../include/mario.hpp
+    ../include/mario.hpp \
+    ../include/saltapi.hpp \
+    ../include/state.hpp \
+    ../include/djagoapi.hpp \
+    ../include/pipeline.hpp
 
 
 

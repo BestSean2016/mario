@@ -1,13 +1,14 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include "itat_global.h"
 #include "itat.h"
+#include "itat_global.h"
+#include "state.hpp"
 
 namespace itat {
 
-class iGraph;
-class dfNodeStateMachine;
+class Pipeline;
+// class dfNodeStateMachine;
 
 typedef struct mr_pl_node {
   int64_t id = 0;
@@ -25,26 +26,75 @@ typedef struct mr_pl_node {
   int modifier = 0;
 } mr_pl_node;
 
+typedef enum NODE_TYPE {
+  NODE_TYPE_UNKNOW = -1,
+  NODE_TYPE_SCRIPT,
+  NODE_TYPE_PIPELIEN,
+  NODE_TYPE_START,
+  NODE_TYPE_END,
+  NODE_TYPE_LOGIC,
+  NODE_TYPE_CONFIRM,
+  NODE_TYPE_INPUT,
+  NODE_TYPE_POWEROFF,
+} NODE_TYPE;
+
 class iNode {
 public:
   iNode() {}
-  iNode(iGraph *g);
+  iNode(Pipeline *g);
   virtual ~iNode();
 
+  void set_node_stype(NODE_TYPE type) { type_ = type; }
   void set_pipline_node(mr_pl_node *plnode);
 
-  dfNodeStateMachine *get_state_machine() { return sm_; }
+  // dfNodeStateMachine *get_state_machine() { return sm_; }
   void gen_pl_node(int nodeid) {
-    if (plnode_) delete plnode_;
+    if (plnode_)
+      delete plnode_;
     plnode_ = new mr_pl_node;
-    plnode_ ->id = nodeid;
+    plnode_->id = nodeid;
   }
 
+  int init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm);
+  int check();
+  int run();
+  int pause();
+  int goon();
+  int stop();
+
+  int on_check_start();
+  int on_check_error();
+  int on_check_ok();
+
+  int on_run_start();
+  int on_run_error();
+  int on_run_ok();
+  int on_pause();
+  int on_continue();
+  int on_stop();
+  int on_wait_for_user();
+  int on_wait_ror_run();
+
+  MARIO_STATE_TYPE get_state() { return state_; }
+
 private:
-  iGraph *g_ = nullptr;
-  dfNodeStateMachine *sm_ = nullptr;
+  NODE_TYPE type_ = NODE_TYPE_SCRIPT;
+  MARIO_STATE_TYPE state_ = ST_initial;
+  MARIO_STATE_TYPE chk_state_ = ST_initial;
+  int64_t id_ = -1;
+  Pipeline *g_ = nullptr;
+
+  iGraphStateMachine *gsm_ = nullptr;
+  iNodeStateMachine *nsm_ = nullptr;
 
   struct mr_pl_node *plnode_ = nullptr;
+
+private:
+  void setup_state_machine_();
+
+  int do_check_(FUN_PARAM);
+  int do_checking_(FUN_PARAM);
+
 };
 
 } // namespace itat
