@@ -1,18 +1,6 @@
 #include "httpapi.hpp"
 #include "mylog.h"
 #include "threadpool.h"
-#include <assert.h>
-#include <mutex>
-#include <netdb.h>
-#include <signal.h>
-#include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <thread>
-#include <unistd.h>
-#include <vector>
 
 namespace itat {
 

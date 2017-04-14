@@ -3,6 +3,7 @@
 
 #include "itat_global.h"
 #include "itat.h"
+#include "state.hpp"
 
 namespace itat {
 
@@ -18,16 +19,17 @@ public:
 
 
   //
-  // Interface to Python Bill
+  // Interface to Bill, Python
   //
+  int init(bool real_run);
+
   int check();
   int run(int start_id);
   int run_node(int node_id);
   int pause();
-  int goon();
+  int go_on();
   int stop();
-  int skip();
-  int redo();
+  int redo(int64_t node_id);
 
   /**
    * @brief simulator generate a diamod graph with n nodes and b braches
@@ -35,24 +37,10 @@ public:
    * @param branch_num the number of branch
    * @return 0 for good
    */
-  int simulator_pipeline(int node_num, int branch_num);
+  int simulator_pipeline(int node_num, int branch_num, SIMULATE_RESULT_TYPE type);
 
 private:
   Pipeline *g_ = nullptr;  ///the graph that will be genereted
-  int64_t plid_ = 0;    ///id of pipeline
-  dfGraphStateMachine* state_ = nullptr;
-
-
-
-private:
-
-  /**
-   * @brief register_pyfun register python callback for check/run pipeline
-   * @return 0 for good
-   */
-  int register_pyfun();
-  int finish_job();
-
 };
 
 } // namespace itat

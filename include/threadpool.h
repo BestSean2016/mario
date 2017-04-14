@@ -63,7 +63,7 @@ typedef enum {
  */
 
 typedef struct {
-    void (*function)(void *);
+    int (*function)(void *);
     void *argument;
 } threadpool_task_t;
 

@@ -3,8 +3,8 @@
 namespace itat {
 
 int djagno_api_send_graph_status(int64_t graph_id, int64_t node_id,
-                                 MARIO_STATE_TYPE run_state,
-                                 MARIO_STATE_TYPE check_state, int code,
+                                 STATE_TYPE run_state,
+                                 STATE_TYPE check_state, int code,
                                  const std::string &stdout,
                                  const std::string &stderr) {
   if (node_id == NO_NODE)

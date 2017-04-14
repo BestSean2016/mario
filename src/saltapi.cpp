@@ -1,7 +1,5 @@
 #include "saltapi.hpp"
-#include "assert.h"
 #include "rapidjson/document.h"
-#include <mutex>
 #include "mario.hpp"
 
 namespace  itat {

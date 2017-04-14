@@ -46,6 +46,7 @@ public:
 
   void set_node_stype(NODE_TYPE type) { type_ = type; }
   void set_pipline_node(mr_pl_node *plnode);
+  void set_simulate(SIMULATE_RESULT_TYPE type) { simret_type_ = type; }
 
   // dfNodeStateMachine *get_state_machine() { return sm_; }
   void gen_pl_node(int nodeid) {
@@ -61,6 +62,7 @@ public:
   int pause();
   int goon();
   int stop();
+  int redo();
 
   int on_check_start();
   int on_check_error();
@@ -75,12 +77,17 @@ public:
   int on_wait_for_user();
   int on_wait_ror_run();
 
-  MARIO_STATE_TYPE get_state() { return state_; }
+  STATE_TYPE get_state() { return state_; }
+  // STATE_TYPE get_chk_state() { return chk_state_; }
+
+  Pipeline* get_pipeline() { return g_; }
+  int get_id() {return (int)id_; }
+  RUN_TYPE get_run_type() { return run_type_; }
 
 private:
   NODE_TYPE type_ = NODE_TYPE_SCRIPT;
-  MARIO_STATE_TYPE state_ = ST_initial;
-  MARIO_STATE_TYPE chk_state_ = ST_initial;
+  STATE_TYPE state_ = ST_initial;
+  //STATE_TYPE chk_state_ = ST_initial;
   int64_t id_ = -1;
   Pipeline *g_ = nullptr;
 
@@ -89,11 +96,16 @@ private:
 
   struct mr_pl_node *plnode_ = nullptr;
 
+  SIMULATE_RESULT_TYPE simret_type_ = SIMULATE_RESULT_TYPE_OK;
+  RUN_TYPE run_type_ = RUN_TYPE_ASYNC ;
+
 private:
   void setup_state_machine_();
 
   int do_check_(FUN_PARAM);
   int do_checking_(FUN_PARAM);
+  int do_run_(FUN_PARAM);
+  int do_running_(FUN_PARAM);
 
 };
 

@@ -11,6 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <signal.h>
 
 #include <iostream>
 #include <map>
@@ -19,6 +20,9 @@
 #include <set>
 #include <string>
 #include <functional>
+#include <thread>
+#include <mutex>
+#include <sstream>
 
 #include <assert.h>
 
@@ -39,6 +43,7 @@ using std::endl;
 
 #define SafeDeletePtr(p) if (p) {delete p; p = 0;}
 #define SafeDeleteAry(a) if (a) {delete [] a; a =0;}
+#define PTR2INT(ptr) ((int)(uint64_t)((ptr)))
 
 namespace itat {
 template<typename T>
