@@ -23,9 +23,10 @@ SOURCES += \
     ../src/mylog.cpp \
     ../src/node.cpp \
     ../src/mario.cpp \
-    ../src/djiagoapi.cpp \
     ../src/state.cpp \
-    ../src/pipeline.cpp
+    ../src/pipeline.cpp \
+    ../src/itat-python.cpp \
+    ../src/djangoapi.cpp
 
 HEADERS += \
     ../include/itat_global.h \
@@ -39,8 +40,8 @@ HEADERS += \
     ../include/mario.hpp \
     ../include/saltapi.hpp \
     ../include/state.hpp \
-    ../include/djagoapi.hpp \
-    ../include/pipeline.hpp
+    ../include/pipeline.hpp \
+    ../include/djangoapi.hpp
 
 
 
@@ -50,8 +51,10 @@ unix {
 
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
+    #INCLUDEPATH += /usr/include/python2.7
+    INCLUDEPATH += /data/py2713/include/python2.7
 
-    LIBS += -lpthread -lrt -ligraph
+    LIBS += -lpthread -lrt -ligraph -lboost_python -L/data/py2713/lib -lpython2.7
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
@@ -86,6 +89,9 @@ windows {
 
 }
 
-DISTFILES +=
+DISTFILES += \
+    itat.py \
+    bill_message.py \
+    install.sh
 
 

@@ -14,14 +14,14 @@ class dfGraphStateMachine;
 class Mario {
 public:
   Mario() {}
-  Mario(int64_t plid);
+  Mario(int plid);
   ~Mario();
 
 
   //
   // Interface to Bill, Python
   //
-  int init(bool real_run);
+  int initial(int real_run, const char *py_message_path);
 
   int check();
   int run(int start_id);
@@ -29,15 +29,36 @@ public:
   int pause();
   int go_on();
   int stop();
-  int redo(int64_t node_id);
+  int confirm(int node_id);
 
+  int test_int(int test) { return test; }
+
+  void release() {delete this;}
+
+  //test, set up simulator
   /**
-   * @brief simulator generate a diamod graph with n nodes and b braches
-   * @param node_num the number of node
-   * @param branch_num the number of branch
-   * @return 0 for good
+   * @brief test_setup setup the simulator
+   * @param node_num the amount of node
+   * @param branch_num the branch of echo node
+   * @param check the result of check
+   * @param run the result of run
+   * @param check_err_id set the check error occured at id if the id is not -1
+   * @param run_err_id set the run error occured at id if the id is not -1
+   * @param pause_id set the pause occured at id if the id is not -1
+   * @param stop_id set the stop occured at id if the id is not -1
+   * @param confirm_id set the confirm occured at id if the id is not -1
    */
-  int simulator_pipeline(int node_num, int branch_num, SIMULATE_RESULT_TYPE type);
+  void test_setup(int node_num = 20,
+                  int branch_num = 2,
+                  int check = 1,
+                  int run = 1,
+                  int check_err_id = -1,
+                  int run_err_id = -1,
+                  int timeout_id = -1,
+                  int pause_id = -1,
+                  int stop_id = -1,
+                  int confirm_id = -1,
+                  int sleep_interval  = 1000);
 
 private:
   Pipeline *g_ = nullptr;  ///the graph that will be genereted

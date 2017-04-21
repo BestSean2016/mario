@@ -25,14 +25,18 @@ typedef enum STATE_TYPE {
   ST_initial,
   ST_checking,
   ST_checked_err,
+  ST_checked_serr,
+  ST_checked_herr,
   ST_checked_ok,
   ST_running,
   ST_error,
   ST_timeout,
-  ST_successed,
+  ST_succeed,
   ST_waiting_for_input,
   ST_stoped,
+  ST_stoping,
   ST_paused,
+  ST_pausing,
   ST_waiting_for_run,
   ST_running_one,
   ST_run_one_ok,
@@ -149,6 +153,22 @@ typedef enum SIMULATE_RESULT_TYPE {
     SIMULATE_RESULT_TYPE_ERR,
     SIMULATE_RESULT_TYPE_RONDOM,
 } SIMULATE_RESULT_TYPE;
+
+
+
+typedef struct TEST_PARAM {
+    int node_num = 20;
+    int branch_num = 2;
+    SIMULATE_RESULT_TYPE check_type = SIMULATE_RESULT_TYPE_OK;
+    SIMULATE_RESULT_TYPE run_type = SIMULATE_RESULT_TYPE_OK;
+    int check_err_id = -1;
+    int run_err_id = -1;
+    int timeout_id = -1;
+    int pause_id = -1;
+    int stop_id = -1;
+    int confirm_id = -1;
+    int sleep_interval = 1000;  //in macro-second
+} TEST_PARAM;
 
 
 typedef enum RUN_TYPE {

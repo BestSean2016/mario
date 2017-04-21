@@ -18,6 +18,7 @@ unix {
     message("Building for unix")
     INCLUDEPATH += /usr/local/include
     INCLUDEPATH += /app/boost/include
+    INCLUDEPATH += /data/py2713/include/python2.7
 
     LIBS += -lpthread -lrt
     LIBS += -L/usr/local/lib -lgtest -lgtest_main

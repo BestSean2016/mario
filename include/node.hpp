@@ -40,13 +40,13 @@ typedef enum NODE_TYPE {
 
 class iNode {
 public:
-  iNode() {}
+  iNode() {srand(time(0));}
   iNode(Pipeline *g);
   virtual ~iNode();
 
   void set_node_stype(NODE_TYPE type) { type_ = type; }
   void set_pipline_node(mr_pl_node *plnode);
-  void set_simulate(SIMULATE_RESULT_TYPE type) { simret_type_ = type; }
+  // void set_simulate(SIMULATE_RESULT_TYPE type) { simret_type_ = type; }
 
   // dfNodeStateMachine *get_state_machine() { return sm_; }
   void gen_pl_node(int nodeid) {
@@ -55,34 +55,61 @@ public:
     plnode_ = new mr_pl_node;
     plnode_->id = nodeid;
   }
-
-  int init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm);
-  int check();
-  int run();
-  int pause();
-  int goon();
-  int stop();
-  int redo();
-
-  int on_check_start();
-  int on_check_error();
-  int on_check_ok();
-
-  int on_run_start();
-  int on_run_error();
-  int on_run_ok();
-  int on_pause();
-  int on_continue();
-  int on_stop();
-  int on_wait_for_user();
-  int on_wait_ror_run();
-
   STATE_TYPE get_state() { return state_; }
   // STATE_TYPE get_chk_state() { return chk_state_; }
 
   Pipeline* get_pipeline() { return g_; }
   int get_id() {return (int)id_; }
   RUN_TYPE get_run_type() { return run_type_; }
+
+  void set_test_param(TEST_PARAM* param) { test_param_ = param; }
+
+public:
+  //user's action
+  int init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm);
+  int check();
+  int run();
+  int pause();
+  int go_on();
+  int stop();
+  int user_confirm();
+
+private:
+  //state machine's action from user
+  int do_check_front_(FUN_PARAM);
+  int do_check_back_(FUN_PARAM);
+  int do_run_front_(FUN_PARAM);
+  int do_run_back_(FUN_PARAM);
+  int do_pause_front_(FUN_PARAM);
+  int do_pause_back_(FUN_PARAM);
+  int do_go_on_front_(FUN_PARAM);
+  int do_go_on_back_(FUN_PARAM);
+  int do_stop_front_(FUN_PARAM);
+  int do_stop_back_(FUN_PARAM);
+  int do_redo_front_(FUN_PARAM);
+  int do_redo_back_(FUN_PARAM);
+  int do_user_confirm_front_(FUN_PARAM);
+  int do_user_confirm_back_(FUN_PARAM);
+
+private:
+  //internal action fron pipeline
+  int on_run_error_(FUN_PARAM);
+  int on_run_error_front_(FUN_PARAM);
+  int on_run_error_back_(FUN_PARAM);
+  int on_run_timeout_(FUN_PARAM);
+  int on_run_timeout_front_(FUN_PARAM);
+  int on_run_timeout_back_(FUN_PARAM);
+  int on_run_ok_(FUN_PARAM);
+  int on_run_ok_front_(FUN_PARAM);
+  int on_run_ok_back_(FUN_PARAM);
+  int on_paused_(FUN_PARAM);
+  int on_paused_front_(FUN_PARAM);
+  int on_paused_back_(FUN_PARAM);
+  int on_stoped_(FUN_PARAM);
+  int on_stoped_front_(FUN_PARAM);
+  int on_stoped_back_(FUN_PARAM);
+
+
 
 private:
   NODE_TYPE type_ = NODE_TYPE_SCRIPT;
@@ -96,16 +123,13 @@ private:
 
   struct mr_pl_node *plnode_ = nullptr;
 
-  SIMULATE_RESULT_TYPE simret_type_ = SIMULATE_RESULT_TYPE_OK;
+  TEST_PARAM * test_param_ = nullptr;
   RUN_TYPE run_type_ = RUN_TYPE_ASYNC ;
 
 private:
   void setup_state_machine_();
-
-  int do_check_(FUN_PARAM);
-  int do_checking_(FUN_PARAM);
-  int do_run_(FUN_PARAM);
-  int do_running_(FUN_PARAM);
+  void simu_check__();
+  void simu_run__();
 
 };
 

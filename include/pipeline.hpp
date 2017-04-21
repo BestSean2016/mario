@@ -9,7 +9,7 @@
 #include <igraph/igraph.h>
 
 // template<typename T>
-// bool vec_find(std::vector<T>& vec, T& a) {
+// int vec_find(std::vector<T>& vec, T& a) {
 //     for(auto&p : vec)
 //         if (p == a) return true;
 //     return false;
@@ -34,88 +34,152 @@ extern void vec_erase(std::vector<int>& vec, int a);
 
 namespace itat {
 
-// class Pipeline;
-//
-// class GraphState {
-//   MARIO_STATE_TYPE state_ = ST_initial;
-//   MARIO_STATE_TYPE chk_state_ = ST_initial;
-//   iGraphStateMachine* gsm_ = nullptr;
-//   iNodeStateMachine* nsm_ = nullptr;
-// };
-
 class Pipeline {
 public:
-  Pipeline(int64_t plid);
+  Pipeline(int plid);
   ~Pipeline();
 
-  /**
-   * @brief diamod_simulator generate a graph
-   * @param n number of nodes
-   * @param b number of branches
-   * @return 0 for good
-   */
-  int diamod_simulator(int node_num, int branch_num, SIMULATE_RESULT_TYPE type);
+
+public: //generic interface to manuplate the pipeline
   iNode *get_node_by_id(int i) {
     return (i >= 0 && i < (int)node_.size()) ? node_[i] : nullptr;
   }
-
   /**
    * @brief gen_piple_graph generate the graph of piple from db
    * @return 0 for good
    */
   int gen_piple_graph();
-
   iNode *get_node_by_jid(std::string &jid);
+  int initial(int real_run);
+  int is_running() {return (tsim_.joinable() || tevent_.joinable()); }
+  STATE_TYPE get_state() { return state_; }
+  STATE_TYPE get_chk_state() {return chk_state_; }
+  RUN_TYPE get_run_type() { return run_type_; }
+  int get_graph_id() { return plid_; }
+  int get_graph_pleid() { return pleid_; }
+  int get_amount_node() {return ig_.n;}
 
-  int init(bool real_run);
+  //test, set up simulator
+  /**
+   * @brief test_setup setup the simulator
+   * @param node_num the amount of node
+   * @param branch_num the branch of echo node
+   * @param check the result of check
+   * @param run the result of run
+   * @param check_err_id set the check error occured at id if the id is not -1
+   * @param timeout_id set the run status to timeout if the is is not -1 at the timeout_id
+   * @param run_err_id set the run error occured at id if the id is not -1
+   * @param pause_id set the pause occured at id if the id is not -1
+   * @param stop_id set the stop occured at id if the id is not -1
+   * @param confirm_id set the confirm occured at id if the id is not -1
+   */
+  void test_setup(int node_num = 20,
+                  int branch_num = 2,
+                  SIMULATE_RESULT_TYPE check = SIMULATE_RESULT_TYPE_OK,
+                  SIMULATE_RESULT_TYPE run = SIMULATE_RESULT_TYPE_OK,
+                  int check_err_id = -1,
+                  int run_err_id = -1,
+                  int timeout_id = -1,
+                  int pause_id = -1,
+                  int stop_id = -1,
+                  int confirm_id = -1,
+                  int sleep_interval  = 1000);
+
+public: //the action from user
   int check();
   int run(int start_id);
   int run_node(int node_id);
   int pause();
   int go_on();
   int stop();
-  int redo(int node_id);
+  int user_confirm(int node_id);
 
+private: //the  state machine front and back
 
-  bool is_running() {return (tsim_.joinable() || tevent_.joinable()); }
+  //Check Action
+  int do_check_front_(FUN_PARAM);
+  int do_check_back_(FUN_PARAM);
+  //the checking callback function for igraph's visitor
+  static int do_node_check_cb_(const igraph_t *graph, igraph_integer_t vid,
+                            igraph_integer_t, igraph_integer_t,
+                            igraph_integer_t, igraph_integer_t, void *extra);
+
+  //Run Action
+  int do_run_front_(FUN_PARAM node);
+  int do_run_back_(FUN_PARAM node_id);
+  static void do_thread_run_node_(FUN_PARAM node_ptr);
+  static int thread_simulator_(Pipeline* pl);
+  static int thread_simulator_ex_(Pipeline* pl);
+  //the running callback function for igraph's visitor
+  static int do_node_run_cb_(const igraph_t *graph, igraph_integer_t vid,
+                             igraph_integer_t, igraph_integer_t,
+                             igraph_integer_t, igraph_integer_t, void *extra);
+
+  //run one node
+  int do_run_one_front_(FUN_PARAM node_id);
+  int do_run_one_back_(FUN_PARAM node_id);
+  //pause
+  int do_pause_front_(FUN_PARAM);
+  int do_pause_back_(FUN_PARAM);
+  //go_on
+  int do_go_on_front_(FUN_PARAM);
+  int do_go_on_back_(FUN_PARAM);
+  //stop
+  int do_stop_front_(FUN_PARAM);
+  int do_stop_back_(FUN_PARAM);
+  //confirm
+  int do_user_confirm_front_(FUN_PARAM node_id);
+  int do_user_confirm_back_(FUN_PARAM node_id);
 
 private:
   //internal event action
+  // run ......................................
   int on_run_error_(FUN_PARAM node);
+  int on_run_error_front_(FUN_PARAM node);
+  int on_run_error_back_(FUN_PARAM node);
+
   int on_run_timeout_(FUN_PARAM node);
+  int on_run_timeout_front_(FUN_PARAM node);
+  int on_run_timeout_back_(FUN_PARAM node);
 
   int on_run_ok_(FUN_PARAM node);
-  int on_run_ok_event_(FUN_PARAM node);
-  int on_run_after_ok_(FUN_PARAM node);
+  int on_run_ok_front_(FUN_PARAM node);
+  int on_run_ok_back_(FUN_PARAM node);
 
   int on_run_allok_(FUN_PARAM);
-  int on_run_allok_event_(FUN_PARAM);
-  int on_run_after_allok_(FUN_PARAM);
+  int on_run_allok_front_(FUN_PARAM);
+  int on_run_allok_back_(FUN_PARAM);
 
-  int on_pause();
-  int on_continue();
-  int on_stop();
-  int on_wait_for_user(int64_t node_id);
-  int on_user_confirmed(int64_t node_id);
-  int on_wait_ror_run();
+  // run one node ..............................
+  int on_run_one_error_(FUN_PARAM node);
+  int on_run_one_error_front_(FUN_PARAM node);
+  int on_run_one_error_back_(FUN_PARAM node);
+
+  int on_run_one_timeout_(FUN_PARAM node);
+  int on_run_one_timeout_front_(FUN_PARAM node);
+  int on_run_one_timeout_back_(FUN_PARAM node);
+
+  int on_run_one_ok_(FUN_PARAM node);
+  int on_run_one_ok_front_(FUN_PARAM node);
+  int on_run_one_ok_back_(FUN_PARAM node);
+  // run one node ..............................
+
+  // paused ..............................
+  int on_paused_(FUN_PARAM);
+  int on_paused_front_(FUN_PARAM);
+  int on_paused_back_(FUN_PARAM);
+
+  // stoped ..............................
+  int on_stoped_(FUN_PARAM);
+  int on_stoped_front_(FUN_PARAM);
+  int on_stoped_back_(FUN_PARAM);
+
 
 public:
   //interface for test
-  int test_run_error(int node_id, int code, std::string &stdout,
-                     std::string &stderr);
-  int test_run_ok(int node_id, int code, std::string &stdout,
-                  std::string &stderr);
-  int test_user_confirmed(int node_id);
-
   int test_1(FUN_PARAM);
   int test_2(FUN_PARAM);
 
-  STATE_TYPE get_state() { return state_; }
-  STATE_TYPE get_chk_state() {return chk_state_; }
-
-  RUN_TYPE get_run_type() { return run_type_; }
-
-  int64_t get_graph_id() { return plid_; }
 
 private:
   STATE_TYPE state_ = ST_initial;
@@ -124,7 +188,8 @@ private:
   iNodeStateMachine* nsm_ = nullptr;
 
 
-  int64_t plid_ = 0;
+  int plid_ = 0;
+  int pleid_ = 0;
   igraph_t ig_;
   std::vector<iNode *> node_;
 
@@ -135,16 +200,16 @@ private:
   std::vector<int> run_set_;
   std::vector<int> done_set_;
 
-  SIMULATE_RESULT_TYPE simret_type_ = SIMULATE_RESULT_TYPE_OK;
-
   threadpool_t *thpool_ = nullptr;
   RUN_TYPE run_type_ = RUN_TYPE_ASYNC;
   std::thread tsim_;
   std::thread tevent_;
 
+  TEST_PARAM * test_param_ = nullptr;
+
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
-  int gen_node_(SIMULATE_RESULT_TYPE type);
+  int gen_node_();
   int setup_state_machine_();
 
   /**
@@ -154,29 +219,22 @@ private:
   int load_pipe_line_from_db_();
   int gen_piple_graph_();
 
-  //Check Action
-  int do_check_(FUN_PARAM);
-  int do_checking_(FUN_PARAM);
-  //the checking callback function for igraph's visitor
-  static int do_node_check_cb_(const igraph_t *graph, igraph_integer_t vid,
-                            igraph_integer_t, igraph_integer_t,
-                            igraph_integer_t, igraph_integer_t, void *extra);
-
-  //Run Action
-  int do_run_(FUN_PARAM node_id);
-  int do_running_(FUN_PARAM node_id);
-  static void do_thread_run_node_(FUN_PARAM node_ptr);
-  //the running callback function for igraph's visitor
-  static int do_node_run_cb_(const igraph_t *graph, igraph_integer_t vid,
-                             igraph_integer_t, igraph_integer_t,
-                             igraph_integer_t, igraph_integer_t, void *extra);
-
-  static int thread_simulator_(Pipeline* pl);
 
   void find_node_to_run_(int node_id, bool after);
 
 
   bool is_all_done_();
+
+
+  /**
+   * @brief diamod_simulator generate a graph
+   * @param n number of nodes
+   * @param b number of branches
+   * @return 0 for good
+   */
+  int diamod_simulator_(int node_num, int branch_num);
+
+  int simulator_check_();
 };
 
 } // namespace itat

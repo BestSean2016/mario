@@ -2,24 +2,50 @@
 #include "edge.hpp"
 #include "node.hpp"
 #include "pipeline.hpp"
+#include "djangoapi.hpp"
+
 
 namespace itat {
-Mario::Mario(int64_t plid) {
+extern DjangoAPI dj_;
+
+Mario::Mario(int plid) {
   g_ = new Pipeline(plid);
   // state_ = new dfGraphStateMachine(g_);
 }
 
-Mario::~Mario() { SafeDeletePtr(g_); }
-
-int Mario::simulator_pipeline(int node_num, int branch_num, SIMULATE_RESULT_TYPE type) {
-  assert(g_ != nullptr);
-  int ret = g_->diamod_simulator(node_num, branch_num, type);
-  return ret;
+Mario::~Mario() {
+    SafeDeletePtr(g_);
 }
 
-int Mario::init(bool real_run) {
+void Mario::test_setup(int node_num,
+                      int branch_num,
+                      int check,
+                      int run,
+                      int check_err_id,
+                      int run_err_id,
+                      int timeout_id,
+                      int pause_id,
+                      int stop_id ,
+                      int confirm_id,
+                      int sleep_interval) {
   assert(g_ != nullptr);
-  return g_->init(real_run);
+  g_->test_setup(node_num,
+                 branch_num,
+                 (SIMULATE_RESULT_TYPE)check,
+                 (SIMULATE_RESULT_TYPE)run,
+                 check_err_id,
+                 run_err_id,
+                 timeout_id,
+                 pause_id,
+                 stop_id ,
+                 confirm_id,
+                 sleep_interval);
+}
+
+int Mario::initial(int real_run, const char* py_message_path) {
+  assert(g_ != nullptr);
+  dj_.init(py_message_path);
+  return g_->initial(real_run);
 }
 
 int Mario::check() {
@@ -52,9 +78,10 @@ int Mario::stop() {
   return g_->stop();
 }
 
-int Mario::redo(int64_t node_id) {
+int Mario::confirm(int node_id) {
   assert(g_ != nullptr);
-  return g_->redo(node_id);
+  return g_->user_confirm(node_id);
 }
+
 
 } // namespace itat
