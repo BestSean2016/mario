@@ -55,8 +55,8 @@ public: //generic interface to manuplate the pipeline
   STATE_TYPE get_state() { return state_; }
   STATE_TYPE get_chk_state() {return chk_state_; }
   RUN_TYPE get_run_type() { return run_type_; }
-  int get_graph_id() { return plid_; }
-  int get_graph_pleid() { return pleid_; }
+  int get_plid() { return plid_; }
+  int get_pl_exe_id() { return pleid_; }
   int get_amount_node() {return ig_.n;}
 
   //test, set up simulator
@@ -92,7 +92,7 @@ public: //the action from user
   int pause();
   int go_on();
   int stop();
-  int user_confirm(int node_id);
+  int user_confirm(int ok);
 
 private: //the  state machine front and back
 
@@ -116,8 +116,8 @@ private: //the  state machine front and back
                              igraph_integer_t, igraph_integer_t, void *extra);
 
   //run one node
-  int do_run_one_front_(FUN_PARAM node_id);
-  int do_run_one_back_(FUN_PARAM node_id);
+  int do_run_one_front_(FUN_PARAM node);
+  int do_run_one_back_(FUN_PARAM node);
   //pause
   int do_pause_front_(FUN_PARAM);
   int do_pause_back_(FUN_PARAM);
@@ -128,8 +128,8 @@ private: //the  state machine front and back
   int do_stop_front_(FUN_PARAM);
   int do_stop_back_(FUN_PARAM);
   //confirm
-  int do_user_confirm_front_(FUN_PARAM node_id);
-  int do_user_confirm_back_(FUN_PARAM node_id);
+  int do_user_confirm_front_(FUN_PARAM node);
+  int do_user_confirm_back_(FUN_PARAM node);
 
 private:
   //internal event action
@@ -174,6 +174,11 @@ private:
   int on_stoped_front_(FUN_PARAM);
   int on_stoped_back_(FUN_PARAM);
 
+
+  // confirm .............................
+  int on_waitin_confirm_(FUN_PARAM node);
+  int on_waitin_confirm_front_(FUN_PARAM node);
+  int on_waitin_confirm_back_(FUN_PARAM node);
 
 public:
   //interface for test

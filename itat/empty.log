@@ -1,0 +1,14 @@
+igraph 0: do_check_
+do simulator state is 6
+Pipeline thread simulator pl->state_ is 6
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+on_run_after_ok_
+thread simultor exit, hahaha
+2

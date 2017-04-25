@@ -12,13 +12,6 @@
 
 namespace itat {
 
-static const char *mario_state_name[] = {
-    "initial          ", "checking         ", "checked_err      ",
-    "checked_ok       ", "running          ", "error            ",
-    "timeout          ", "successed        ", "waiting_for_input",
-    "stoped           ", "paused           ", "waiting_for_run  ",
-    "running_one      ", "run_one_ok       ", "run_one_err      ",
-};
 
 typedef enum STATE_TYPE {
   ST_unknow = -1,
@@ -32,15 +25,16 @@ typedef enum STATE_TYPE {
   ST_error,
   ST_timeout,
   ST_succeed,
-  ST_waiting_for_input,
+  ST_waiting_for_confirm,
   ST_stoped,
   ST_stoping,
   ST_paused,
   ST_pausing,
-  ST_waiting_for_run,
+  ST_waiting_for_input,
   ST_running_one,
   ST_run_one_ok,
   ST_run_one_err,
+  ST_confirm_refused,
 } STATE_TYPE;
 
 class Pipeline;

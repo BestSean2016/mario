@@ -4,12 +4,10 @@
 #include "itat_global.h"
 #include "itat.h"
 #include "state.hpp"
+#include <boost/python.hpp>
+#include "pipeline.h"
 
 namespace itat {
-
-class Pipeline;
-class iNode;
-class dfGraphStateMachine;
 
 class Mario {
 public:
@@ -33,7 +31,7 @@ public:
 
   int test_int(int test) { return test; }
 
-  void release() {delete this;}
+  int get_plid();
 
   //test, set up simulator
   /**
@@ -64,6 +62,13 @@ private:
   Pipeline *g_ = nullptr;  ///the graph that will be genereted
 };
 
+//
+// struct mario_pickle : public boost::python::pickle_suite {
+//     static boost::python::tuple getinitargs(Mario const& m);
+//     static boost::python::tuple getstate(Mario const& m);
+//     static void setstate(Mario& m, boost::python::tuple state);
+// };
+//
 } // namespace itat
 
 #endif // MARIO_PLUMBER_H

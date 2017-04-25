@@ -36,28 +36,11 @@ int iNode::run() {
     return nsm_->do_trans(state_, &iNode::do_run_front_, this, nullptr);
 }
 
-int iNode::pause() {
-    assert(g_ != nullptr && gsm_ != nullptr && nsm_ != nullptr &&
-           plnode_ != nullptr);
-    return nsm_->do_trans(state_, &iNode::do_pause_front_, this, nullptr);
-}
-
-int iNode::go_on() {
-    assert(g_ != nullptr && gsm_ != nullptr && nsm_ != nullptr &&
-           plnode_ != nullptr);
-    return nsm_->do_trans(state_, &iNode::do_go_on_front_, this, nullptr);
-}
-
-int iNode::stop() {
-    assert(g_ != nullptr && gsm_ != nullptr && nsm_ != nullptr &&
-           plnode_ != nullptr);
-    return nsm_->do_trans(state_, &iNode::do_stop_front_, this, nullptr);
-}
 
 int iNode::user_confirm() {
     assert(g_ != nullptr && gsm_ != nullptr && nsm_ != nullptr &&
             plnode_ != nullptr);
-     return nsm_->do_trans(state_, &iNode::do_user_confirm_front_, this, nullptr);
+    return nsm_->do_trans(state_, &iNode::do_user_confirm_front_, this, nullptr);
 }
 
 //
@@ -66,34 +49,18 @@ int iNode::user_confirm() {
 void iNode::setup_state_machine_() {
   // check
   nsm_->add_state_trans(ST_initial, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
-  nsm_->add_state_trans(ST_checked_err, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
+  nsm_->add_state_trans(ST_checked_serr, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
+  nsm_->add_state_trans(ST_checked_herr, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
   nsm_->add_state_trans(ST_checked_ok, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
-  nsm_->add_state_trans(ST_paused, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
   nsm_->add_state_trans(ST_error, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
   nsm_->add_state_trans(ST_succeed, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
   nsm_->add_state_trans(ST_timeout, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
-  nsm_->add_state_trans(ST_stoped, &iNode::do_check_front_, ST_checking, &iNode::do_check_back_);
 
   // run
   nsm_->add_state_trans(ST_checked_ok, &iNode::do_run_front_, ST_running, &iNode::do_run_back_);
 
-  //pause
-  nsm_->add_state_trans(ST_running, &iNode::do_pause_front_, ST_pausing, &iNode::do_pause_back_);
-
-  //continue
-  nsm_->add_state_trans(ST_paused , &iNode::do_go_on_front_, ST_running, &iNode::do_go_on_back_);
-  nsm_->add_state_trans(ST_error  , &iNode::do_go_on_front_, ST_running, &iNode::do_go_on_back_);
-  nsm_->add_state_trans(ST_timeout, &iNode::do_go_on_front_, ST_running, &iNode::do_go_on_back_);
-
-  //stop
-  nsm_->add_state_trans(ST_running, &iNode::do_stop_front_, ST_stoping, &iNode::do_stop_back_);
-  nsm_->add_state_trans(ST_paused , &iNode::do_stop_front_, ST_stoping, &iNode::do_stop_back_);
-  nsm_->add_state_trans(ST_error  , &iNode::do_stop_front_, ST_stoping, &iNode::do_stop_back_);
-  nsm_->add_state_trans(ST_timeout, &iNode::do_stop_front_, ST_stoping, &iNode::do_stop_back_);
-  nsm_->add_state_trans(ST_waiting_for_input, &iNode::do_stop_front_, ST_stoping, &iNode::do_stop_back_);
-
   // user_confirm
-  nsm_->add_state_trans(ST_waiting_for_input, &iNode::do_user_confirm_front_, ST_running, &iNode::do_user_confirm_back_);
+  nsm_->add_state_trans(ST_waiting_for_confirm, &iNode::do_user_confirm_front_, ST_running, &iNode::do_user_confirm_back_);
 
 
   //..................... internal trans ........................
@@ -102,16 +69,12 @@ void iNode::setup_state_machine_() {
   nsm_->add_state_trans(ST_running, &iNode::on_run_error_front_, ST_error, &iNode::on_run_error_back_);
   nsm_->add_state_trans(ST_running, &iNode::on_run_ok_front_, ST_error, &iNode::on_run_ok_back_);
   nsm_->add_state_trans(ST_running, &iNode::on_run_timeout_front_, ST_error, &iNode::on_run_error_back_);
-
-  nsm_->add_state_trans(ST_pausing, &iNode::on_paused_front_, ST_paused, &iNode::on_paused_back_);
-  nsm_->add_state_trans(ST_stoping, &iNode::on_stoped_front_, ST_stoped, &iNode::on_stoped_back_);
-
 }
 
 int iNode::do_check_front_(FUN_PARAM) {
   assert(g_ != nullptr);
   state_ = ST_checking;
-  dj_.send_graph_status(g_->get_graph_pleid(), g_->get_graph_id(), id_, state_, state_);
+  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
   if (test_param_) std::this_thread::sleep_for(std::chrono::milliseconds(test_param_->sleep_interval));
   return 0;
 }
@@ -150,7 +113,7 @@ int iNode::do_check_back_(FUN_PARAM) {
         //ret = check_node ... ;
     }
   }
-  dj_.send_graph_status(g_->get_graph_pleid(), g_->get_graph_id(), id_, state_, state_);
+  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
 
   return (state_ == ST_checked_ok) ? 0 : state_;
 }
@@ -168,7 +131,7 @@ int iNode::init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm) {
 int iNode::do_run_front_(FUN_PARAM) {
   assert(g_ != nullptr);
   state_ = ST_running;
-  dj_.send_graph_status(g_->get_graph_pleid(), g_->get_graph_id(), id_, state_, state_);
+  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
   if (test_param_) std::this_thread::sleep_for(std::chrono::milliseconds(test_param_->sleep_interval));
   return 0;
 }
@@ -208,7 +171,7 @@ int iNode::do_run_back_(FUN_PARAM) {
       }
   }
 
-  dj_.send_graph_status(g_->get_graph_pleid(), g_->get_graph_id(), id_, state_, state_);
+  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
 
   switch(state_) {
   case ST_error:
@@ -220,21 +183,21 @@ int iNode::do_run_back_(FUN_PARAM) {
   case ST_succeed:
       on_run_ok_(nullptr);
       break;
+  default:
+      on_run_error_(nullptr);
+      break;
   }
 
   return state_;
 }
 
-int iNode::do_pause_front_(FUN_PARAM) { return 0; }
-int iNode::do_pause_back_(FUN_PARAM) { return 0; }
-int iNode::do_go_on_front_(FUN_PARAM) { return 0; }
-int iNode::do_go_on_back_(FUN_PARAM) { return 0; }
-int iNode::do_stop_front_(FUN_PARAM) { return 0; }
-int iNode::do_stop_back_(FUN_PARAM) { return 0; }
-int iNode::do_redo_front_(FUN_PARAM) { return 0; }
-int iNode::do_redo_back_(FUN_PARAM) { return 0; }
-int iNode::do_user_confirm_front_(FUN_PARAM) { return 0; }
-int iNode::do_user_confirm_back_(FUN_PARAM) { return 0; }
+int iNode::do_user_confirm_front_(FUN_PARAM confirmd) {
+    if (confirmd) state_ = ST_succeed;
+    else state_ = ST_confirm_refused;
+    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
+    return 0;
+}
+int iNode::do_user_confirm_back_(FUN_PARAM confirmd) { return 0; }
 
 //////////////////////////////////////////////////////////////////
 
@@ -242,33 +205,33 @@ int iNode::on_run_error_(FUN_PARAM) {
     return nsm_->do_trans(state_, &iNode::on_run_error_front_, this, nullptr);
 }
 
-int iNode::on_run_error_front_(FUN_PARAM) { return 0; }
-int iNode::on_run_error_back_(FUN_PARAM) { return 0; }
+int iNode::on_run_error_front_(FUN_PARAM) {
+    state_ = ST_error;
+    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
+    return 0;
+}
+int iNode::on_run_error_back_(FUN_PARAM) { return state_; }
 
 int iNode::on_run_timeout_(FUN_PARAM) {
     return nsm_->do_trans(state_, &iNode::on_run_timeout_front_, this, nullptr);
 }
 
-int iNode::on_run_timeout_front_(FUN_PARAM) { return 0; }
-int iNode::on_run_timeout_back_(FUN_PARAM) { return 0; }
+int iNode::on_run_timeout_front_(FUN_PARAM) {
+    state_ = ST_timeout;
+    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
+    return 0;
+}
+int iNode::on_run_timeout_back_(FUN_PARAM) { return state_; }
 
 int iNode::on_run_ok_(FUN_PARAM) {
     return nsm_->do_trans(state_, &iNode::on_run_ok_front_, this, nullptr);
 }
-int iNode::on_run_ok_front_(FUN_PARAM) { return 0; }
-int iNode::on_run_ok_back_(FUN_PARAM) { return 0; }
+int iNode::on_run_ok_front_(FUN_PARAM) {
+    state_ = ST_succeed;
+    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
+    return 0; }
+int iNode::on_run_ok_back_(FUN_PARAM) { return state_; }
 
-int iNode::on_paused_(FUN_PARAM) {
-    return nsm_->do_trans(state_, &iNode::on_paused_front_, this, nullptr);
-}
-int iNode::on_paused_front_(FUN_PARAM) { return 0; }
-int iNode::on_paused_back_(FUN_PARAM) { return 0; }
-
-int iNode::on_stoped_(FUN_PARAM) {
-    return nsm_->do_trans(state_, &iNode::on_stoped_front_, this, nullptr);
-}
-int iNode::on_stoped_front_(FUN_PARAM) { return 0; }
-int iNode::on_stoped_back_(FUN_PARAM) { return 0; }
 
 
 } // namespace dfgraph

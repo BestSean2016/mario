@@ -75,12 +75,18 @@ int Mario::go_on() {
 
 int Mario::stop() {
   assert(g_ != nullptr);
+  cout << "STOPSTOPSTOP\n";
   return g_->stop();
 }
 
 int Mario::confirm(int node_id) {
   assert(g_ != nullptr);
   return g_->user_confirm(node_id);
+}
+
+int Mario::get_plid() {
+    assert(g_ != nullptr);
+    return g_->get_plid();
 }
 
 

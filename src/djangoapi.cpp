@@ -86,22 +86,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id,
         ret = -1;
     }
 
-
-    //assert(bm_ != 0);
-    // cout << "bm_ " << (uint64_t)bm_ << endl;
-    //
-    // if (bm_)
-    //     return bm_(
-    //             pl_ex_id,
-    //             graph_id,
-    //             node_id,
-    //             run_state,
-    //             check_state,
-    //             code,
-    //             strout,
-    //             strerr);
-    // cout << "bm_ 2\n";
-    // return -1;
+    return ret;
 }
 
 } // namespace itat

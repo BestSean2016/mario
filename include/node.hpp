@@ -69,9 +69,6 @@ public:
   int init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm);
   int check();
   int run();
-  int pause();
-  int go_on();
-  int stop();
   int user_confirm();
 
 private:
@@ -80,19 +77,11 @@ private:
   int do_check_back_(FUN_PARAM);
   int do_run_front_(FUN_PARAM);
   int do_run_back_(FUN_PARAM);
-  int do_pause_front_(FUN_PARAM);
-  int do_pause_back_(FUN_PARAM);
-  int do_go_on_front_(FUN_PARAM);
-  int do_go_on_back_(FUN_PARAM);
-  int do_stop_front_(FUN_PARAM);
-  int do_stop_back_(FUN_PARAM);
-  int do_redo_front_(FUN_PARAM);
-  int do_redo_back_(FUN_PARAM);
-  int do_user_confirm_front_(FUN_PARAM);
-  int do_user_confirm_back_(FUN_PARAM);
+  int do_user_confirm_front_(FUN_PARAM confirmd);
+  int do_user_confirm_back_(FUN_PARAM confirmd);
 
 private:
-  //internal action fron pipeline
+  //internal action spipeline
   int on_run_error_(FUN_PARAM);
   int on_run_error_front_(FUN_PARAM);
   int on_run_error_back_(FUN_PARAM);
@@ -102,13 +91,6 @@ private:
   int on_run_ok_(FUN_PARAM);
   int on_run_ok_front_(FUN_PARAM);
   int on_run_ok_back_(FUN_PARAM);
-  int on_paused_(FUN_PARAM);
-  int on_paused_front_(FUN_PARAM);
-  int on_paused_back_(FUN_PARAM);
-  int on_stoped_(FUN_PARAM);
-  int on_stoped_front_(FUN_PARAM);
-  int on_stoped_back_(FUN_PARAM);
-
 
 
 private:

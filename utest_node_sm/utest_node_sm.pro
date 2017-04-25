@@ -21,7 +21,7 @@ unix {
     INCLUDEPATH += /data/py2713/include/python2.7
 
     LIBS += -lpthread -lrt
-    LIBS += -L/usr/local/lib -lgtest -lgtest_main
+    LIBS += -L/usr/local/lib -lgtest -lgtest_main -L/data/py2713/lib -lpython2.7
 
 
     target.path = /usr/local/bin/mario
