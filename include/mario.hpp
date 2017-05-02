@@ -15,11 +15,11 @@ public:
   Mario(int plid);
   ~Mario();
 
-
   //
   // Interface to Bill, Python
   //
-  int initial(int real_run, const char *py_message_path);
+  int initial(int real_run, const char *py_message_path, int node_num,
+              int branch_num);
 
   int check();
   int run(int start_id);
@@ -33,7 +33,7 @@ public:
 
   int get_plid();
 
-  //test, set up simulator
+  // test, set up simulator
   /**
    * @brief test_setup setup the simulator
    * @param node_num the amount of node
@@ -46,29 +46,26 @@ public:
    * @param stop_id set the stop occured at id if the id is not -1
    * @param confirm_id set the confirm occured at id if the id is not -1
    */
-  void test_setup(int node_num = 20,
-                  int branch_num = 2,
-                  int check = 1,
-                  int run = 1,
-                  int check_err_id = -1,
-                  int run_err_id = -1,
-                  int timeout_id = -1,
-                  int pause_id = -1,
-                  int stop_id = -1,
-                  int confirm_id = -1,
-                  int sleep_interval  = 1000);
+  void test_setup(int check = 1, int run = 1, int check_err_id = -1,
+                  int run_err_id = -1, int timeout_id = -1, int pause_id = -1,
+                  int stop_id = -1, int confirm_id = -1,
+                  int sleep_interval = 1000);
 
 private:
-  Pipeline *g_ = nullptr;  ///the graph that will be genereted
+  Pipeline *g_ = nullptr; /// the graph that will be genereted
 };
 
-//
-// struct mario_pickle : public boost::python::pickle_suite {
-//     static boost::python::tuple getinitargs(Mario const& m);
-//     static boost::python::tuple getstate(Mario const& m);
-//     static void setstate(Mario& m, boost::python::tuple state);
-// };
-//
+
 } // namespace itat
 
+extern int64_t new_mario(int plid);
+extern int get_back_mario(int64_t id);
+extern void kill_mario(int64_t id);
+extern int initial(int64_t id, int real_run, const char *bill_message,
+                   int node_num, int branch_num);
+extern int run_mario(int64_t id, int start_id);
+extern int stop_mario(int64_t id);
+extern int test_setup(int64_t id, int check, int run, int check_err_id,
+                      int run_err_id, int timeout_id, int pause_id, int stop_id,
+                      int confirm_id, int sleep_interval);
 #endif // MARIO_PLUMBER_H

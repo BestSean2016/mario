@@ -4,7 +4,7 @@
 #include "saltapi.hpp"
 
 #define USERNAME "salt-test"
-#define PASSWORD "hongt@8a51"
+#define PASSWORD "salt-test"
 #define SALTAPI_SERVER_IP "10.10.10.19"
 #define SALTAPI_SERVER_PORT 8000
 
@@ -52,10 +52,6 @@ Pipeline::~Pipeline() {
   //     tevent_.join();
   // }
 
-  if (thpool_) {
-    threadpool_destroy(thpool_, 0);
-    thpool_ = 0;
-  }
   SafeDeletePtr(gsm_);
   SafeDeletePtr(nsm_);
 
@@ -79,7 +75,7 @@ Pipeline::~Pipeline() {
  */
 int Pipeline::diamod_simulator_(int node_num, int branch_num) {
   gen_diamod_graph_(node_num, branch_num);
-  gen_node_();
+  gen_node_(nullptr);
 
   return (0);
 }
@@ -140,10 +136,10 @@ int Pipeline::gen_diamod_graph_(int node_num, int branch_num) {
   return (0);
 }
 
-int Pipeline::gen_node_() {
+int Pipeline::gen_node_(vector<MR_BILL_PIPELINE_NODE>* nodes) {
   for (int i = 0; i < ig_.n; ++i) {
     auto node = new iNode(this);
-    node->init(i, gsm_, nsm_);
+    node->init(i, (nodes) ? nullptr : &(nodes->at(i)), gsm_, nsm_);
     if (test_param_)
       node->set_test_param(test_param_);
     node_.emplace_back(node);
@@ -152,31 +148,45 @@ int Pipeline::gen_node_() {
 }
 
 int Pipeline::gen_piple_graph() {
-  int ret = load_pipe_line_from_db_();
+  vector<MR_BILL_PIPELINE_NODE> pl_node;
+  vector<MR_BILL_PIPELINE_EDGE> pl_edge;
+  int ret = load_pipe_line_from_db_(pl_node, pl_edge);
   if (!ret)
-    ret = gen_piple_graph_();
-  if (!ret)
-    ret = gen_node_();
+    ret = gen_node_(&pl_node);
 
   return ret;
 }
 
-int Pipeline::load_pipe_line_from_db_() {
-  // to do: load piple line from db by piplline id
-  return 0;
-}
+#define MYSQL_DB_HOST "10.10.10.16"
+#define MYSQL_DB_PORT 3306
+#define MYSQL_DB_NAME "mysite"
+#define MYSQL_DB_USER "bill"
+#define MYSQL_DB_PASS "hongt@8a51"
 
-int Pipeline::gen_piple_graph_() { return 0; }
+int Pipeline::load_pipe_line_from_db_(vector<MR_BILL_PIPELINE_NODE> &pl_node,
+                                      vector<MR_BILL_PIPELINE_EDGE> &pl_edge) {
+  // to do: load piple line from db by piplline id
+  int ret = 0;
+  DBHANDLE h_db = connect_db(MYSQL_DB_HOST, MYSQL_DB_PORT, MYSQL_DB_NAME,
+                             MYSQL_DB_USER, MYSQL_DB_PASS);
+  if (!h_db)
+    return -1;
+  ret = create_graph(&ig_, pl_node, pl_edge, h_db, plid_);
+  disconnect_db(h_db);
+  return ret;
+}
 
 iNode *Pipeline::get_node_by_jid(std::string &jid) {
   auto iter = jid_2_node_.find(jid);
   return (iter == jid_2_node_.end()) ? nullptr : iter->second;
 }
 
-int Pipeline::initial(int real_run) {
+int Pipeline::initial(int real_run, int node_num, int branch_num) {
   setup_state_machine_();
   if (real_run)
-    load_pipe_line_from_db_();
+    gen_piple_graph();
+  else
+    diamod_simulator_(node_num, branch_num);
 
   HTTP_API_PARAM param(SALTAPI_SERVER_IP, SALTAPI_SERVER_PORT, parse_token_fn,
                        nullptr, nullptr);
@@ -196,19 +206,20 @@ static void thread_test(void) { // bill_message bm) {
 }
 
 int Pipeline::run(int start_id) {
-  iNode* node =  get_node_by_id((int)((uint64_t)start_id));
-  if (nullptr == node) return ERROR_INVAILD_NODE_ID;
+  iNode *node = get_node_by_id((int)((uint64_t)start_id));
+  if (nullptr == node)
+    return ERROR_INVAILD_NODE_ID;
   else
     return gsm_->do_trans(state_, &Pipeline::do_run_front_, this,
-                        (void *)start_id);
+                          (void *)start_id);
 }
 
 int Pipeline::run_node(int node_id) {
-  iNode* node =  get_node_by_id((int)((uint64_t)node_id));
-  if (nullptr == node) return ERROR_INVAILD_NODE_ID;
+  iNode *node = get_node_by_id((int)((uint64_t)node_id));
+  if (nullptr == node)
+    return ERROR_INVAILD_NODE_ID;
   else
-    return gsm_->do_trans(state_, &Pipeline::do_run_one_front_, this,
-                        node);
+    return gsm_->do_trans(state_, &Pipeline::do_run_one_front_, this, node);
 }
 
 int Pipeline::pause() {
@@ -229,7 +240,7 @@ int Pipeline::user_confirm(int ok) {
 }
 
 int Pipeline::on_run_ok_(FUN_PARAM node) {
-  //dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  // dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
   return gsm_->do_trans(state_, &Pipeline::on_run_ok_front_, this, node);
 }
 
@@ -257,7 +268,7 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
 int Pipeline::on_run_error_(FUN_PARAM node) {
   iNode *n = (iNode *)node;
   cout << "on_run_error\n";
-  return gsm_->do_trans(state_, &Pipeline::on_run_error_, this, n);
+  return gsm_->do_trans(state_, &Pipeline::on_run_error_front_, this, n);
 }
 
 int Pipeline::on_run_error_front_(FUN_PARAM node) {
@@ -266,12 +277,8 @@ int Pipeline::on_run_error_front_(FUN_PARAM node) {
   return 0;
 }
 
-int Pipeline::on_run_error_back_(FUN_PARAM node) {
-    return 0;
-}
+int Pipeline::on_run_error_back_(FUN_PARAM node) { return 0; }
 // ........ on run error ..........................
-
-
 
 // ........ on run timeout ..........................
 int Pipeline::on_run_timeout_(FUN_PARAM node) {
@@ -280,17 +287,12 @@ int Pipeline::on_run_timeout_(FUN_PARAM node) {
   return gsm_->do_trans(state_, &Pipeline::on_run_timeout_front_, this, n);
 }
 int Pipeline::on_run_timeout_front_(FUN_PARAM node) {
-    state_ = ST_timeout;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
+  state_ = ST_timeout;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  return 0;
 }
-int Pipeline::on_run_timeout_back_(FUN_PARAM node) {
-    return 0;
-}
+int Pipeline::on_run_timeout_back_(FUN_PARAM node) { return 0; }
 // ........ on run timeout ..........................
-
-
-
 
 int Pipeline::on_run_allok_(FUN_PARAM) {
   // dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
@@ -298,22 +300,19 @@ int Pipeline::on_run_allok_(FUN_PARAM) {
 }
 
 int Pipeline::on_run_allok_front_(FUN_PARAM) {
-    state_ = ST_succeed;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
-}
-
-int Pipeline::on_run_allok_back_(FUN_PARAM) {
+  state_ = ST_succeed;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
   return 0;
 }
+
+int Pipeline::on_run_allok_back_(FUN_PARAM) { return 0; }
 
 int Pipeline::on_run_one_error_(FUN_PARAM node) {
   return gsm_->do_trans(state_, &Pipeline::on_run_one_error_front_, this, node);
 }
 
 int Pipeline::on_run_one_error_front_(FUN_PARAM node) {
-    return gsm_->do_trans(state_, &Pipeline::on_run_one_error_back_, this,
-                          node);
+  return gsm_->do_trans(state_, &Pipeline::on_run_one_error_back_, this, node);
 }
 int Pipeline::on_run_one_error_back_(FUN_PARAM node) { return 0; }
 
@@ -337,10 +336,10 @@ int Pipeline::on_paused_(FUN_PARAM) {
 }
 
 int Pipeline::on_paused_front_(FUN_PARAM) {
-    //check if all node are paused
-    state_ = ST_paused;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
+  // check if all node are paused
+  state_ = ST_paused;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  return 0;
 }
 int Pipeline::on_paused_back_(FUN_PARAM) { return 0; }
 
@@ -349,32 +348,25 @@ int Pipeline::on_stoped_(FUN_PARAM) {
 }
 
 int Pipeline::on_stoped_front_(FUN_PARAM) {
-    //check if all node are stoped
-    state_ = ST_stoped;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
-}
-int Pipeline::on_stoped_back_(FUN_PARAM) {
+  // check if all node are stoped
+  state_ = ST_stoped;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
   return 0;
 }
-
-
+int Pipeline::on_stoped_back_(FUN_PARAM) { return 0; }
 
 int Pipeline::on_waitin_confirm_(FUN_PARAM node) {
-    return gsm_->do_trans(state_, &Pipeline::on_waitin_confirm_front_, this, node);
+  return gsm_->do_trans(state_, &Pipeline::on_waitin_confirm_front_, this,
+                        node);
 }
 
 int Pipeline::on_waitin_confirm_front_(FUN_PARAM node) {
-    state_ = ST_waiting_for_confirm;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
+  state_ = ST_waiting_for_confirm;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  return 0;
 }
 
-int Pipeline::on_waitin_confirm_back_(FUN_PARAM node) {
-    return 0;
-}
-
-
+int Pipeline::on_waitin_confirm_back_(FUN_PARAM node) { return 0; }
 
 int Pipeline::test_1(FUN_PARAM) {
   cout << "test 1 " << (uint64_t) this << endl;
@@ -482,10 +474,12 @@ int Pipeline::setup_state_machine_() {
                         &Pipeline::do_stop_back_);
 
   // confirm ..............................
-  gsm_->add_state_trans(ST_waiting_for_confirm, &Pipeline::do_user_confirm_front_,
-                        ST_running, &Pipeline::do_user_confirm_back_);
+  gsm_->add_state_trans(ST_waiting_for_confirm,
+                        &Pipeline::do_user_confirm_front_, ST_running,
+                        &Pipeline::do_user_confirm_back_);
   gsm_->add_state_trans(ST_running, &Pipeline::on_waitin_confirm_front_,
-                        ST_waiting_for_confirm, &Pipeline::on_waitin_confirm_back_);
+                        ST_waiting_for_confirm,
+                        &Pipeline::on_waitin_confirm_back_);
 
   return 0;
 }
@@ -564,14 +558,7 @@ int Pipeline::do_run_front_(FUN_PARAM node_id) {
 
   if (!ret) {
     state_ = ST_running;
-    if (thpool_) {
-      threadpool_destroy(thpool_, 0);
-      delete thpool_;
-    }
-
-    thpool_ = threadpool_create(5, ig_.n * 3, 0);
-    if (!thpool_)
-      ret = ERROR_CANNOT_CREATE_THREAD_POOL;
+    //start event thread
   }
 
   dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
@@ -635,8 +622,7 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
     } else {
       // add into threadpool to run
       for (auto &node_id : prepare_to_run_)
-        threadpool_add(thpool_, &Pipeline::do_thread_run_node_,
-                       get_node_by_id(node_id), 0);
+        do_run_node_http_request_(get_node_by_id(node_id));
       prepare_to_run_.clear();
     }
   }
@@ -645,22 +631,19 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
   return 0;
 }
 
-void Pipeline::do_thread_run_node_(FUN_PARAM node_ptr) {
-  iNode *node = (iNode *)node_ptr;
-  Pipeline *pl = node->get_pipeline();
-
+void Pipeline::do_run_node_http_request_(iNode* node) {
   ENTER_MULTEX
-  vec_insert(pl->running_set_, node->get_id());
+  vec_insert(running_set_, node->get_id());
   EXIT_MULTEX
 
   // real run;
   if (node->run()) {
     // error or timeout
-    pl->state_ = node->get_state();
-    if (pl->state_ == ST_error)
-      pl->gsm_->do_trans(pl->state_, &Pipeline::on_run_error_, pl, node);
-    else if (pl->state_ == ST_timeout)
-      pl->gsm_->do_trans(pl->state_, &Pipeline::on_run_timeout_, pl, node);
+    state_ = node->get_state();
+    if (state_ == ST_error)
+      gsm_->do_trans(state_, &Pipeline::on_run_error_, this, node);
+    else if (state_ == ST_timeout)
+      gsm_->do_trans(state_, &Pipeline::on_run_timeout_, this, node);
   } else {
     // async call
     if (node->get_run_type() == RUN_TYPE_ASYNC) {
@@ -668,13 +651,13 @@ void Pipeline::do_thread_run_node_(FUN_PARAM node_ptr) {
       // sync call
       ENTER_MULTEX
       // remove from running set
-      vec_erase(pl->running_set_, node->get_id());
+      vec_erase(running_set_, node->get_id());
       // remove from run set
-      vec_erase(pl->run_set_, node->get_id());
+      vec_erase(run_set_, node->get_id());
 
       // all done.
-      if (pl->run_set_.empty())
-        pl->gsm_->do_trans(pl->state_, &Pipeline::on_run_allok_, pl, node);
+      if (run_set_.empty())
+        gsm_->do_trans(state_, &Pipeline::on_run_allok_, this, node);
       EXIT_MULTEX
     }
   }
@@ -733,36 +716,30 @@ bool Pipeline::is_all_done_() { return run_set_.empty(); }
 
 // run one node
 int Pipeline::do_run_one_front_(FUN_PARAM node) {
-    assert(node != nullptr);
-    return 0;
+  assert(node != nullptr);
+  return 0;
 }
 
 int Pipeline::do_run_one_back_(FUN_PARAM node) {
-    assert(node != nullptr);
-    return ((iNode*)node)->run();
+  assert(node != nullptr);
+  return ((iNode *)node)->run();
 }
 
 // pause
 int Pipeline::do_pause_front_(FUN_PARAM) {
-    state_ = ST_pausing;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
+  state_ = ST_pausing;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  return 0;
 }
-int Pipeline::do_pause_back_(FUN_PARAM) {
-    return 0;
-}
-
+int Pipeline::do_pause_back_(FUN_PARAM) { return 0; }
 
 // go_on
 int Pipeline::do_go_on_front_(FUN_PARAM) {
-    state_ = ST_running;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
+  state_ = ST_running;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  return 0;
 }
-int Pipeline::do_go_on_back_(FUN_PARAM) {
-    return 0;
-}
-
+int Pipeline::do_go_on_back_(FUN_PARAM) { return 0; }
 
 // stop
 int Pipeline::do_stop_front_(FUN_PARAM) {
@@ -770,31 +747,29 @@ int Pipeline::do_stop_front_(FUN_PARAM) {
   dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
   return 0;
 }
-int Pipeline::do_stop_back_(FUN_PARAM) {
-  return 0;
-}
+int Pipeline::do_stop_back_(FUN_PARAM) { return 0; }
 
 // user confirm
 int Pipeline::do_user_confirm_front_(FUN_PARAM ok) {
-    if (ok) state_ = ST_running;
-    else state_ = ST_confirm_refused;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
-    return 0;
+  if (ok)
+    state_ = ST_running;
+  else
+    state_ = ST_confirm_refused;
+  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  return 0;
 }
 int Pipeline::do_user_confirm_back_(FUN_PARAM node) { return 0; }
 
-void Pipeline::test_setup(int node_num, int branch_num,
-                          SIMULATE_RESULT_TYPE check, SIMULATE_RESULT_TYPE run,
+void Pipeline::test_setup(SIMULATE_RESULT_TYPE check, SIMULATE_RESULT_TYPE run,
                           int check_err_id, int run_err_id, int timeout_id,
                           int pause_id, int stop_id, int confirm_id,
                           int sleep_interval) {
   SafeDeletePtr(test_param_);
   test_param_ =
-      new TEST_PARAM{ node_num,     branch_num, check,         run,
+      new TEST_PARAM{ check,         run,
                       check_err_id, run_err_id, timeout_id,    pause_id,
                       stop_id,      confirm_id, sleep_interval };
 
-  diamod_simulator_(node_num, branch_num);
 }
 
 int Pipeline::thread_simulator_ex_(Pipeline *pl) {

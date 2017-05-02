@@ -134,7 +134,7 @@ typedef struct COPYFILE_AUTOID {
 #define mysql_atoi(dptr) ((dptr) ? atoi(dptr) : 0)
 
 typedef void *DBHANDLE;
-
+/*
 template <typename T> T *new_obj() {
   T *t = new T;
   memset(t, 0, sizeof(T));
@@ -195,7 +195,7 @@ int query_data(std::vector<T> &vecDataSet, DBHANDLE dbh, const char *sql,
     delete[] query;
   return nCount;
 }
-
+*/
 extern const char* pyaxa_query_sql[];
 extern const char* pyaxa_write_sql[];
 

@@ -17,7 +17,6 @@ DEFINES += ITAT_LIBRARY
 
 SOURCES += \
     ../src/str.c \
-    ../src/threadpool.c \
     ../src/saltapi.cpp \
     ../src/httpapi.cpp \
     ../src/mylog.cpp \
@@ -26,13 +25,13 @@ SOURCES += \
     ../src/state.cpp \
     ../src/pipeline.cpp \
     ../src/itat-python.cpp \
-    ../src/djangoapi.cpp
+    ../src/djangoapi.cpp \
+    ../src/mario_sql.cpp
 
 HEADERS += \
     ../include/itat_global.h \
     ../include/mylog.h \
     ../include/str.h \
-    ../include/threadpool.h \
     ../include/httpapi.hpp \
     ../include/node.hpp \
     ../include/edge.hpp \
@@ -41,7 +40,8 @@ HEADERS += \
     ../include/saltapi.hpp \
     ../include/state.hpp \
     ../include/pipeline.hpp \
-    ../include/djangoapi.hpp
+    ../include/djangoapi.hpp \
+    ../include/mario_sql.h
 
 
 
@@ -54,7 +54,9 @@ unix {
     #INCLUDEPATH += /usr/include/python2.7
     INCLUDEPATH += /data/py2713/include/python2.7
 
-    LIBS += -lpthread -lrt -ligraph -lboost_python -L/data/py2713/lib -lpython2.7
+    LIBS += -lpthread -lrt -ligraph -lboost_python
+    LIBS += -L/data/py2713/lib -lpython2.7
+    LIBS += -L/usr/lib64/mysql -lmysqlclient
 
     target.path = /usr/local/bin/mario
     INSTALLS += target
@@ -92,6 +94,7 @@ windows {
 DISTFILES += \
     itat.py \
     bill_message.py \
-    install.sh
+    install.sh \
+    transfers.py
 
 

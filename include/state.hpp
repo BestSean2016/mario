@@ -151,8 +151,6 @@ typedef enum SIMULATE_RESULT_TYPE {
 
 
 typedef struct TEST_PARAM {
-    int node_num = 20;
-    int branch_num = 2;
     SIMULATE_RESULT_TYPE check_type = SIMULATE_RESULT_TYPE_OK;
     SIMULATE_RESULT_TYPE run_type = SIMULATE_RESULT_TYPE_OK;
     int check_err_id = -1;

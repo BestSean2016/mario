@@ -1,5 +1,8 @@
 #include "djangoapi.hpp"
 
+extern std::map<int, int> node_mysql_map;
+extern std::map<int, int> mysql_node_map;
+
 std::string python_filename = {"bill_message"};
 
 namespace itat {
@@ -70,7 +73,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id,
                                                         "(iiiiiiss)",
                                                         pl_ex_id,
                                                         graph_id,
-                                                        node_id,
+                                                        node_mysql_map[node_id],
                                                         run_state,
                                                         check_state,
                                                         code,

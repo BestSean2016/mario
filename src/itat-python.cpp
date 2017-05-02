@@ -28,11 +28,11 @@ char const* greet()
    return "hello, world";
 }
 
-uint64_t new_mario(int plid) {
+int64_t new_mario(int plid) {
     return (uint64_t)(void*)(new Mario(plid));
 }
 
-int get_back_mario(uint64_t id) {
+int get_back_mario(int64_t id) {
     if (id) {
       Mario* m = (Mario*)id;
       return m->get_plid();
@@ -40,23 +40,23 @@ int get_back_mario(uint64_t id) {
     return -1;
 }
 
-void kill_mario(uint64_t id) {
+void kill_mario(int64_t id) {
     if (id) {
       Mario* m = (Mario*)id;
       delete m;
     }
 }
 
-int initial(uint64_t id, int real_run, const char* bill_message) {
+int initial(int64_t id, int real_run, const char* bill_message, int node_num, int branch_num) {
     if (id) {
       Mario* m = (Mario*)id;
-      return m->initial(real_run, bill_message);
+      return m->initial(real_run, bill_message, node_num, branch_num);
     }
 
     return -1;
 }
 
-int run_mario(uint64_t id, int start_id) {
+int run_mario(int64_t id, int start_id) {
     if (id) {
       Mario* m = (Mario*)id;
       return m->run(start_id);
@@ -66,7 +66,7 @@ int run_mario(uint64_t id, int start_id) {
 }
 
 
-int stop_mario(uint64_t id) {
+int stop_mario(int64_t id) {
     if (id) {
       Mario* m = (Mario*)id;
       return m->stop();
@@ -75,9 +75,7 @@ int stop_mario(uint64_t id) {
     return -1;
 }
 
-int test_setup(uint64_t id,
-               int node_num,
-               int branch_num,
+int test_setup(int64_t id,
                int check,
                int run,
                int check_err_id,
@@ -89,7 +87,7 @@ int test_setup(uint64_t id,
                int sleep_interval) {
     if (id) {
         Mario* m = (Mario*)id;
-        m->test_setup(node_num, branch_num, check, run, check_err_id, run_err_id, timeout_id, pause_id, stop_id, confirm_id, sleep_interval);
+        m->test_setup(check, run, check_err_id, run_err_id, timeout_id, pause_id, stop_id, confirm_id, sleep_interval);
         return 0;
     }
 

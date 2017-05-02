@@ -14,11 +14,11 @@ using namespace std;
 
 using namespace itat;
 
-static char  MYSQL_DB_HOST[41] = {"10.10.250.250"};
-static short MYSQL_DB_PORT = 13579;
-static char  MYSQL_DB_NAME[41] = {"copyfile"};
-static char  MYSQL_DB_USER[41] = {"root"};
-static char  MYSQL_DB_PASS[41] = {"hongt@8a51"};
+//static char  MYSQL_DB_HOST[41] = {"10.10.250.250"};
+//static short MYSQL_DB_PORT = 13579;
+//static char  MYSQL_DB_NAME[41] = {"copyfile"};
+//static char  MYSQL_DB_USER[41] = {"root"};
+//static char  MYSQL_DB_PASS[41] = {"hongt@8a51"};
 static char  SALT_API_HOST[41] = {"10.10.10.12"};
 static short SALT_API_PORT = 8000;
 static char  SALT_API_USER[41] = {"sean"};

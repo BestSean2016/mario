@@ -17,9 +17,7 @@ Mario::~Mario() {
     SafeDeletePtr(g_);
 }
 
-void Mario::test_setup(int node_num,
-                      int branch_num,
-                      int check,
+void Mario::test_setup(int check,
                       int run,
                       int check_err_id,
                       int run_err_id,
@@ -29,9 +27,7 @@ void Mario::test_setup(int node_num,
                       int confirm_id,
                       int sleep_interval) {
   assert(g_ != nullptr);
-  g_->test_setup(node_num,
-                 branch_num,
-                 (SIMULATE_RESULT_TYPE)check,
+  g_->test_setup((SIMULATE_RESULT_TYPE)check,
                  (SIMULATE_RESULT_TYPE)run,
                  check_err_id,
                  run_err_id,
@@ -42,10 +38,10 @@ void Mario::test_setup(int node_num,
                  sleep_interval);
 }
 
-int Mario::initial(int real_run, const char* py_message_path) {
+int Mario::initial(int real_run, const char* py_message_path, int node_num, int branch_num) {
   assert(g_ != nullptr);
   dj_.init(py_message_path);
-  return g_->initial(real_run);
+  return g_->initial(real_run, node_num, branch_num);
 }
 
 int Mario::check() {

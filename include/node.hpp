@@ -4,27 +4,12 @@
 #include "itat.h"
 #include "itat_global.h"
 #include "state.hpp"
+#include "mario_sql.h"
 
 namespace itat {
 
 class Pipeline;
 // class dfNodeStateMachine;
-
-typedef struct mr_pl_node {
-  int64_t id = 0;
-  std::string old_id;
-  int64_t pl_id = 0;
-  int64_t ref_id = 0;
-  int ref_type = 0;
-  std::string minion_id;
-  int timeout = 60;
-  std::string argv;
-  std::string node_desc;
-  time_t created_at = 0;
-  int creator = 0;
-  time_t updated_at = 0;
-  int modifier = 0;
-} mr_pl_node;
 
 typedef enum NODE_TYPE {
   NODE_TYPE_UNKNOW = -1,
@@ -45,15 +30,19 @@ public:
   virtual ~iNode();
 
   void set_node_stype(NODE_TYPE type) { type_ = type; }
-  void set_pipline_node(mr_pl_node *plnode);
+  // void set_pipline_node(mr_pl_node *plnode);
   // void set_simulate(SIMULATE_RESULT_TYPE type) { simret_type_ = type; }
 
   // dfNodeStateMachine *get_state_machine() { return sm_; }
-  void gen_pl_node(int nodeid) {
+  void gen_pl_node(int nodeid, MR_BILL_PIPELINE_NODE* node = nullptr) {
     if (plnode_)
       delete plnode_;
-    plnode_ = new mr_pl_node;
-    plnode_->id = nodeid;
+    if (node)
+        plnode_ = MR_BILL_PIPELINE_NODE::clone(node);
+    else {
+        plnode_ = new MR_BILL_PIPELINE_NODE;
+        plnode_->id = nodeid;
+    }
   }
   STATE_TYPE get_state() { return state_; }
   // STATE_TYPE get_chk_state() { return chk_state_; }
@@ -66,7 +55,7 @@ public:
 
 public:
   //user's action
-  int init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm);
+  int init(int64_t i, MR_BILL_PIPELINE_NODE *node, iGraphStateMachine *gsm, iNodeStateMachine *nsm);
   int check();
   int run();
   int user_confirm();
@@ -103,7 +92,7 @@ private:
   iGraphStateMachine *gsm_ = nullptr;
   iNodeStateMachine *nsm_ = nullptr;
 
-  struct mr_pl_node *plnode_ = nullptr;
+  struct MR_BILL_PIPELINE_NODE *plnode_ = nullptr;
 
   TEST_PARAM * test_param_ = nullptr;
   RUN_TYPE run_type_ = RUN_TYPE_ASYNC ;

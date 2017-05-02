@@ -19,22 +19,23 @@ typedef enum RETURN_TYPE {
 } RETURN_TYPE;
 
 typedef struct salt_job_ret {
-  int64_t ple_id;            ///PIPELINE EXECUTIVE ID
-  RETURN_TYPE rettype;
-  std::string tag;
-  std::string stamp;
-  time_t      stamp_sec;
-  uint32_t    stamp_usec;
-  uint32_t    pid;
-  int         retcode;
-  std::string stderr;
-  std::string stdout;
-  bool        success;
-  std::string cmd;
-  std::string jid;
-  std::string fun;
-  std::string minion_id;
+  int64_t ple_id = 0;            ///PIPELINE EXECUTIVE ID
+  RETURN_TYPE rettype = RETURN_TYPE_OBJECT;
+  std::string tag       = "";
+  std::string stamp     = "";
+  time_t      stamp_sec = 0;
+  uint32_t    stamp_usec= 0;
+  uint32_t    pid = 0;
+  int         retcode = 0;
+  std::string stderr = "";
+  std::string stdout = "";
+  bool        success = false;
+  std::string cmd = "";
+  std::string jid = "";
+  std::string fun = "";
+  std::string minion_id = "";
 } SALT_JOB_RET;
+
 
 
 typedef enum SALT_JOB_EVENT_TYPE {
@@ -127,6 +128,7 @@ typedef enum SALT_API_TYPE {
 typedef struct salt_callback {
   response_function parse_token_cb;
   response_function parse_job_cb;
+  response_function parse_job_ret_cb;
   response_function parase_my_job_cb;
   response_function process_event_cb;
 } SALT_CALLBACK;
@@ -146,6 +148,7 @@ extern ITAT_API int parse_token_fn(const char *data, size_t len, void* param1, v
 
 //param1 is MAP_SALT_JOB type
 extern ITAT_API int parse_salt_job(const char *json, size_t len, void* param1, void* param2);
+extern ITAT_API int parse_salt_job_ret(const char *json, size_t len, void* param1, void* param2);
 
 #define TOKEN_LEN 128
 extern ITAT_API char g_token[TOKEN_LEN];
@@ -155,5 +158,8 @@ const int64_t testping_pid = -1;
 const int64_t testping_nid = -1;
 
 } //namespace itat
+
+
+extern ITAT_API std::ostream& operator<< (std::ostream& out, itat::SALT_JOB_RET& ret);
 
 #endif // SALT_API_HPP

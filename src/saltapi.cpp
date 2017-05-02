@@ -24,6 +24,7 @@ std::mutex g_job_mutex;
  * @return zero for good, otherwise for bad
  */
 static const char *salt_api_str[] = {
+    // ------- SALT_API_TYPE_LOGIN ------
     "POST /login HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
@@ -31,7 +32,7 @@ static const char *salt_api_str[] = {
     "Content-type: application/json\r\n"
     "\r\n"
     "{\"username\":\"%s\",\"password\":\"%s\",\"eauth\":\"pam\"}",
-
+    // ------ SALT_API_TYPE_TESTPING -------------
     "POST / HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
@@ -40,7 +41,7 @@ static const char *salt_api_str[] = {
     "Content-type: application/json\r\n"
     "\r\n"
     "{\"client\":\"local_async\",\"fun\":\"test.ping\",\"tgt\":\"%s\"}",
-
+    // -------------------- SALT_API_TYPE_ASYNC_RUNALL -----------------
     "POST / HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
@@ -48,8 +49,8 @@ static const char *salt_api_str[] = {
     "Content-Length: %d\r\n"
     "Content-type: application/json\r\n"
     "\r\n"
-    "{\"client\":\"local_async\",\"fun\":\"cmd.run_all\",\"tgt\":\"%s\",\"arg\":\"%s\"}",
-
+    "{\"client\":\"local_async\",\"fun\":\"cmd.run_all\",\"tgt\":\"%s\",\"arg\":[\"%s\"]}",
+    // ------------------ SALT_API_TYPE_RUNALL -----------------
     "POST / HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
@@ -58,13 +59,13 @@ static const char *salt_api_str[] = {
     "Content-type: application/json\r\n"
     "\r\n"
     "{\"client\":\"local\",\"fun\":\"cmd.run_all\",\"tgt\":\"%s\",\"arg\":\"%s\"}",
-
+    // ------------------ SALT_API_TYPE_EVENTS -----------------
     "GET /events HTTP/1.1\r\n"
     "Host: 10.10.10.19:8000\r\n"
     "Accept: application/json\r\n"
     "X-Auth-Token: %s\r\n"
     "\r\n",
-
+    // ------------------ SALT_API_TYPE_CP_GETFILE --------------
     "POST / HTTP/1.1\r\n"
     "Host: %s:%d\r\n"
     "Accept: application/json\r\n"
@@ -73,7 +74,6 @@ static const char *salt_api_str[] = {
     "Content-type: application/json\r\n"
     "\r\n"
     "[{\"client\":\"local\", \"tgt\":\"%s\", \"fun\":\"cp.get_file\", \"arg\":[\"%s\", \"%s\"]}]"
-
 
     "client=local_async&fun=cmd.run_all&tgt=%s&arg=c:"
     "\\hongt\\Client\\ExecClient.exe abcd",
@@ -139,6 +139,7 @@ int parse_token_fn(const char *data, size_t len, void* param1, void* param2) {
 void set_default_callback() {
   salt_cb.parase_my_job_cb = 0;
   salt_cb.parse_job_cb = 0;
+  salt_cb.parse_job_ret_cb = parse_salt_job_ret;
   salt_cb.parse_token_cb = parse_token_fn;
   salt_cb.process_event_cb = 0;
 }
@@ -198,6 +199,9 @@ int salt_api_async_cmd_runall(HTTP_API_PARAM *param, const char *target,
   snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
            param->hostname, param->port, g_token, strlen(tmp_buf), target, script);
+#ifdef _DEBUG_
+  std::cout << std::endl << cmd << std::endl;
+#endif //_DEBUG_
   int ret = itat_httpc(param, buffer, cmd);
   if (ret)
     std::cerr << "Wo caO!!!!\n";
@@ -212,6 +216,7 @@ int salt_api_cmd_runall(HTTP_API_PARAM *param, const char *target, const char *s
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_RUNALL],
            param->hostname, param->port, g_token, strlen(tmp_buf), target, script);
   std::cout << std::endl << cmd << std::endl;
+  param->rf = salt_cb.parse_job_ret_cb;
 
   int ret = itat_httpc(param, buffer, cmd);
   if (ret)
@@ -237,12 +242,6 @@ int salt_api_events(HTTP_API_PARAM* param) {
   return itat_httpc(param, buf, cmd);
 }
 
-
-
-//param1 is MAP_SALT_JOB type
-int parse_salt_job(const char *json, size_t len, void* param1, void* param2) {
-  return 0;
-}
 
 
 static int parse_string_array(std::vector<std::string> &vec,
@@ -357,4 +356,175 @@ static int parse_salt_myjob_jobmap(const char *json_data, size_t len,
   return 0;
 }
 
+
+
+static int parse_salt_job_ret_async(SALT_JOB_RET *job, rapidjson::Document &doc) {
+  if (doc.HasMember("tag"))
+    job->tag = doc["tag"].GetString();
+  else
+    return -2;
+
+  if (doc.HasMember("data")) {
+    // parse_new_job_data(doc["data"]);
+    rapidjson::Value &data = doc["data"];
+
+    if (data.HasMember("jid"))
+      job->jid = data["jid"].GetString();
+    else
+      return -5;
+
+    if (data.HasMember("_stamp"))
+      job->stamp = data["_stamp"].GetString();
+    else
+      return -7;
+
+    if (data.HasMember("fun"))
+      job->fun = data["fun"].GetString();
+    else
+      return -10;
+
+    if (data.HasMember("id"))
+      job->minion_id = data["id"].GetString();
+    else
+      return -11;
+    if (data.HasMember("cmd"))
+      job->cmd = data["cmd"].GetString();
+    else
+      return -12;
+
+    if (data.HasMember("success"))
+      job->success = data["success"].GetBool();
+    else
+      return -13;
+
+    if (data.HasMember("retcode"))
+      job->retcode = data["retcode"].GetInt();
+    else
+      return -14;
+
+    if (data.HasMember("return")) {
+      if (data["return"].IsObject()) {
+        rapidjson::Value &ret = data["return"];
+        if (ret.HasMember("pid"))
+          job->pid = ret["pid"].GetInt();
+        // else
+        //   return -16;
+
+        if (ret.HasMember("retcode"))
+          job->retcode = ret["retcode"].GetInt();
+        // else
+        //   return -17;
+
+        if (ret.HasMember("stdout"))
+          job->stdout = ret["stdout"].GetString();
+        // else
+        //   return -18;
+        if (ret.HasMember("stderr"))
+          job->stderr = ret["stderr"].GetString();
+        // else
+        //   return -18;
+
+        job->rettype = RETURN_TYPE_OBJECT;
+      } else if (data["return"].IsBool()) {
+        job->pid = 0;
+        job->stderr = "";
+        job->stdout = "";
+        job->rettype = RETURN_TYPE_BOOL;
+      } else if (data["return"].IsString()) {
+        job->pid = 0;
+        if (job->success)
+          job->stdout = data["return"].GetString(), job->stderr = "";
+        else
+          job->stderr = data["return"].GetString(), job->stdout = "";
+        job->rettype = RETURN_TYPE_STRING;
+      }
+    } // else
+      // return -15;
+  }
+  return 0;
+}
+
+
+static int parse_salt_job_ret(SALT_JOB_RET *job, char* minion, rapidjson::Document &doc) {
+    if (doc.HasMember("return")) {
+        if (doc["return"].IsArray()) {
+        rapidjson::Value& ret = doc["return"][0];
+        if (ret.HasMember(minion)) {
+          rapidjson::Value& m = ret[minion];
+          if (m.HasMember("retcode"))
+            job->retcode = m["retcode"].GetInt();
+          else
+            return -17;
+
+          if (m.HasMember("stdout"))
+            job->stdout = m["stdout"].GetString();
+          else
+            return -18;
+
+          if (m.HasMember("stderr"))
+            job->stderr = m["stderr"].GetString();
+          else
+            return -18;
+
+        } else
+          return -16;
+        } else return -14;
+    } else
+      return -15;
+
+  return 0;
+}
+
+
+//
+//{"return": [{"old080027789636": {"pid": 3036, "retcode": 0, "stderr": "", "stdout": ""}}]}
+//
+int parse_salt_job_ret(const char *json_data, size_t len, void* param1, void* param2) {
+  char p = *(((char*)json_data) + len);
+  *(((char*)json_data) + len) = 0;
+  rapidjson::StringStream ss(json_data);
+#ifdef _DEBUG_
+  std::cout << json_data << std::endl;
+#endif //_DEBUG_
+
+  rapidjson::Document doc;
+  doc.ParseStream(ss);
+
+  if (doc.HasParseError()) {
+    *(((char*)json_data) + len) = p;
+    std::cout << "Error at " << doc.GetErrorOffset() << std::endl
+              << json_data + doc.GetErrorOffset() << std::endl;
+    return -1;
+  }
+  *(((char*)json_data) + len) = p;
+  SALT_JOB_RET *job = (SALT_JOB_RET*)param1;
+  return parse_salt_job_ret(job, (char*)param2, doc);
+}
+
+
+
+int parse_salt_job(const char *json, size_t len, void* param1, void* param2) {
+  return 0;
+}
+
 }//namespace itat
+
+
+std::ostream& operator<< (std::ostream& out, itat::SALT_JOB_RET& ret) {
+    out << "ple_id     " << ret.ple_id     << ','            ///PIPELINE EXECUTIVE ID
+        << "rettype    " << ret.rettype    << ','
+        << "tag        " << ret.tag        << ','
+        << "stamp      " << ret.stamp      << ','
+        << "stamp_sec  " << ret.stamp_sec  << ','
+        << "stamp_usec " << ret.stamp_usec << ','
+        << "pid        " << ret.pid        << ','
+        << "retcode    " << ret.retcode    << ','
+        << "stderr     " << ret.stderr     << ','
+        << "stdout     " << ret.stdout     << ','
+        << "success    " << ret.success    << ','
+        << "cmd        " << ret.cmd        << ','
+        << "jid        " << ret.jid        << ','
+        << "fun        " << ret.fun        << ','
+        << "minion_id  " << ret.minion_id  << endl;
+    return out;
+}

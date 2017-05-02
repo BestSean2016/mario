@@ -178,11 +178,16 @@ static int analyse_response(char **buf, int buflen, int *rescode,
       ++tmp;
     else {
       // this is a new line
+#ifdef _DEBUG_
+        *tmp = 0;
+        printf("|--- %s\n", line);
+        *tmp = '\r';
+#endif //_DEBUG_
       if (!*rescode &&
           (strncmp(line, _http_header_, strlen(_http_header_)) == 0)) {
         *rescode = get_response_code(line);
 #ifdef _DEBUG_
-// printf("response code %d\n", *rescode);
+         printf("response code %d\n", *rescode);
 #endif //_DEBUG_
       }
 

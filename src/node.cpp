@@ -18,10 +18,6 @@ iNode::~iNode() {
     delete plnode_;
 }
 
-void iNode::set_pipline_node(mr_pl_node *plnode) {
-  assert(plnode != nullptr);
-  plnode_ = plnode;
-}
 
 int iNode::check() {
   assert(g_ != nullptr && gsm_ != nullptr && nsm_ != nullptr &&
@@ -109,8 +105,7 @@ int iNode::do_check_back_(FUN_PARAM) {
     if (test_param_ && test_param_->check_type > SIMULATE_RESULT_TYPE_UNKNOW) {
         simu_check__();
     } else {
-        //do check
-        //ret = check_node ... ;
+        state_ = ST_checked_ok;
     }
   }
   dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_, state_);
@@ -118,8 +113,8 @@ int iNode::do_check_back_(FUN_PARAM) {
   return (state_ == ST_checked_ok) ? 0 : state_;
 }
 
-int iNode::init(int64_t i, iGraphStateMachine *gsm, iNodeStateMachine *nsm) {
-  gen_pl_node(i);
+int iNode::init(int64_t i, MR_BILL_PIPELINE_NODE* node, iGraphStateMachine *gsm, iNodeStateMachine *nsm) {
+  gen_pl_node(i, node);
   gsm_ = gsm, nsm_ = nsm;
 
   id_ = i;
@@ -141,7 +136,7 @@ void iNode::simu_run__() {
   case SIMULATE_RESULT_TYPE_OK:
     {
       if (test_param_->run_err_id == id_)
-          state_ = ST_run_one_err;
+          state_ = ST_error;
       else if (test_param_->timeout_id == id_)
           state_ = ST_timeout;
       else
@@ -166,8 +161,14 @@ int iNode::do_run_back_(FUN_PARAM) {
       if (test_param_ && test_param_->run_type > SIMULATE_RESULT_TYPE_UNKNOW) {
           simu_run__();
       } else {
-          //do real run
-          //ret = run_node ... ;
+          char minion[64] = {"old080027789636"};
+          itat::SALT_JOB_RET ret;
+          HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, &ret, minion);
+          salt_api_cmd_runall(&param, minion, "C:\\\\hongt\\\\Client\\\\ExecClient.exe abcd");
+          if (ret.retcode == 0)
+              state_ = ST_succeed;
+          else
+              state_ = ST_error;
       }
   }
 
