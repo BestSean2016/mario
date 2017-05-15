@@ -7,28 +7,28 @@ DEFINES  += __USING_MYSQL__
 
 SOURCES += main.cpp \
     ../src/chinese.c \
-    ../src/mario_mysql.cpp \
-    ../src/mario_data.cpp \
-    ../src/utility.c \
-    ../src/salt_api.cpp \
-    ../src/http_client.cpp \
-    ../src/threadpool.c \
-    ../src/pipe.cpp
+    mario_mysql.cpp \
+    mario_data.cpp \
+    utility.c \
+    salt_api.cpp \
+    http_client.cpp \
+    threadpool.c \
+    pipe.cpp
 
 HEADERS += \
     ../include/chinese.h \
-    ../include/mario_mysql.h \
-    ../include/utility.h \
-    ../include/mario_data.h \
-    ../include/salt_api.h \
-    ../include/http_client.h \
-    ../include/threadpool.h \
-    ../include/pipe.h
+    mario_mysql.h \
+    utility.h \
+    mario_data.h \
+    salt_api.h \
+    http_client.h \
+    threadpool.h \
+    pipe.h
 
 DISTFILES += \
-    ../src/mario-host-ip.py \
-    ../src/mario-host-minion.sql \
-    ../src/mario.sql \
+    mario-host-ip.py \
+    mario-host-minion.sql \
+    mario.sql \
     run_mario_run.sh
 
 

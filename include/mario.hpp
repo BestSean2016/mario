@@ -5,9 +5,12 @@
 #include "itat.h"
 #include "state.hpp"
 #include <boost/python.hpp>
-#include "pipeline.h"
+#include "pipeline.hpp"
 
 namespace itat {
+
+
+extern int global_userid_;
 
 class Mario {
 public:
@@ -21,8 +24,9 @@ public:
   int initial(int real_run, const char *py_message_path, int node_num,
               int branch_num);
 
+  void set_user(int userid) { global_userid_ = userid; }
   int check();
-  int run(int start_id);
+  int run(int start_id, int pleid);
   int run_node(int node_id);
   int pause();
   int go_on();
@@ -32,6 +36,8 @@ public:
   int test_int(int test) { return test; }
 
   int get_plid();
+
+  int is_done();
 
   // test, set up simulator
   /**
@@ -63,9 +69,18 @@ extern int get_back_mario(int64_t id);
 extern void kill_mario(int64_t id);
 extern int initial(int64_t id, int real_run, const char *bill_message,
                    int node_num, int branch_num);
-extern int run_mario(int64_t id, int start_id);
+extern int run_mario(int64_t id, int start_id, int pleid);
 extern int stop_mario(int64_t id);
 extern int test_setup(int64_t id, int check, int run, int check_err_id,
                       int run_err_id, int timeout_id, int pause_id, int stop_id,
                       int confirm_id, int sleep_interval);
+
+
+extern int run_node(int64_t id, int node_id);
+extern int pause_mario(int64_t id);
+extern int go_on(int64_t id);
+extern int confirm(int64_t id, int node_id);
+extern void set_user(int64_t id, int userid);
+extern int mario_is_done(int64_t id);
+
 #endif // MARIO_PLUMBER_H

@@ -56,10 +56,10 @@ int initial(int64_t id, int real_run, const char* bill_message, int node_num, in
     return -1;
 }
 
-int run_mario(int64_t id, int start_id) {
+int run_mario(int64_t id, int start_id, int pleid) {
     if (id) {
       Mario* m = (Mario*)id;
-      return m->run(start_id);
+      return m->run(start_id, pleid);
     }
 
     return -1;
@@ -73,6 +73,56 @@ int stop_mario(int64_t id) {
     }
 
     return -1;
+}
+
+
+
+int run_node(int64_t id, int node_id) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->run_node(node_id);
+    }
+
+    return -1;
+}
+
+int pause_mario(int64_t id) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->pause();
+    }
+    return -1;
+}
+
+int go_on(int64_t id) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->go_on();
+    }
+    return -1;
+}
+
+int confirm(int64_t id, int node_id) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->confirm(node_id);
+    }
+    return -1;
+}
+
+void set_user(int64_t id, int userid) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->set_user(userid);
+    }
+}
+
+int mario_is_done(int64_t id) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->is_done();
+    }
+    return 1;
 }
 
 int test_setup(int64_t id,
@@ -121,5 +171,11 @@ BOOST_PYTHON_MODULE(libitat)
     def("test_setup", test_setup);
     def("run_mario", run_mario);
     def("stop_mario", stop_mario);
+    def("run_node", run_node);
+    def("pause_mario", pause_mario);
+    def("go_on", go_on);
+    def("confirm", confirm);
+    def("set_user", set_user);
+    def("mario_is_done", mario_is_done);
 }
 

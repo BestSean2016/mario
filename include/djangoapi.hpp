@@ -4,6 +4,7 @@
 #include "itat.h"
 #include "itat_global.h"
 #include "state.hpp"
+#include "httpapi.hpp"
 
 
 #include <Python.h>
@@ -42,13 +43,18 @@ namespace itat {
 //                                 const std::string &stderr = "");
 
 
+typedef struct buffers {
+    char * cmd;
+    char * buf;
+    int ret;
+} buffers;
+
+
 
 class DjangoAPI {
 public:
     DjangoAPI();
     ~DjangoAPI();
-
-    int init(const char *py_message_path);
 
     int send_graph_status(int pl_ex_id,
                          int graph_id,
@@ -56,20 +62,16 @@ public:
                          STATE_TYPE run_state,
                          STATE_TYPE check_state,
                          int code = 0,
-                         const char *strout = "",
-                         const char *strerr = "");
+                         const char* strout = {""},
+                         const char* strerr = {""});
 
 
 private:
-    PyObject *pName = nullptr;
-    PyObject *pModule = nullptr;
-    PyObject *pDict = nullptr;
-    PyObject *pClass = nullptr;
-    PyObject *pInstance = nullptr;
-    PyObject *pValue = nullptr;
+    char buf_[BUFSIZ * 8];   //8192 * 8
+    char cmd_[BUFSIZ * 8];   //8192 * 8
 
 private:
-    bool inited_ = false;
+    void make_send_msg();
 };
 
 

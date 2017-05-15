@@ -24,14 +24,20 @@ int main(int argc, char **argv) {
 #endif //_WINDOWS
 
   testing::InitGoogleTest(&argc, argv);
-  Py_Initialize();
 
-  dj_.init("bill_message");
   int ret = RUN_ALL_TESTS();
 
-  Py_Finalize();
   return ret;
 }
+
+
+// TEST(http, http) {
+//     itat::DjangoAPI dj;
+//     for (int i = 0; i < 100; i++) {
+//         dj.send_graph_status(33, 12, 1, ST_running, ST_running, 0, "123", "456");
+//         printf("aslfdkjslfkj ----- %d *****\n", i);
+//     }
+// }
 
 //
 // static void __run_mario_real_pipeline__(itat::Mario *mario) {
@@ -41,7 +47,7 @@ int main(int argc, char **argv) {
 //   mario->initial(1, "bill_message", node_num, 2);
 //
 //   ASSERT_EQ(0, mario->check());
-//   ASSERT_EQ(0, mario->run(0));
+//   ASSERT_EQ(0, mario->run(0, 123));
 // }
 //
 // TEST(mario_state, mario_real_pipeline) {
@@ -57,16 +63,84 @@ int main(int argc, char **argv) {
 // }
 //
 
-TEST(mario_state, mario_realrun_pipeline) {
-  auto mario = new itat::Mario(8);
 
-  mario->initial(1, "bill_message", 0, 0);
+//
+// TEST(mario_state, mario_initial_pipeline) {
+//   auto mario = new itat::Mario(9);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+//
+//
+//   mario = new itat::Mario(8);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+//
+//   mario = new itat::Mario(9);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+//
+//   mario = new itat::Mario(10);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+//
+//   mario = new itat::Mario(11);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+//
+//   mario = new itat::Mario(12);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+//
+//   mario = new itat::Mario(13);
+//   mario->initial(1, "bill_message", 0, 0);
+//   delete mario;
+// }
+//
+//
 
-  mario->run(0);
 
-  delete mario;
-}
-
+//
+// TEST(mario_state, mario_realrun_pipeline) {
+//   itat::Mario* mario = nullptr;
+//   mario = new itat::Mario(9);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   delete mario;
+//
+//
+//   mario = new itat::Mario(8);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   while(!mario->is_done())
+//       std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//   delete mario;
+//
+//   mario = new itat::Mario(9);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   delete mario;
+//
+//   mario = new itat::Mario(10);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   delete mario;
+//
+//   mario = new itat::Mario(11);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   delete mario;
+//
+//   mario = new itat::Mario(12);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   delete mario;
+//
+//   mario = new itat::Mario(13);
+//   mario->initial(1, "bill_message", 0, 0);
+//   mario->run(0, 58);
+//   delete mario;
+// }
+//
 
 // TEST(state_machine, empty_graph) {
 //   auto pgraph = new itat::Pipeline(0);
@@ -240,23 +314,47 @@ TEST(mario_state, mario_realrun_pipeline) {
 //                     SIMULATE_RESULT_TYPE_RONDOM);
 //   graph->initial(false, node_num, 2);
 //
-//   ASSERT_EQ(ERROR_WRONG_STATE_TO_ACTION, graph->run(0));
+//   ASSERT_EQ(ERROR_WRONG_STATE_TO_ACTION, graph->run(0, 123));
 //
 //   delete graph;
 // }
 //
-// static void __run_mario__(itat::Mario *mario) {
-//   int node_num = 10;
+static void __run_mario__(itat::Mario *mario, bool real) {
+ if (!real) {
+   int node_num = 10;
+    mario->test_setup();
+    mario->initial(0, "bill_message", node_num, 2);
+  } else {
+    mario->initial(1, "bill_message", 0, 0);
+  }
+
+  //ASSERT_EQ(0, mario->check());
+
+  ASSERT_EQ(0, mario->run(0, 58));
+}
+
+
+TEST(mario_state, mario_pause_continue) {
+  auto mario = new itat::Mario(13);
+
+  std::thread t(__run_mario__, mario, true);
+  std::this_thread::sleep_for(std::chrono::seconds(30));
+
+  for (int i = 0; i < 15; ++i) {
+    printf("Pause %d\n", i +1);
+    mario->pause();
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    mario->go_on();
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+  }
+
+  t.join();
+  delete mario;
+}
+
+
 //
-//   mario->test_setup();
-//   mario->initial(0, "bill_message", node_num, 2);
-//
-//   ASSERT_EQ(0, mario->check());
-//
-//   ASSERT_EQ(0, mario->run(0));
-// }
-//
-// TEST(mario_state, mario_stop) {
+// TEST(mario_state, mario_stop) cc{
 //   auto mario = new itat::Mario(0);
 //
 //   std::thread t(__run_mario__, mario);
@@ -279,7 +377,7 @@ TEST(mario_state, mario_realrun_pipeline) {
 //   ASSERT_EQ(itat::ST_initial, graph->get_state());
 //   ASSERT_EQ(itat::ST_checked_ok, graph->get_chk_state());
 //
-//   ASSERT_EQ(0, graph->run(0));
+//   ASSERT_EQ(0, graph->run(0, 123));
 //
 //   // successed
 //   ASSERT_EQ(itat::ST_succeed, graph->get_state());
@@ -303,4 +401,5 @@ TEST(mario_state, mario_realrun_pipeline) {
 //     ASSERT_EQ(ret, 0);
 //   }
 // }
+//
 //

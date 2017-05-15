@@ -13,6 +13,7 @@
 namespace itat {
 
 
+
 typedef enum STATE_TYPE {
   ST_unknow = -1,
   ST_initial,
@@ -162,12 +163,6 @@ typedef struct TEST_PARAM {
     int sleep_interval = 1000;  //in macro-second
 } TEST_PARAM;
 
-
-typedef enum RUN_TYPE {
-  RUN_TYPE_UNKNOW,
-  RUN_TYPE_ASYNC,
-  RUN_TYPE_SYNC,
-} RUN_TYPE;
 
 } // namespace itat
 

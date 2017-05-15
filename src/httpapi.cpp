@@ -1,6 +1,5 @@
 #include "httpapi.hpp"
 #include "mylog.h"
-#include "threadpool.h"
 
 namespace itat {
 
@@ -8,26 +7,26 @@ int g_run = 1;
 
 static std::mutex g_mutex_event;
 
-static std::set<itat::HTTP_CLIENT_PARAM *> g_event_clients;
-
-static const char *http_ret_200 = "HTTP/1.0 200 OK\r\n";
-
-static const char *http_ret_400 = "HTTP/1.0 400 Bad Request\r\n";
-
-static const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
-                            "Access-Control-Expose-Headers: GET, POST\r\n"
-                            "Cache-Control: no-cache\r\n"
-                            "Vary: Accept-Encoding\r\n"
-                            "Server: CherryPy/3.2.2\r\n"
-                            "Connection: keep-alive\r\n"
-                            "Allow: GET, HEAD\r\n"
-                            "Access-Control-Allow-Credentials: true\r\n"
-                            "Date: Fri, 16 Dec 2016 07:50:12 GMT\r\n"
-                            "Access-Control-Allow-Origin: *\r\n"
-                            "Content-Type: text/event-stream;charset=utf-8\r\n"
-                            "Transfer-Encoding: chunked\r\n\r\n"
-                            "a\r\nretry: 400\r\n\r\n";
-
+// static std::set<itat::HTTP_CLIENT_PARAM *> g_event_clients;
+//
+// static const char *http_ret_200 = "HTTP/1.0 200 OK\r\n";
+//
+// static const char *http_ret_400 = "HTTP/1.0 400 Bad Request\r\n";
+//
+// static const char *http_chuncked = "HTTP/1.1 200 OK\r\n"
+//                             "Access-Control-Expose-Headers: GET, POST\r\n"
+//                             "Cache-Control: no-cache\r\n"
+//                             "Vary: Accept-Encoding\r\n"
+//                             "Server: CherryPy/3.2.2\r\n"
+//                             "Connection: keep-alive\r\n"
+//                             "Allow: GET, HEAD\r\n"
+//                             "Access-Control-Allow-Credentials: true\r\n"
+//                             "Date: Fri, 16 Dec 2016 07:50:12 GMT\r\n"
+//                             "Access-Control-Allow-Origin: *\r\n"
+//                             "Content-Type: text/event-stream;charset=utf-8\r\n"
+//                             "Transfer-Encoding: chunked\r\n\r\n"
+//                             "a\r\nretry: 400\r\n\r\n";
+//
 static const char *_http_header_ = {"HTTP/1.1 "};
 static const char *_content_len_ = {"Content-Length: "};
 
@@ -125,36 +124,36 @@ static int getRequestParam(const char *line, itat::HttpRequest *hr) {
 
   return 0;
 }
-
-int event_sender() {
-  char buf[BUFSIZE * 2];
-  memset(buf, 0, BUFSIZE * 2);
-
-  int64_t i = 0;
-  while (g_run) {
-    snprintf(buf + BUFSIZE, BUFSIZE,
-             "{ \"result\" = \"abcdef%ld\", \"code\" = %ld }\r\n", i, i);
-    snprintf(buf, BUFSIZE, "%lx\r\n%s\r\n", strlen(buf + BUFSIZE),
-             buf + BUFSIZE);
-
-    auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
-    for (auto it = g_event_clients.begin(); it != g_event_clients.end();) {
-      if (write((*it)->socket, buf, strlen(buf)) != (ssize_t)strlen(buf)) {
-        close((*it)->socket);
-        delete (*it);
-        it = g_event_clients.erase(it);
-      } else
-        ++it;
-    }
-    delete guard;
-
-    ++i;
-    sleep(1);
-  }
-
-  return 0;
-}
-
+//
+// int event_sender() {
+//   char buf[BUFSIZE * 2];
+//   memset(buf, 0, BUFSIZE * 2);
+//
+//   int64_t i = 0;
+//   while (g_run) {
+//     snprintf(buf + BUFSIZE, BUFSIZE,
+//              "{ \"result\" = \"abcdef%ld\", \"code\" = %ld }\r\n", i, i);
+//     snprintf(buf, BUFSIZE, "%lx\r\n%s\r\n", strlen(buf + BUFSIZE),
+//              buf + BUFSIZE);
+//
+//     auto *guard = new std::lock_guard<std::mutex>(g_mutex_event);
+//     for (auto it = g_event_clients.begin(); it != g_event_clients.end();) {
+//       if (write((*it)->socket, buf, strlen(buf)) != (ssize_t)strlen(buf)) {
+//         close((*it)->socket);
+//         delete (*it);
+//         it = g_event_clients.erase(it);
+//       } else
+//         ++it;
+//     }
+//     delete guard;
+//
+//     ++i;
+//     sleep(1);
+//   }
+//
+//   return 0;
+// }
+//
 
 // **************************************************************************************
 // Client Api
@@ -257,9 +256,13 @@ restart_client:
     ret = (connect(sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) <
            0);
   }
+
+  if (!ret)
+     param->sockfd = sockfd;
+
 /* send the message line to the server */
 #ifdef _DEBUG_
-// printf("CMD: %s\n", cmd);
+  printf("htpclient: %d: %s\n", strlen(cmd), cmd);
 #endif //_DEBUG_
 
   if (!ret)
@@ -330,9 +333,10 @@ run_receive_long_data : {
 
     // read next package
     // printf("************** reading *********************\n");
+    memset(ptr, 0, BUFSIZE - total_len);
     n = read(sockfd, ptr, BUFSIZE - total_len);
     if (n < 0) {
-      if (n != 11)
+      if (errno != 11)
         fprintf(stdout,
                 "i got n = %d bytes, error no %d, errmsg %s total_len is %d\n",
                 n, errno, strerror(errno), total_len);
@@ -345,6 +349,10 @@ run_receive_long_data : {
       ptr += n, total_len += n;
     }
   }
+
+#ifdef _DEBUG_
+  std::cout << "Exit http client - salt event\n";
+#endif //_DEBUG_
 
   close(sockfd);
 

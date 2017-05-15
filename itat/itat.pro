@@ -26,7 +26,9 @@ SOURCES += \
     ../src/pipeline.cpp \
     ../src/itat-python.cpp \
     ../src/djangoapi.cpp \
-    ../src/mario_sql.cpp
+    ../src/mario_sql.cpp \
+    ../src/saltman.cpp \
+    ../src/threadpool.c
 
 HEADERS += \
     ../include/itat_global.h \
@@ -41,7 +43,9 @@ HEADERS += \
     ../include/state.hpp \
     ../include/pipeline.hpp \
     ../include/djangoapi.hpp \
-    ../include/mario_sql.h
+    ../include/mario_sql.h \
+    ../include/saltman.hpp \
+    ../include/threadpool.h
 
 
 
@@ -95,6 +99,9 @@ DISTFILES += \
     itat.py \
     bill_message.py \
     install.sh \
-    transfers.py
+    transfers.py \
+    test_pause_pild12.py \
+    test_all_pipeline.py \
+    test_transfers.py
 
 

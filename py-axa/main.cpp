@@ -10,7 +10,7 @@ using namespace std;
 #include "httpapi.hpp"
 #include "pyaxa-mysql.hpp"
 #include "saltapi.hpp"
-
+#include "mario_sql.h"
 
 using namespace itat;
 
@@ -341,11 +341,11 @@ void signal_handle(int sig) {
 }
 
 //
-// MYSQL_DB_HOST   10.10.250.250
-// MYSQL_DB_PORT   13579
-// MYSQL_DB_NAME   copyfile
-// MYSQL_DB_USER   root
-// MYSQL_DB_PASS   hongt@8a51
+static char MYSQL_DB_HOST[128]; // 10.10.250.250
+static short MYSQL_DB_PORT;     // 13579
+static char MYSQL_DB_NAME[128]; // copyfile
+static char MYSQL_DB_USER[128]; // root
+static char MYSQL_DB_PASS[128]; // hongt@8a51
 // SALT_API_HOST   10.10.10.12
 // SALT_API_PORT   8000
 // SALT_API_USER   sean

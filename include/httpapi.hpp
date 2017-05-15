@@ -58,14 +58,22 @@ typedef struct HTTP_CLIENT_PARAM {
 } HTTP_CLIENT_PARAM;
 
 typedef struct HTTP_API_PARAM {
-    char hostname[32];
-    int port;
-    response_function rf;
-    PARAM param1;
-    PARAM param2;
+    char hostname[32] = "";
+    int port = 0;
+    int sockfd = 0;
+    response_function rf = nullptr;
+    PARAM param1 = nullptr;
+    PARAM param2 = nullptr;
+
+    HTTP_API_PARAM() {}
 
     HTTP_API_PARAM (const char* host, const int portno, response_function fun, PARAM p1, PARAM p2)
       : port(portno), rf(fun), param1(p1), param2(p2) {
+      strcpy_s(hostname, 31, host);
+    }
+
+    void set_param(const char* host, const int portno, response_function fun, PARAM p1, PARAM p2) {
+      port = portno, rf = fun, param1 = p1, param2 = p2;
       strcpy_s(hostname, 31, host);
     }
 } HTTP_API_PARAM;

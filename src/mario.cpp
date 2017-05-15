@@ -4,9 +4,7 @@
 #include "pipeline.hpp"
 #include "djangoapi.hpp"
 
-
 namespace itat {
-extern DjangoAPI dj_;
 
 Mario::Mario(int plid) {
   g_ = new Pipeline(plid);
@@ -39,8 +37,9 @@ void Mario::test_setup(int check,
 }
 
 int Mario::initial(int real_run, const char* py_message_path, int node_num, int branch_num) {
+  UNUSE(py_message_path);
   assert(g_ != nullptr);
-  dj_.init(py_message_path);
+
   return g_->initial(real_run, node_num, branch_num);
 }
 
@@ -49,9 +48,9 @@ int Mario::check() {
   return g_->check();
 }
 
-int Mario::run(int start_id) {
+int Mario::run(int start_id, int pleid) {
   assert(g_ != nullptr);
-  return g_->run(start_id);
+  return g_->run(start_id, pleid);
 }
 
 int Mario::run_node(int node_id) {
@@ -83,6 +82,11 @@ int Mario::confirm(int node_id) {
 int Mario::get_plid() {
     assert(g_ != nullptr);
     return g_->get_plid();
+}
+
+int Mario::is_done() {
+    assert(g_ != nullptr);
+    return (g_->get_state() == ST_succeed);
 }
 
 

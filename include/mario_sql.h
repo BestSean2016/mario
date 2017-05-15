@@ -12,13 +12,7 @@
 #include <sstream>
 #include <mysql/mysql.h>
 #include <igraph/igraph.h>
-
-static char MYSQL_DB_HOST[41] = { "106.38.67.196"};
-static short MYSQL_DB_PORT = 3306;
-static char MYSQL_DB_NAME[41] = { "mysite" };
-static char MYSQL_DB_USER[41] = { "bill" };
-static char MYSQL_DB_PASS[41] = { "hongt@8a51" };
-
+#include "state.hpp"
 
 using namespace std;
 
@@ -45,10 +39,8 @@ int query_data(std::vector<T> &vecDataSet, DBHANDLE dbh, const char *sql,
                  "%s WHERE %s", sql, where);
     } else
         query = (char *)sql;
-    //    ±£Ö¤½á¹¹ÌåÊÇ¸É¾»µÄ
-    if (vecDataSet.size()>0){
-        vecDataSet.clear();
-    }
+    //    保证结构体是干净的
+    vecDataSet.clear();
 
     int res = mysql_query(reinterpret_cast<MYSQL *>(dbh), query);
     if (res) {
@@ -91,10 +83,7 @@ int insert_data(const T *t, DBHANDLE dbh,
                 std::function<int(void*, string &)> get_field_string){
     string sql_insert = "";
     get_field_string((void*)t, sql_insert);
-
-#ifdef __DEBUG__
     printf("%s", sql_insert.c_str());
-#endif
 
     int res = mysql_query(reinterpret_cast<MYSQL *>(dbh), sql_insert.c_str());
     if (res) {
@@ -190,13 +179,16 @@ typedef struct MR_AUTHTOKEN_TOKEN{
 /*tabel:bill_alarm*/
 typedef struct MR_BILL_ALARM{
     int id;
+    int level;
+    string ip_address;
+    string title;
     string result_info;
     time_t started_at;
     int pipeline_id;
-    string ip_address;
-    int level;
     int node_id;
     int operator_id;
+    int is_exec;
+    int ex_pl_id;
 }MR_BILL_ALARM;
 
 /*tabel:bill_alarm_user*/
@@ -268,6 +260,16 @@ typedef struct MR_BILL_EXEC_PIPELINE{
     int user_id;
 }MR_BILL_EXEC_PIPELINE;
 
+/*tabel:bill_exec_pipeline_view*/
+typedef struct MR_BILL_EXEC_PIPELINE_VIEW{
+    int id;
+    string name;
+    int user_id;
+    string desc;
+    int lock_on;
+    int status;
+}MR_BILL_EXEC_PIPELINE_VIEW;
+
 /*tabel:bill_host*/
 typedef struct MR_BILL_HOST{
     int id;
@@ -304,6 +306,67 @@ typedef struct MR_BILL_PIPELINE{
     int reviewer_id;
 }MR_BILL_PIPELINE;
 
+/*tabel:bill_pipeline_all_node_view*/
+typedef struct MR_BILL_PIPELINE_ALL_NODE_VIEW{
+    int id;
+    int ref_id;
+    string old_id;
+    int ref_type;
+    string name;
+    string minion_id;
+    int timeout;
+    string argv;
+    string desc;
+    time_t created_at;
+    time_t updated_at;
+    int creator_id;
+    int modifier_id;
+    int pipeline_id;
+    string ip_address;
+    string position_x;
+    string position_y;
+    string command;
+    string script_name;
+    string script_content;
+    int script_type;
+    string script_file_path;
+    string script_argv;
+    int script_argc;
+    int status;
+
+    static MR_BILL_PIPELINE_ALL_NODE_VIEW* clone(MR_BILL_PIPELINE_ALL_NODE_VIEW* n) {
+            auto nn = new MR_BILL_PIPELINE_ALL_NODE_VIEW;
+            nn->id = n->id;
+            nn->ref_id = n->ref_id;
+            nn->old_id = n->old_id;
+            nn->ref_type = n->ref_type;
+            nn->name = n->name;
+            nn->minion_id = n->minion_id;
+            nn->timeout = n->timeout;
+            nn->argv = n->argv;
+            nn->desc = n->desc;
+            nn->created_at = n->created_at;
+            nn->updated_at = n->updated_at;
+            nn->creator_id = n->creator_id;
+            nn->modifier_id = n->modifier_id;
+            nn->pipeline_id = n->pipeline_id;
+            nn->ip_address = n->ip_address;
+            nn->position_x = n->position_x;
+            nn->position_y = n->position_y;
+            nn->command = n->command;
+            nn->script_name = n->script_name;
+            nn->script_content = n->script_content;
+            nn->script_type = n->script_type;
+            nn->script_file_path = n->script_file_path;
+            nn->script_argv = n->script_argv;
+            nn->script_argc = n->script_argc;
+            nn->status = n->status;
+
+            return nn;
+        }
+}MR_BILL_PIPELINE_ALL_NODE_VIEW;
+typedef MR_BILL_PIPELINE_ALL_NODE_VIEW MARIO_NODE;
+
 /*tabel:bill_pipeline_edge*/
 typedef struct MR_BILL_PIPELINE_EDGE{
     int id;
@@ -316,12 +379,15 @@ typedef struct MR_BILL_PIPELINE_EDGE{
     int src_id;
     int trg_id;
 }MR_BILL_PIPELINE_EDGE;
+typedef MR_BILL_PIPELINE_EDGE MARIO_EDGE;
+
 
 /*tabel:bill_pipeline_group*/
 typedef struct MR_BILL_PIPELINE_GROUP{
     int id;
     string name;
     int parent_id;
+    string old_id;
 }MR_BILL_PIPELINE_GROUP;
 
 /*tabel:bill_pipeline_info*/
@@ -343,12 +409,10 @@ typedef struct MR_BILL_PIPELINE_JSON{
 typedef struct MR_BILL_PIPELINE_NODE{
     int id;
     string old_id;
-    string ip;
     int ref_id;
     int ref_type;
     string name;
     string minion_id;
-    string script;
     int timeout;
     string argv;
     string desc;
@@ -357,27 +421,7 @@ typedef struct MR_BILL_PIPELINE_NODE{
     int creator_id;
     int modifier_id;
     int pipeline_id;
-    static MR_BILL_PIPELINE_NODE* clone(MR_BILL_PIPELINE_NODE* n) {
-        auto nn = new MR_BILL_PIPELINE_NODE;
-        nn->id          = n->id         ;
-        nn->old_id      = n->old_id     ;
-        nn->ip          = nn->ip        ;
-        nn->ref_id      = n->ref_id     ;
-        nn->ref_type    = n->ref_type   ;
-        nn->name        = n->name       ;
-        nn->minion_id   = n->minion_id  ;
-        nn->script      = n->script     ;
-        nn->timeout     = n->timeout    ;
-        nn->argv        = n->argv       ;
-        nn->desc        = n->desc       ;
-        nn->created_at  = n->created_at ;
-        nn->updated_at  = n->updated_at ;
-        nn->creator_id  = n->creator_id ;
-        nn->modifier_id = n->modifier_id;
-        nn->pipeline_id = n->pipeline_id;
-        return nn;
-    }
-} MR_BILL_PIPELINE_NODE;
+}MR_BILL_PIPELINE_NODE;
 
 /*tabel:bill_pipeline_node_info*/
 typedef struct MR_BILL_PIPELINE_NODE_INFO{
@@ -405,6 +449,7 @@ typedef struct MR_BILL_PIPELINE_NODE_VIEW{
     int modifier_id;
     int pipeline_id;
     string ip_address;
+    string script_name;
 }MR_BILL_PIPELINE_NODE_VIEW;
 
 /*tabel:bill_script*/
@@ -464,8 +509,6 @@ typedef struct MR_DJANGO_SESSION{
 
 extern const char *query_sql[];
 
-extern const char *insert_sql[];
-
 extern int get_auth_group(void *r, MYSQL_ROW& row);
 extern int get_auth_group_to_insert_sql(void *r, string & str);
 extern int get_auth_group_to_update_sql(void *r, string & str);
@@ -508,6 +551,9 @@ extern int get_bill_exec_node_to_update_sql(void *r, string & str);
 extern int get_bill_exec_pipeline(void *r, MYSQL_ROW& row);
 extern int get_bill_exec_pipeline_to_insert_sql(void *r, string & str);
 extern int get_bill_exec_pipeline_to_update_sql(void *r, string & str);
+extern int get_bill_exec_pipeline_view(void *r, MYSQL_ROW& row);
+extern int get_bill_exec_pipeline_view_to_insert_sql(void *r, string & str);
+extern int get_bill_exec_pipeline_view_to_update_sql(void *r, string & str);
 extern int get_bill_host(void *r, MYSQL_ROW& row);
 extern int get_bill_host_to_insert_sql(void *r, string & str);
 extern int get_bill_host_to_update_sql(void *r, string & str);
@@ -517,6 +563,9 @@ extern int get_bill_node_type_to_update_sql(void *r, string & str);
 extern int get_bill_pipeline(void *r, MYSQL_ROW& row);
 extern int get_bill_pipeline_to_insert_sql(void *r, string & str);
 extern int get_bill_pipeline_to_update_sql(void *r, string & str);
+extern int get_bill_pipeline_all_node_view(void *r, MYSQL_ROW& row);
+extern int get_bill_pipeline_all_node_view_to_insert_sql(void *r, string & str);
+extern int get_bill_pipeline_all_node_view_to_update_sql(void *r, string & str);
 extern int get_bill_pipeline_edge(void *r, MYSQL_ROW& row);
 extern int get_bill_pipeline_edge_to_insert_sql(void *r, string & str);
 extern int get_bill_pipeline_edge_to_update_sql(void *r, string & str);
@@ -555,8 +604,19 @@ extern int get_django_session_to_insert_sql(void *r, string & str);
 extern int get_django_session_to_update_sql(void *r, string & str);
 
 
-extern int create_graph(igraph_t *graph, std::vector<MR_BILL_PIPELINE_NODE> &pl_node,
+extern int create_graph(igraph_t *g, std::vector<MR_BILL_PIPELINE_ALL_NODE_VIEW> &pl_node,
                         std::vector<MR_BILL_PIPELINE_EDGE> &pl_edge, DBHANDLE h_db,
                         int pl_id);
+
+
+extern map<int, int> node_mysql_map;
+extern map<int, int> mysql_node_map;
+extern map<int, int> ignodeid_2_inodeid;
+extern map<int, int> inodeid_2_ignodeid;
+
+extern int get_value_by_key(int key, const std::map<int, int> &my_map);
+
+
+
 
 #endif // MARIO_MYSQL_H

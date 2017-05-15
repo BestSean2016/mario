@@ -5,8 +5,10 @@
 #include "itat_global.h"
 #include "state.hpp"
 #include "mario_sql.h"
+#include "saltapi.hpp"
 
 #include <igraph/igraph.h>
+#include "saltman.hpp"
 
 // template<typename T>
 // int vec_find(std::vector<T>& vec, T& a) {
@@ -28,11 +30,9 @@
 // }
 //
 
-extern bool vec_find(std::vector<int> &vec, int a);
-extern void vec_insert(std::vector<int> &vec, int a);
-extern void vec_erase(std::vector<int> &vec, int a);
 
 namespace itat {
+
 
 class Pipeline {
 public:
@@ -50,13 +50,15 @@ public: // generic interface to manuplate the pipeline
   int gen_piple_graph();
   iNode *get_node_by_jid(std::string &jid);
   int initial(int real_run, int node_num = 20, int branch_num = 2);
-  int is_running() { return (tsim_.joinable() || tevent_.joinable()); }
+  int is_running() { return (tsim_.joinable()); }
   STATE_TYPE get_state() { return state_; }
   STATE_TYPE get_chk_state() { return chk_state_; }
-  RUN_TYPE get_run_type() { return run_type_; }
   int get_plid() { return plid_; }
   int get_pl_exe_id() { return pleid_; }
   int get_amount_node() { return ig_.n; }
+  igraph_t* get_igraph() { return &ig_; }
+  saltman* get_saltman() { return saltman_; }
+  NODESET* get_nodeset() { return &nodeset_; }
 
   // test, set up simulator
   /**
@@ -81,12 +83,17 @@ public: // generic interface to manuplate the pipeline
 
 public: // the action from user
   int check();
-  int run(int start_id);
+  int run(int start_id, int pleid);
   int run_node(int node_id);
   int pause();
   int go_on();
   int stop();
   int user_confirm(int ok);
+
+
+  int on_run_error(FUN_PARAM node);
+  int on_run_timeout(FUN_PARAM node);
+  int on_run_ok(FUN_PARAM node);
 
 private: // the  state machine front and back
   // Check Action
@@ -103,10 +110,7 @@ private: // the  state machine front and back
   void do_run_node_http_request_(iNode *node);
   static int thread_simulator_(Pipeline *pl);
   static int thread_simulator_ex_(Pipeline *pl);
-  // the running callback function for igraph's visitor
-  static int do_node_run_cb_(const igraph_t *graph, igraph_integer_t vid,
-                             igraph_integer_t, igraph_integer_t,
-                             igraph_integer_t, igraph_integer_t, void *extra);
+  int thread_simulator_ex_ex_();
 
   // run one node
   int do_run_one_front_(FUN_PARAM node);
@@ -127,15 +131,12 @@ private: // the  state machine front and back
 private:
   // internal event action
   // run ......................................
-  int on_run_error_(FUN_PARAM node);
   int on_run_error_front_(FUN_PARAM node);
   int on_run_error_back_(FUN_PARAM node);
 
-  int on_run_timeout_(FUN_PARAM node);
   int on_run_timeout_front_(FUN_PARAM node);
   int on_run_timeout_back_(FUN_PARAM node);
 
-  int on_run_ok_(FUN_PARAM node);
   int on_run_ok_front_(FUN_PARAM node);
   int on_run_ok_back_(FUN_PARAM node);
 
@@ -172,6 +173,8 @@ private:
   int on_waitin_confirm_front_(FUN_PARAM node);
   int on_waitin_confirm_back_(FUN_PARAM node);
 
+  static int run_run_run__(Pipeline* pl, int node_id);
+
 public:
   // interface for test
   int test_1(FUN_PARAM);
@@ -190,30 +193,27 @@ private:
 
   MapStr2Ptr<iNode> jid_2_node_;
 
-  std::vector<int> prepare_to_run_;
-  std::vector<int> running_set_;
-  std::vector<int> run_set_;
-  std::vector<int> done_set_;
+  NODESET nodeset_;
 
-  RUN_TYPE run_type_ = RUN_TYPE_ASYNC;
   std::thread tsim_;
-  std::thread tevent_;
 
   TEST_PARAM *test_param_ = nullptr;
 
+  saltman* saltman_ = nullptr;
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
-  int gen_node_(vector<MR_BILL_PIPELINE_NODE> *nodes);
+  int gen_node_(vector<MARIO_NODE> *nodes);
   int setup_state_machine_();
+  int get_start_node_id();
 
   /**
    * @brief load_pipe_line_from_db
    * @return 0 for good
    */
-  int load_pipe_line_from_db_(vector<MR_BILL_PIPELINE_NODE> &pl_node,
-                              vector<MR_BILL_PIPELINE_EDGE> &pl_edge);
+  int load_pipe_line_from_db_(vector<MARIO_NODE> &pl_node,
+                              vector<MARIO_EDGE> &pl_edge);
 
-  void find_node_to_run_(int node_id, bool after);
+  void find_node_to_run_(int ig_node_id);
 
   bool is_all_done_();
 
@@ -225,7 +225,7 @@ private:
    */
   int diamod_simulator_(int node_num, int branch_num);
 
-  int simulator_check_();
+  int simulator_check_(Pipeline* pl);
 };
 
 } // namespace itat

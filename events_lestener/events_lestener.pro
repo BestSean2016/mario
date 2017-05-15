@@ -4,13 +4,14 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.cpp \
-    ../src/mario_data.cpp \
-    ../src/salt_api.cpp \
-    ../src/utility.c \
-    ../src/http_client.cpp
+    ../mario/mario_data.cpp \
+    ../mario/salt_api.cpp \
+    ../mario/utility.c \
+    ../mario/http_client.cpp
 
 
 INCLUDEPATH += ../include
+INCLUDEPATH += ../mario
 
 
 ###################### unix ############################

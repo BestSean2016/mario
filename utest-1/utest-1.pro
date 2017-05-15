@@ -5,16 +5,17 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     ../src/chinese.c \
-    ../src/mario_data.cpp \
-    ../src/mario_mysql.cpp \
-    ../src/utility.c \
-    ../src/salt_api.cpp \
-    ../src/pipe.cpp \
-    ../src/http_client.cpp \
-    ../src/threadpool.c
+    ../mario/mario_data.cpp \
+    ../mario/mario_mysql.cpp \
+    ../mario/utility.c \
+    ../mario/salt_api.cpp \
+    ../mario/pipe.cpp \
+    ../mario/http_client.cpp \
+    ../mario/threadpool.c
 
 
 INCLUDEPATH += ../include
+INCLUDEPATH += ../mario
 INCLUDEPATH += /usr/local/include/igraph
 
 
