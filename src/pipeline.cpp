@@ -637,6 +637,7 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
     std::cout << INTVEC(children, i) << ", ";
   std::cout << std::endl;
 
+  // finde father
   for (int i = 0; i < igraph_vector_size(&children); ++i) {
     std::cout << INTVEC(children, i) << " Father: " << std::endl;
     igraph_vector_init(&fathers, 0);

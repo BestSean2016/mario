@@ -19,7 +19,7 @@ def mario_run(plid):
 
 def test_all_pipeline():
   global brother
-  for plid in range(7, 16):
+  for plid in range(7, 15):
     print "RUN PIPELINE", plid
     mario_run(plid)
     print "mario_run has returned"

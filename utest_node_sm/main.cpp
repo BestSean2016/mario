@@ -64,83 +64,83 @@ int main(int argc, char **argv) {
 //
 
 
-//
-// TEST(mario_state, mario_initial_pipeline) {
-//   auto mario = new itat::Mario(9);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-//
-//
-//   mario = new itat::Mario(8);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-//
-//   mario = new itat::Mario(9);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-//
-//   mario = new itat::Mario(10);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-//
-//   mario = new itat::Mario(11);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-//
-//   mario = new itat::Mario(12);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-//
-//   mario = new itat::Mario(13);
-//   mario->initial(1, "bill_message", 0, 0);
-//   delete mario;
-// }
-//
-//
-
-
-//
-// TEST(mario_state, mario_realrun_pipeline) {
-//   itat::Mario* mario = nullptr;
-//   mario = new itat::Mario(9);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   delete mario;
-//
-//
-//   mario = new itat::Mario(8);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   while(!mario->is_done())
-//       std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//   delete mario;
-//
-//   mario = new itat::Mario(9);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   delete mario;
-//
-//   mario = new itat::Mario(10);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   delete mario;
-//
-//   mario = new itat::Mario(11);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   delete mario;
-//
-//   mario = new itat::Mario(12);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   delete mario;
-//
-//   mario = new itat::Mario(13);
-//   mario->initial(1, "bill_message", 0, 0);
-//   mario->run(0, 58);
-//   delete mario;
-// }
-//
+// // //
+// // // TEST(mario_state, mario_initial_pipeline) {
+// // //   auto mario = new itat::Mario(9);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // //
+// // //
+// // //   mario = new itat::Mario(8);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(9);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(10);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(11);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(12);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(13);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   delete mario;
+// // // }
+// // //
+// // //
+// // //
+// // //
+// // //
+// // // TEST(mario_state, mario_realrun_pipeline) {
+// // //   itat::Mario* mario = nullptr;
+// // //   mario = new itat::Mario(9);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   delete mario;
+// // //
+// // //
+// // //   mario = new itat::Mario(8);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   while(!mario->is_done())
+// // //       std::this_thread::sleep_for(std::chrono::milliseconds(10));
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(9);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(10);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(11);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(12);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   delete mario;
+// // //
+// // //   mario = new itat::Mario(13);
+// // //   mario->initial(1, "bill_message", 0, 0);
+// // //   mario->run(0, 58);
+// // //   delete mario;
+// // // }
+// // //
 
 // TEST(state_machine, empty_graph) {
 //   auto pgraph = new itat::Pipeline(0);
@@ -319,39 +319,39 @@ int main(int argc, char **argv) {
 //   delete graph;
 // }
 //
-static void __run_mario__(itat::Mario *mario, bool real) {
- if (!real) {
-   int node_num = 10;
-    mario->test_setup();
-    mario->initial(0, "bill_message", node_num, 2);
-  } else {
-    mario->initial(1, "bill_message", 0, 0);
-  }
-
-  //ASSERT_EQ(0, mario->check());
-
-  ASSERT_EQ(0, mario->run(0, 58));
-}
-
-
-TEST(mario_state, mario_pause_continue) {
-  auto mario = new itat::Mario(13);
-
-  std::thread t(__run_mario__, mario, true);
-  std::this_thread::sleep_for(std::chrono::seconds(30));
-
-  for (int i = 0; i < 15; ++i) {
-    printf("Pause %d\n", i +1);
-    mario->pause();
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    mario->go_on();
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-  }
-
-  t.join();
-  delete mario;
-}
-
+// // //static void __run_mario__(itat::Mario *mario, bool real) {
+// // // if (!real) {
+// // //   int node_num = 10;
+// // //    mario->test_setup();
+// // //    mario->initial(0, "bill_message", node_num, 2);
+// // //  } else {
+// // //    mario->initial(1, "bill_message", 0, 0);
+// // //  }
+// // //
+// // //  //ASSERT_EQ(0, mario->check());
+// // //
+// // //  ASSERT_EQ(0, mario->run(0, 58));
+// // //}
+// // //
+// // //
+// // //TEST(mario_state, mario_pause_continue) {
+// // //  auto mario = new itat::Mario(13);
+// // //
+// // //  std::thread t(__run_mario__, mario, true);
+// // //  std::this_thread::sleep_for(std::chrono::seconds(30));
+// // //
+// // //  for (int i = 0; i < 15; ++i) {
+// // //    printf("Pause %d\n", i +1);
+// // //    mario->pause();
+// // //    std::this_thread::sleep_for(std::chrono::seconds(10));
+// // //    mario->go_on();
+// // //    std::this_thread::sleep_for(std::chrono::seconds(10));
+// // //  }
+// // //
+// // //  t.join();
+// // //  delete mario;
+// // //}
+// // //
 
 //
 // TEST(mario_state, mario_stop) cc{
@@ -403,3 +403,23 @@ TEST(mario_state, mario_pause_continue) {
 // }
 //
 //
+
+#define MYSQL_DB_HOST "10.10.10.16"
+#define MYSQL_DB_PORT 3306
+#define MYSQL_DB_NAME "mysite"
+#define MYSQL_DB_USER "bill"
+#define MYSQL_DB_PASS "hongt@8a51"
+
+
+
+
+
+extern DBHANDLE g_h_db;
+
+TEST(mysql_graph, mysql_graph) {
+    vector<MARIO_NODE> pl_node;
+    vector<MARIO_EDGE> pl_edge;
+    igraph_t g;
+    g_h_db = connect_db(MYSQL_DB_HOST, MYSQL_DB_PORT, MYSQL_DB_NAME, MYSQL_DB_USER, MYSQL_DB_PASS);
+    create_graph(&g, pl_node, pl_edge, g_h_db, 9);
+}

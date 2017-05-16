@@ -7,6 +7,11 @@ using namespace std;
 
 DBHANDLE g_h_db = nullptr;
 
+
+#ifndef INTVEC
+#define INTVEC(y, i) ((int)(((y).stor_begin)[(i)]))
+#endif // INTVEC
+
 const char *query_sql[] = {
   "select id,`name` from auth_group",
   "select id,group_id,permission_id from auth_group_permissions",
@@ -1423,6 +1428,13 @@ int create_graph(igraph_t *g,
   }
 
   int first = get_value_by_key(pl_edge[0].src_id, mysql_node_map);
+  igraph_vector_t father;
+  igraph_vector_init(&father, 0);
+  igraph_neighbors(&graph, &father, first, IGRAPH_IN);
+  if(igraph_vector_size(&father) == 1)
+      first = INTVEC(father, 0);
+  igraph_vector_destroy(&father);
+
 #ifdef _DEBUG_
   printf("first is %d\n", first);
 #endif
@@ -1431,9 +1443,6 @@ int create_graph(igraph_t *g,
   igraph_vector_init(&order, pl_node.size());
   igraph_bfs(&graph, first, nullptr, IGRAPH_OUT, false, nullptr, &order, nullptr,
              nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
-#ifndef INTVEC
-#define INTVEC(y, i) ((int)(((y).stor_begin)[(i)]))
-#endif // INTVEC
 
   // get all nodes that needs to run
 
