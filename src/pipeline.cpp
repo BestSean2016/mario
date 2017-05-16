@@ -211,7 +211,19 @@ int Pipeline::run(int start_id, int pleid) {
 }
 
 int Pipeline::run_node(int node_id) {
-  iNode *node = get_node_by_id((int)((uint64_t)node_id));
+  bool is_shoud_to_run = true;
+  iNode *node = nullptr;
+  ENTER_MULTEX
+  if (!vec_find(nodeset_.running_, inodeid_2_ignodeid[node_id]))
+    is_shoud_to_run = false;
+  else {
+    node = get_node_by_id((int)((uint64_t)node_id));
+    if (node->get_state() != ST_error || node->get_state() != ST_timeout)
+      is_shoud_to_run = false;
+  }
+  EXIT_MULTEX
+  if (!is_shoud_to_run) return ERROR_WRONG_STATE_TO_ACTION;
+
   if (nullptr == node)
     return ERROR_INVAILD_NODE_ID;
   else
@@ -256,14 +268,14 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
   int id = inodeid_2_ignodeid[((iNode *)node)->get_id()];
 
 #ifdef _DEBUG_
-  cout << "Pipeline on_run_after_ok_ state" << id << ", "
+  cout << "Pipeline on_run_after_ok_ id, state " << id << ", "
        << ((iNode *)node)->get_state() << "\n";
 #endif //_DEBUG_
 
   ENTER_MULTEX
 // remove from nodeset_.run_set_
 #ifdef _USE_VECTOR_AS_SET_
-  vec_erase(nodeset_.run_set_, id);
+  vec_erase(nodeset_.running_, id);
   vec_insert(nodeset_.done_set_, id);
 #else  //_USE_VECTOR_AS_SET_
   nodeset_.run_set_.erase(id);
@@ -273,6 +285,7 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
   // find new node to run
   if (!nodeset_.run_set_.empty())
     find_node_to_run_(id);
+
   EXIT_MULTEX
 
 #ifdef _DEBUG_
@@ -611,15 +624,15 @@ int Pipeline::do_run_front_(FUN_PARAM node_id) {
 #define INTVEC(y, i) ((int)(((y).stor_begin)[(i)]))
 
 void Pipeline::find_node_to_run_(int ig_node_id) {
-  // get all child node of node_id put into nodeset_.prepare_to_run_
+  // get all child node of node_id put into nodeset_.run_set_
   igraph_vector_t children, fathers;
   igraph_vector_init(&children, 0);
   igraph_neighbors(&ig_, &children, ig_node_id, IGRAPH_OUT);
 
 #ifdef _DEBUG_
-  std::cout << ig_node_id << " Child: "
+  std::cout << ig_node_id << " state: "
             << get_node_by_id(ignodeid_2_inodeid[ig_node_id])->get_state()
-            << std::endl;
+            << " has children " << std::endl;
   for (int i = 0; i < igraph_vector_size(&children); ++i)
     std::cout << INTVEC(children, i) << ", ";
   std::cout << std::endl;
@@ -629,7 +642,7 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
     igraph_vector_init(&fathers, 0);
     igraph_neighbors(&ig_, &fathers, INTVEC(children, i), IGRAPH_IN);
     for (int j = 0; j < igraph_vector_size(&fathers); ++j)
-      std::cout << INTVEC(fathers, j) << "->"
+      std::cout << INTVEC(fathers, j) << "-> state: "
                 << get_node_by_id(ignodeid_2_inodeid[INTVEC(fathers, j)])
                        ->get_state() << ", ";
     std::cout << std::endl;
@@ -637,10 +650,13 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
   }
 #endif //_DEBUG_
 
-  // add this child to prepare vector
+  // add this child to run_set vector
   for (int i = 0; i < igraph_vector_size(&children); ++i) {
     bool all_father_done = true;
+    vec_insert(nodeset_.run_set_, INTVEC(children, i));
     igraph_vector_init(&fathers, 0);
+
+    //All father is done?
     if (ig_node_id > 0) {
       igraph_neighbors(&ig_, &fathers, INTVEC(children, i), IGRAPH_IN);
       for (int j = 0; j < igraph_vector_size(&fathers); ++j) {
@@ -659,9 +675,9 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
 #endif //_DEBUG_
 
 #ifdef _USE_VECTOR_AS_SET_
-      vec_insert(nodeset_.prepare_to_run_, INTVEC(children, i));
+      vec_insert(nodeset_.running_, INTVEC(children, i));
 #else //_USE_VECTOR_AS_SET_
-      nodeset_.prepare_to_run_.insert(INTVEC(y, i));
+      nodeset_.running_.insert(INTVEC(y, i));
 #endif //_USE_VECTOR_AS_SET_
     }
   }
@@ -675,15 +691,15 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
   int ret = 0;
   if (!ret) {
     ENTER_MULTEX
-    nodeset_.prepare_to_run_.clear();
+    nodeset_.running_.clear();
     nodeset_.running_set_.clear();
     nodeset_.run_set_.clear();
     nodeset_.done_set_.clear();
 
 #ifdef _USE_VECTOR_AS_SET_
-    vec_insert(nodeset_.prepare_to_run_, (int)(int64_t)node_id);
+    vec_insert(nodeset_.running_, (int)(int64_t)node_id);
 #else  //_USE_VECTOR_AS_SET_
-    nodeset_.prepare_to_run_.insert((int)(int64_t)node_id);
+    nodeset_.running_.insert((int)(int64_t)node_id);
 #endif //_USE_VECTOR_AS_SET_
 
     igraph_vector_t order;
@@ -708,7 +724,7 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
 
     if (true) {
       // do simulator
-      cout << "do simulator state is " << state_ <<endl;
+      // cout << "do simulator state is " << state_ <<endl;
       // tsim_ = std::thread{&Pipeline::thread_simulator_, this};
       // tsim_ = std::thread{thread_test, bm_};
       // tsim_ = std::thread{ &Pipeline::thread_simulator_ex_, this };
@@ -774,11 +790,11 @@ int Pipeline::thread_simulator_(Pipeline *pl) {
   while (pl->state_ == ST_running) {
     node = nullptr;
     ENTER_MULTEX
-    if (!pl->nodeset_.prepare_to_run_.empty()) {
-      node = pl->get_node_by_id(*(pl->nodeset_.prepare_to_run_.begin()));
+    if (!pl->nodeset_.running_.empty()) {
+      node = pl->get_node_by_id(*(pl->nodeset_.running_.begin()));
       cout << node->get_id() << " <--- node id " << "\n";
 
-      pl->nodeset_.prepare_to_run_.erase(pl->nodeset_.prepare_to_run_.begin());
+      pl->nodeset_.running_.erase(pl->nodeset_.running_.begin());
     }
     EXIT_MULTEX
     if (node != nullptr) {
@@ -811,7 +827,7 @@ int Pipeline::thread_simulator_(Pipeline *pl) {
   return 0;
 }
 
-bool Pipeline::is_all_done_() { return nodeset_.run_set_.empty(); }
+bool Pipeline::is_all_done_() { return nodeset_.done_set_.size() == node_.size(); }
 
 // run one node
 int Pipeline::do_run_one_front_(FUN_PARAM node) {
@@ -821,7 +837,33 @@ int Pipeline::do_run_one_front_(FUN_PARAM node) {
 
 int Pipeline::do_run_one_back_(FUN_PARAM node) {
   assert(node != nullptr);
-  return ((iNode *)node)->run();
+
+  STATE_TYPE node_state = (STATE_TYPE)(((iNode *)node)->run());
+  // check the node state
+  switch (node_state) {
+  case ST_running:
+    break;
+  case ST_succeed:
+    on_run_ok(node);
+    if (is_all_done_())
+      on_run_allok_(nullptr);
+    break;
+  case ST_timeout:
+    on_run_timeout(node);
+    break;
+  case ST_waiting_for_confirm:
+    on_waitin_confirm_(node);
+    break;
+  case ST_error:
+    on_run_error(node);
+    break;
+  default:
+// error
+#ifdef _DEBUG_
+    cout << "UNKONW status in pipeline is " << node_state << std::endl;
+#endif //_DEBUG_
+    break;
+  }
 }
 
 // pause
@@ -869,6 +911,7 @@ int Pipeline::do_user_confirm_front_(FUN_PARAM ok) {
   dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
   return 0;
 }
+
 int Pipeline::do_user_confirm_back_(FUN_PARAM node) { UNUSE(node); return 0; }
 
 void Pipeline::test_setup(SIMULATE_RESULT_TYPE check, SIMULATE_RESULT_TYPE run,
@@ -884,7 +927,7 @@ void Pipeline::test_setup(SIMULATE_RESULT_TYPE check, SIMULATE_RESULT_TYPE run,
 
 int Pipeline::thread_simulator_ex_ex_() {
 #ifdef _DEBUG_
-  std::cout << "thread_simulator_ex_\n";
+  std::cout << "thread_simulator_ex_ex_\n";
 #endif //_DEBUG_
   state_ = ST_running;
   chk_state_ = ST_checked_ok;
@@ -896,20 +939,20 @@ int Pipeline::thread_simulator_ex_ex_() {
     if (state_ == ST_running) {
       // simulate run a node
       node = nullptr;
+      STATE_TYPE node_run_state = ST_initial;
       ENTER_MULTEX
-      // get all nodes will have to run
-      if (!nodeset_.prepare_to_run_.empty()) {
-        int ig_node_id = *(nodeset_.prepare_to_run_.begin());
+      // get all nodes will running
+      if (!nodeset_.running_.empty()) {
+        int ig_node_id = *(nodeset_.running_.begin());
         node = get_node_by_id(ignodeid_2_inodeid[ig_node_id]);
-        nodeset_.prepare_to_run_.erase(
-            nodeset_.prepare_to_run_.begin());
       }
       EXIT_MULTEX
       if (node != nullptr) {
         // run node
-        STATE_TYPE node_state = (STATE_TYPE)(node->run());
+        // cout << "node->get_state " << node->get_state() << "nodid " << node->get_id() << ", igid " << inodeid_2_ignodeid[node->get_id()] << endl;
+        node_run_state = (STATE_TYPE)(node->run());
         // check the node state
-        switch (node_state) {
+        switch (node_run_state) {
         case ST_running:
           break;
         case ST_succeed:
@@ -929,7 +972,8 @@ int Pipeline::thread_simulator_ex_ex_() {
         default:
 // error
 #ifdef _DEBUG_
-          cout << "UNKONW status in pipeline is " << node_state << std::endl;
+          // cout << "UNKONW status in pipeline is " << node_run_state << std::endl;
+          // std::this_thread::sleep_for(std::chrono::milliseconds(100000));
 #endif //_DEBUG_
           break;
         }
@@ -941,7 +985,7 @@ int Pipeline::thread_simulator_ex_ex_() {
     } else if (state_ == ST_succeed || state_ == ST_stoped) {
       break;
     }
-    if (nodeset_.prepare_to_run_.empty()
+    if (nodeset_.running_.empty()
         || state_ == ST_pausing
         || state_ == ST_paused)
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -972,11 +1016,9 @@ int Pipeline::thread_simulator_ex_(Pipeline *pl) {
       node = nullptr;
       ENTER_MULTEX
       // get all nodes will have to run
-      if (!pl->nodeset_.prepare_to_run_.empty()) {
-        int ig_node_id = *(pl->nodeset_.prepare_to_run_.begin());
+      if (!pl->nodeset_.running_.empty()) {
+        int ig_node_id = *(pl->nodeset_.running_.begin());
         node = pl->get_node_by_id(ignodeid_2_inodeid[ig_node_id]);
-        pl->nodeset_.prepare_to_run_.erase(
-            pl->nodeset_.prepare_to_run_.begin());
       }
       EXIT_MULTEX
       if (node != nullptr) {
@@ -1015,7 +1057,7 @@ int Pipeline::thread_simulator_ex_(Pipeline *pl) {
     } else if (pl->state_ == ST_succeed || pl->state_ == ST_stoped) {
       break;
     }
-    if (pl->nodeset_.prepare_to_run_.empty()
+    if (pl->nodeset_.running_.empty()
         || pl->state_ == ST_pausing
         || pl->state_ == ST_paused)
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -1042,6 +1084,15 @@ int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
   pl->do_check_front_(nullptr);
   pl->do_check_back_(nullptr);
   pl->do_run_front_((void *)((uint64_t)node_id));
+
+
+  // for(auto&p : pl->node_) {
+  //   std::cout << p->get_id() << ", " << inodeid_2_ignodeid[p->get_id()] << ", " << p->get_state() << std::endl;
+  // }
+
+
+
+
   if (pl->state_ == ST_running) {
     pl->do_run_back_ ((void *)((uint64_t)node_id));
   }

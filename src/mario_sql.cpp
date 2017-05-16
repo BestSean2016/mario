@@ -1502,7 +1502,7 @@ int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
                           const char */*strerr*/){
     if (run_state != check_state || node_id == 0){
 #ifdef _DEBUG_
-        cout << run_state << " " << check_state << " " << node_id << endl;
+//      cout << run_state << " " << check_state << " " << node_id << endl;
 #endif
         return 0;
     }
@@ -1542,7 +1542,7 @@ int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
     }
 
 #ifdef _DEBUG_
-    cout << sql <<endl;
+//  cout << sql <<endl;
 #endif
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
@@ -1562,7 +1562,7 @@ int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
                           const char */*strerr*/){
     if (node_id != 0 || check_state != (itat::STATE_TYPE)5){
 #ifdef _DEBUG_
-        cout << check_state << " " << node_id << endl;
+//      cout << check_state << " " << node_id << endl;
 #endif
         return 0;
     }
@@ -1589,7 +1589,7 @@ int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
     }
 
 #ifdef _DEBUG_
-    cout << sql <<endl;
+//  cout << sql <<endl;
 #endif
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
@@ -1609,7 +1609,7 @@ int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
                           const char */*strerr*/){
     if (node_id == 0 || check_state != run_state){
 #ifdef _DEBUG_
-        cout << check_state << " " << run_state << " " << node_id << endl;
+//      cout << check_state << " " << run_state << " " << node_id << endl;
 #endif
         return 0;
     }
@@ -1648,7 +1648,7 @@ where ck_pl_id=(select id from bill_checked_pipeline where pipeline_id=%d and st
     }
 
 #ifdef _DEBUG_
-    cout << sql <<endl;
+//  cout << sql <<endl;
 #endif
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
@@ -1668,7 +1668,7 @@ int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
                           const char */*strerr*/, int global_userid_){
     if (node_id != 0 || (itat::STATE_TYPE)0 != run_state){
 #ifdef _DEBUG_
-        cout << check_state << " " << run_state << " " << node_id << endl;
+//      cout << check_state << " " << run_state << " " << node_id << endl;
 #endif
         return 0;
     }
@@ -1710,7 +1710,7 @@ where pipeline_id=%d and status = 1",
     }
 
 #ifdef _DEBUG_
-    cout << sql <<endl;
+//  cout << sql <<endl;
 #endif
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {

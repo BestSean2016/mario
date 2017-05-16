@@ -12,12 +12,12 @@ namespace itat {
 
 typedef struct NODESET {
 #ifdef _USE_VECTOR_AS_SET_
-  std::vector<int> prepare_to_run_;
+  std::vector<int> running_;
   std::vector<int> running_set_;
   std::vector<int> run_set_;
   std::vector<int> done_set_;
 #else //#define _USE_VECTOR_AS_SET_
-  std::set<int> prepare_to_run_;
+  std::set<int> running_;
   std::set<int> running_set_;
   std::set<int> run_set_;
   std::set<int> done_set_;

@@ -60,7 +60,7 @@ static void sock(void* param) {
   itat::buffers* bufs = (itat::buffers*)param;
 
 #ifdef _DEBUG_
-  printf("oops: client1 socket mmmm.... %u %u %u %u\n", (uint64_t)param, (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
+  //printf("oops: client1 socket mmmm.... %u %u %u %u\n", (uint64_t)param, (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
 #endif //_DEBUG_
 
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -79,35 +79,35 @@ static void sock(void* param) {
   }
 
 #ifdef _DEBUG_
-  printf("mmmm send command %s\n", bufs->cmd);
+  // printf("mmmm send command %s\n", bufs->cmd);
 #endif //_DEBUG_
 
   n = write(sockfd, bufs->cmd, strlen(bufs->cmd));
   if (n != (int)(strlen(bufs->cmd))) {
 #ifdef _DEBUG_
-      printf("sock, write error %d %s\n", errno, strerror(errno));
+      // printf("sock, write error %d %s\n", errno, strerror(errno));
 #endif //_DEBUG_
       bufs->ret = -2;
       goto error_exit;
   }
 
 #ifdef _DEBUG_
-  printf("mmmm read \n");
-
-  memset(bufs->buf, 0, BUFSIZ * 4);
+//  printf("mmmm read \n");
+//
+//  memset(bufs->buf, 0, BUFSIZ * 4);
 #endif //_DEBUG_
 
   n = read(sockfd, bufs->buf, BUFSIZ);
   if (n <= 0) {
 #ifdef _DEBUG_
-      printf("sock, read error %d %s\n", errno, strerror(errno));
+      // printf("sock, read error %d %s\n", errno, strerror(errno));
 #endif //_DEBUG_
       bufs->ret = -3;
       goto error_exit;
   }
 
 #ifdef _DEBUG_
-  printf("from server = \n%s\n", bufs->buf);
+  // printf("from server = \n%s\n", bufs->buf);
 #endif //_DEBUG_
   close(sockfd);
   bufs->ret = 0;
@@ -187,7 +187,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
   bufs->cmd = cmd;
 
 #ifdef _DEBUG_
-  printf("DEBUG DEBUG %u %u %u\n", (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
+  // printf("DEBUG DEBUG %u %u %u\n", (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
 #endif //_DEBUG_
 
   // ret = itat_httpc(&param_, buf_, buf_);

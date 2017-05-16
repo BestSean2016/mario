@@ -14,12 +14,12 @@ def mario_run(plid):
     brother = libitat.new_mario(plid)
     print brother
     libitat.initial(brother, 1, 'test_transfers', 0, 0)
-    libitat.run_mario(brother, 0, 12)   #3 + plid)
+    libitat.run_mario(brother, 0, 12) #123 + plid)
 
 
 def test_all_pipeline():
   global brother
-  for plid in range(7, 16):
+  for plid in range(7, 8):
     print "RUN PIPELINE", plid
     mario_run(plid)
     print "mario_run has returned"
