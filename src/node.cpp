@@ -146,8 +146,8 @@ int iNode::init(int64_t i, MARIO_NODE *node, iGraphStateMachine *gsm,
 int iNode::do_run_front_(FUN_PARAM) {
   assert(g_ != nullptr);
   state_ = ST_running;
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
-                        state_);
+  // dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  //                       state_);
   if (test_param_)
     std::this_thread::sleep_for(
         std::chrono::milliseconds(test_param_->sleep_interval));

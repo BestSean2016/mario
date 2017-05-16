@@ -283,8 +283,8 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
 #endif //_USE_VECTOR_AS_SET_
 
   // find new node to run
-  if (!nodeset_.run_set_.empty())
-    find_node_to_run_(id);
+  //if (!nodeset_.run_set_.empty())
+  find_node_to_run_(id);
 
   EXIT_MULTEX
 
@@ -601,9 +601,6 @@ int Pipeline::do_run_front_(FUN_PARAM node_id) {
       ret = ERROR_INVAILD_NODE_ID;
   }
 
-  if (ST_checked_ok != chk_state_)
-     ret = ERROR_WRONG_STATE_TO_ACTION;
-
   if (ret) {
     state_ = ST_checked_err;
     dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
@@ -612,7 +609,7 @@ int Pipeline::do_run_front_(FUN_PARAM node_id) {
 
   if (!ret) {
     state_ = ST_running;
-    dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+    // sdj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
     // start event thread
   }
 
@@ -651,15 +648,21 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
   }
 #endif //_DEBUG_
 
-  // add this child to run_set vector
   for (int i = 0; i < igraph_vector_size(&children); ++i) {
-    bool all_father_done = true;
     vec_insert(nodeset_.run_set_, INTVEC(children, i));
+  }
+
+  std::cout << "run_set: "; output_vector(nodeset_.run_set_);
+
+  // add this child to run_set vector
+  for (auto iter = nodeset_.run_set_.begin(); iter != nodeset_.run_set_.end(); ) {
+    bool all_father_done = true;
+    int i = *iter;
     igraph_vector_init(&fathers, 0);
 
     //All father is done?
     if (ig_node_id > 0) {
-      igraph_neighbors(&ig_, &fathers, INTVEC(children, i), IGRAPH_IN);
+      igraph_neighbors(&ig_, &fathers, i, IGRAPH_IN);
       for (int j = 0; j < igraph_vector_size(&fathers); ++j) {
         if (get_node_by_id(ignodeid_2_inodeid[INTVEC(fathers, j)])
                 ->get_state() != ST_succeed) {
@@ -671,16 +674,18 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
     igraph_vector_destroy(&fathers);
 
     if (all_father_done) {
-#ifdef _DEBUG_
-      printf("find add %d -> %d\n", ig_node_id, INTVEC(children, i));
-#endif //_DEBUG_
+// #ifdef _DEBUG_
+      printf("find add %d -> %d\n", ig_node_id, i);
+// #endif //_DEBUG_
 
 #ifdef _USE_VECTOR_AS_SET_
-      vec_insert(nodeset_.running_, INTVEC(children, i));
+      vec_insert(nodeset_.running_, i);
 #else //_USE_VECTOR_AS_SET_
-      nodeset_.running_.insert(INTVEC(y, i));
+      nodeset_.running_.insert(i);
 #endif //_USE_VECTOR_AS_SET_
-    }
+      iter = nodeset_.run_set_.erase(iter);
+    } else
+      ++iter;
   }
 
   igraph_vector_destroy(&children);
@@ -703,24 +708,24 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
     nodeset_.running_.insert((int)(int64_t)node_id);
 #endif //_USE_VECTOR_AS_SET_
 
-    igraph_vector_t order;
-    igraph_vector_init(&order, 0);
-    igraph_bfs(&ig_, (int)(int64_t)node_id, nullptr, IGRAPH_OUT, false, nullptr,
-               &order, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-               nullptr);
-
-    // get all nodes that needs to run
-    for (int j = 0; j < igraph_vector_size(&order); ++j) {
-      if (INTVEC(order, j) >= 0) {
-#ifdef _USE_VECTOR_AS_SET_
-        vec_insert(nodeset_.run_set_, INTVEC(order, j));
-#else  //_USE_VECTOR_AS_SET_
-        nodeset_.run_set_.insert(INTVEC(order, j));
-#endif //_USE_VECTOR_AS_SET_
-      }
-    }
-
-    igraph_vector_destroy(&order);
+//     igraph_vector_t order;
+//     igraph_vector_init(&order, 0);
+//     igraph_bfs(&ig_, (int)(int64_t)node_id, nullptr, IGRAPH_OUT, false, nullptr,
+//                &order, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+//                nullptr);
+//
+//     // get all nodes that needs to run
+//     for (int j = 0; j < igraph_vector_size(&order); ++j) {
+//       if (INTVEC(order, j) >= 0) {
+// #ifdef _USE_VECTOR_AS_SET_
+//         vec_insert(nodeset_.run_set_, INTVEC(order, j));
+// #else  //_USE_VECTOR_AS_SET_
+//         nodeset_.run_set_.insert(INTVEC(order, j));
+// #endif //_USE_VECTOR_AS_SET_
+//       }
+//     }
+//
+//     igraph_vector_destroy(&order);
     EXIT_MULTEX
 
     if (true) {
@@ -927,9 +932,9 @@ void Pipeline::test_setup(SIMULATE_RESULT_TYPE check, SIMULATE_RESULT_TYPE run,
 
 
 int Pipeline::thread_simulator_ex_ex_() {
-#ifdef _DEBUG_
+//#ifdef _DEBUG_
   std::cout << "thread_simulator_ex_ex_\n";
-#endif //_DEBUG_
+//#endif //_DEBUG_
   state_ = ST_running;
   chk_state_ = ST_checked_ok;
   dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
@@ -943,42 +948,47 @@ int Pipeline::thread_simulator_ex_ex_() {
       STATE_TYPE node_run_state = ST_initial;
       ENTER_MULTEX
       // get all nodes will running
-      if (!nodeset_.running_.empty()) {
-        int ig_node_id = *(nodeset_.running_.begin());
-        node = get_node_by_id(ignodeid_2_inodeid[ig_node_id]);
-      }
-      EXIT_MULTEX
-      if (node != nullptr) {
-        // run node
-        // cout << "node->get_state " << node->get_state() << "nodid " << node->get_id() << ", igid " << inodeid_2_ignodeid[node->get_id()] << endl;
-        node_run_state = (STATE_TYPE)(node->run());
-        // check the node state
-        switch (node_run_state) {
-        case ST_running:
-          break;
-        case ST_succeed:
-          on_run_ok(node);
-          if (is_all_done_())
-            on_run_allok_(nullptr);
-          break;
-        case ST_timeout:
-          on_run_timeout(node);
-          break;
-        case ST_waiting_for_confirm:
-          on_waitin_confirm_(node);
-          break;
-        case ST_error:
-          on_run_error(node);
-          break;
-        default:
+      // std::cout << "running... : ";
+      // output_vector(nodeset_.running_);
+      //int ig_node_id = *(nodeset_.running_.begin());
+      //node = get_node_by_id(ignodeid_2_inodeid[ig_node_id]);
+      for (auto& p : nodeset_.running_) {
+        node = get_node_by_id(ignodeid_2_inodeid[p]);
+        if (node != nullptr && node->get_state() != ST_running) {
+          // run node
+          // cout << "node->get_state " << node->get_state() << "nodid " << node->get_id() << ", igid " << inodeid_2_ignodeid[node->get_id()] << endl;
+          node_run_state = (STATE_TYPE)(node->run());
+          // check the node state
+          switch (node_run_state) {
+          case ST_running:
+            break;
+          case ST_succeed:
+            on_run_ok(node);
+            if (is_all_done_())
+              on_run_allok_(nullptr);
+            break;
+          case ST_timeout:
+            on_run_timeout(node);
+            break;
+          case ST_waiting_for_confirm:
+            on_waitin_confirm_(node);
+            break;
+          case ST_error:
+            on_run_error(node);
+            break;
+          default:
 // error
 #ifdef _DEBUG_
-          // cout << "UNKONW status in pipeline is " << node_run_state << std::endl;
-          // std::this_thread::sleep_for(std::chrono::milliseconds(100000));
+            // cout << "UNKONW status in pipeline is " << node_run_state << std::endl;
+            // std::this_thread::sleep_for(std::chrono::milliseconds(100000));
 #endif //_DEBUG_
-          break;
+            break;
+          }
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
       }
+      EXIT_MULTEX
     } else if (state_ == ST_stoping) {
       on_stoped_(nullptr);
     } else if (state_ == ST_pausing) {
@@ -991,7 +1001,7 @@ int Pipeline::thread_simulator_ex_ex_() {
         || state_ == ST_paused)
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     else
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 #ifdef _DEBUG_
   cout << "thread ex exited hahaha\n";
@@ -1084,6 +1094,13 @@ int Pipeline::get_start_node_id() {
 int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
   pl->do_check_front_(nullptr);
   pl->do_check_back_(nullptr);
+
+
+  std::cout << "a1....\n";
+  if (pl->chk_state_ != ST_checked_ok)
+      return ST_error;
+
+  std::cout << "a2....\n";
   pl->do_run_front_((void *)((uint64_t)node_id));
 
 
@@ -1093,7 +1110,7 @@ int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
 
 
 
-
+  std::cout << "a3....\n";
   if (pl->state_ == ST_running) {
     pl->do_run_back_ ((void *)((uint64_t)node_id));
   }

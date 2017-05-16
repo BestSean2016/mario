@@ -86,7 +86,7 @@ int Mario::get_plid() {
 
 int Mario::is_done() {
     assert(g_ != nullptr);
-    return (g_->get_state() == ST_succeed);
+    return (g_->get_state() == ST_succeed || g_->get_chk_state() == ST_checked_err);
 }
 
 
