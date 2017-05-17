@@ -15,7 +15,8 @@ typedef struct NODESET {
   std::vector<int> prepare_to_run_;
   // std::vector<int> running_set_;
   std::vector<int> run_set_;
-  std::vector<int> done_set_;
+  //std::vector<int> done_set_;
+  std::vector<int> issues_;
 #else //#define _USE_VECTOR_AS_SET_
   std::set<int> prepare_to_run_;
   std::set<int> running_set_;
@@ -60,8 +61,8 @@ private:
 
 
 extern bool vec_find(std::vector<int> &vec, int a);
-extern void vec_insert(std::vector<int> &vec, int a);
-extern void vec_erase(std::vector<int> &vec, int a);
+extern bool vec_insert(std::vector<int> &vec, int a);
+extern bool vec_erase(std::vector<int> &vec, int a);
 
 }
 

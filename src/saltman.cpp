@@ -20,18 +20,22 @@ bool vec_find(std::vector<int> &vec, int a) {
   return false;
 }
 
-void vec_insert(std::vector<int> &vec, int a) {
-  if (!vec_find(vec, a))
+bool vec_insert(std::vector<int> &vec, int a) {
+  if (!vec_find(vec, a)) {
     vec.emplace_back(a);
+    return true;
+  }
+  return false;
 }
 
-void vec_erase(std::vector<int> &vec, int a) {
+bool vec_erase(std::vector<int> &vec, int a) {
   for (auto it = vec.begin(); it != vec.end(); it++) {
     if (*it == a) {
       vec.erase(it);
-      break;
+      return true;
     }
   }
+  return false;
 }
 
 

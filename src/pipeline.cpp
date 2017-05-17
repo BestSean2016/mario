@@ -264,7 +264,11 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
 // remove from nodeset_.run_set_
 #ifdef _USE_VECTOR_AS_SET_
   vec_erase(nodeset_.run_set_, id);
-  vec_insert(nodeset_.done_set_, id);
+  if (vec_erase(nodeset_.issues_, id)) {
+     if (nodeset_.issues_.empty())
+       state_ = ST_running;
+  }
+
 #else  //_USE_VECTOR_AS_SET_
   nodeset_.run_set_.erase(id);
   nodeset_.done_set_.insert(id);
@@ -297,7 +301,11 @@ int Pipeline::on_run_error_front_(FUN_PARAM node) {
 }
 
 int Pipeline::on_run_error_back_(FUN_PARAM node) {
-    UNUSE(node);
+    iNode* n = (iNode*)node;
+    assert(n != nullptr);
+    ENTER_MULTEX
+    vec_insert(nodeset_.issues_, inodeid_2_ignodeid[n->get_id()]);
+    EXIT_MULTEX
     return 0;
 }
 // ........ on run error ..........................
@@ -315,8 +323,12 @@ int Pipeline::on_run_timeout_front_(FUN_PARAM node) {
   return 0;
 }
 int Pipeline::on_run_timeout_back_(FUN_PARAM node) {
-    UNUSE(node);
-    return 0;
+  iNode* n = (iNode*)node;
+  assert(n != nullptr);
+  ENTER_MULTEX
+  vec_insert(nodeset_.issues_, inodeid_2_ignodeid[n->get_id()]);
+  EXIT_MULTEX
+  return 0;
 }
 // ........ on run timeout ..........................
 
@@ -678,7 +690,8 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
     nodeset_.prepare_to_run_.clear();
     // nodeset_.running_set_.clear();
     nodeset_.run_set_.clear();
-    nodeset_.done_set_.clear();
+    // nodeset_.done_set_.clear();
+    nodeset_.issues_.clear();
 
 #ifdef _USE_VECTOR_AS_SET_
     vec_insert(nodeset_.prepare_to_run_, (int)(int64_t)node_id);
@@ -811,11 +824,21 @@ int Pipeline::thread_simulator_(Pipeline *pl) {
   return 0;
 }
 
-bool Pipeline::is_all_done_() { return nodeset_.run_set_.empty(); }
+bool Pipeline::is_all_done_() {
+    ENTER_MULTEX
+    bool is_done = (nodeset_.run_set_.empty() && nodeset_.issues_.empty()) ;
+    EXIT_MULTEX
+    return is_done;
+}
 
 // run one node
 int Pipeline::do_run_one_front_(FUN_PARAM node) {
   assert(node != nullptr);
+  iNode* n = (iNode*)node;
+  ENTER_MULTEX
+  if (!vec_find(nodeset_.issues_, inodeid_2_ignodeid[n->get_id()]))
+    return ERROR_WRONG_STATE_TO_ACTION;
+  EXIT_MULTEX
   return 0;
 }
 
@@ -886,9 +909,9 @@ int Pipeline::thread_simulator_ex_ex_() {
 #ifdef _DEBUG_
   std::cout << "thread_simulator_ex_\n";
 #endif //_DEBUG_
-  state_ = ST_running;
-  chk_state_ = ST_checked_ok;
-  dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
+  assert(state_ == ST_running);
+  assert(chk_state_ = ST_checked_ok);
+  // dj_.send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
 
   // dj_.save_thread();
   iNode *node = nullptr;
