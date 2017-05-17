@@ -1172,6 +1172,7 @@ std::string stringFormat(const std::string fmt_str, ...) {
   return std::string(formatted.get());
 }
 
+
 DBHANDLE connect_db(const char *host, int port, const char *db,
                     const char *user, const char *passwd) {
 #ifdef _DEBUG_
@@ -1189,6 +1190,9 @@ DBHANDLE connect_db(const char *host, int port, const char *db,
     mysql_close(mysql);
     return nullptr;
   }
+  char value = 1;
+  mysql_options(mysql, MYSQL_OPT_RECONNECT, &value);
+
   mysql_query(mysql, "SET NAMES utf8");
 
 #ifdef _DEBUG_
@@ -1196,6 +1200,7 @@ DBHANDLE connect_db(const char *host, int port, const char *db,
 #endif
   return mysql;
 }
+
 
 void disconnect_db(DBHANDLE dbh) {
   if (dbh) {
@@ -1505,6 +1510,7 @@ int create_graph(igraph_t *g,
 
 
 
+
 int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
                           int /*code*/, const char */*strout*/,
@@ -1515,7 +1521,9 @@ int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
 #endif
         return 0;
     }
+    static int error_time = 0;
 
+exec_bill_exec_node_sql:
     assert(g_h_db != nullptr);
     DBHANDLE h_db = g_h_db;// connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
                            //     g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
@@ -1529,13 +1537,13 @@ int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
     }else{
         string result_info = "";
         if(run_state == itat::STATE_TYPE(7)){
-            result_info = "失败";
+            result_info = "Ê§°Ü";
         } else if(run_state == itat::STATE_TYPE(8)){
-            result_info = "超时";
+            result_info = "³¬Ê±";
         } else if(run_state == itat::STATE_TYPE(9)){
-            result_info = "成功";
+            result_info = "³É¹¦";
         } else if(run_state == itat::STATE_TYPE(10)){
-            result_info = "等待用户确认";
+            result_info = "µÈ´ýÓÃ»§È·ÈÏ";
         }
         else{
             // disconnect_db(h_db);
@@ -1558,9 +1566,22 @@ int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
         fprintf(stdout, "\ninsert or update error: %s by %s\n",
                 mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
         // disconnect_db(h_db);
+        if(mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2006 ||
+               mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2013 ){
+            printf("retry mysql command\n");
+
+            error_time++;
+            if (error_time>5) {
+                error_time = 0;
+                return -4;
+            }
+            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
+            goto exec_bill_exec_node_sql;
+        }
         return -4;
     }
 
+    error_time = 0;
     // disconnect_db(h_db);
     return 0;
 }
@@ -1576,6 +1597,9 @@ int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
         return 0;
     }
 
+    static int error_time = 0;
+
+exec_bill_exec_pipeline_sql:
     assert(g_h_db != nullptr);
     DBHANDLE h_db = g_h_db;  //connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
                              //    g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
@@ -1588,7 +1612,7 @@ int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
         sql = stringFormat("update bill_exec_pipeline set result_status=%d where id=%d",
                             run_state, pl_ex_id);
     }else if(run_state == (itat::STATE_TYPE)9){
-        sql = stringFormat("update bill_exec_pipeline set result_status=%d,result_info=\'执行成功\',ended_at=now() where id=%d",
+        sql = stringFormat("update bill_exec_pipeline set result_status=%d,result_info=\'Ö´ÐÐ³É¹¦\',ended_at=now() where id=%d",
                      run_state, pl_ex_id);
     }
 
@@ -1605,9 +1629,22 @@ int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
         fprintf(stdout, "\nupdate error: %s by %s\n",
                 mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
         // disconnect_db(h_db);
+        if(mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2006 ||
+               mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2013 ){
+            printf("retry mysql command\n");
+
+            error_time++;
+            if (error_time>5) {
+                error_time = 0;
+                return -4;
+            }
+            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
+            goto exec_bill_exec_pipeline_sql;
+        }
         return -4;
     }
 
+    error_time = 0;
     // disconnect_db(h_db);
     return 0;
 }
@@ -1623,6 +1660,9 @@ int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
         return 0;
     }
 
+    static int error_time = 0;
+
+exec_bill_checked_node_sql:
     assert(g_h_db != nullptr);
     DBHANDLE h_db = g_h_db; // connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
                             //    g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
@@ -1637,11 +1677,11 @@ int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
     }else{
         string strResultInfo = "";
         if(run_state == (itat::STATE_TYPE)3){
-            strResultInfo = "脚本错误";
+            strResultInfo = "½Å±¾´íÎó";
         }else if(run_state == (itat::STATE_TYPE)4){
-            strResultInfo = "机器未联通";
+            strResultInfo = "»úÆ÷Î´ÁªÍ¨";
         }else if(run_state == (itat::STATE_TYPE)5){
-            strResultInfo = "检测成功";
+            strResultInfo = "¼ì²â³É¹¦";
         }else{
             // disconnect_db(h_db);
             return 0;
@@ -1664,9 +1704,22 @@ where ck_pl_id=(select id from bill_checked_pipeline where pipeline_id=%d and st
         fprintf(stdout, "\ninsert or update error: %s by %s\n",
                 mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
         // disconnect_db(h_db);
-        return -5;
+        if(mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2006 ||
+               mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2013 ){
+            printf("retry mysql command\n");
+
+            error_time++;
+            if (error_time>5) {
+                error_time = 0;
+                return -4;
+            }
+            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
+            goto exec_bill_checked_node_sql;
+        }
+        return -4;
     }
 
+    error_time = 0;
     // disconnect_db(h_db);
     return 0;
 }
@@ -1682,6 +1735,8 @@ int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
         return 0;
     }
 
+    static int error_time = 0;
+exec_bill_checked_pipeline_sql:
     assert(g_h_db != nullptr);
     DBHANDLE h_db = g_h_db; // connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
                             //            g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
@@ -1701,9 +1756,9 @@ int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
     }else{
         string strResultInfo = "";
         if(check_state == (itat::STATE_TYPE)2){
-            strResultInfo = "检测异常";
+            strResultInfo = "¼ì²âÒì³£";
         }else if(check_state == (itat::STATE_TYPE)5){
-            strResultInfo = "检测成功";
+            strResultInfo = "¼ì²â³É¹¦";
         }else{
             // disconnect_db(h_db);
             return 0;
@@ -1726,11 +1781,25 @@ where pipeline_id=%d and status = 1",
         fprintf(stdout, "\ninsert or update error: %s by %s\n",
                 mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
         // disconnect_db(h_db);
-        return -5;
+        if(mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2006 ||
+               mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2013 ){
+            printf("retry mysql command\n");
+
+            error_time++;
+            if (error_time>5) {
+                error_time = 0;
+                return -4;
+            }
+            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
+            goto exec_bill_checked_pipeline_sql;
+        }
+        return -4;
     }
 
+    error_time = 0;
     // disconnect_db(h_db);
     return 0;
 }
+
 
 
