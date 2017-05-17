@@ -676,7 +676,7 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
   if (!ret) {
     ENTER_MULTEX
     nodeset_.prepare_to_run_.clear();
-    nodeset_.running_set_.clear();
+    // nodeset_.running_set_.clear();
     nodeset_.run_set_.clear();
     nodeset_.done_set_.clear();
 
@@ -728,7 +728,7 @@ int Pipeline::do_run_back_(FUN_PARAM node_id) {
 void Pipeline::do_run_node_http_request_(iNode *node) {
   ENTER_MULTEX
 #ifdef _USE_VECTOR_AS_SET_
-  vec_insert(nodeset_.running_set_, node->get_id());
+  // vec_insert(nodeset_.running_set_, node->get_id());
 #else  //_USE_VECTOR_AS_SET_
   nodeset_.running_set_.insert(node->get_id());
 #endif //_USE_VECTOR_AS_SET_
@@ -749,7 +749,7 @@ void Pipeline::do_run_node_http_request_(iNode *node) {
 
 #ifdef _USE_VECTOR_AS_SET_
     // remove from running set
-    vec_erase(nodeset_.running_set_, node->get_id());
+    // vec_erase(nodeset_.running_set_, node->get_id());
     // remove from run set
     vec_erase(nodeset_.run_set_, node->get_id());
 #else  //_USE_VECTOR_AS_SET_
