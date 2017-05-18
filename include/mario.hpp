@@ -69,6 +69,7 @@ extern int get_back_mario(int64_t id);
 extern void kill_mario(int64_t id);
 extern int initial(int64_t id, int real_run, const char *bill_message,
                    int node_num, int branch_num);
+extern int check_mario(int64_t id);
 extern int run_mario(int64_t id, int start_id, int pleid);
 extern int stop_mario(int64_t id);
 extern int test_setup(int64_t id, int check, int run, int check_err_id,

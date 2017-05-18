@@ -76,6 +76,14 @@ int stop_mario(int64_t id) {
 }
 
 
+int check_mario(int64_t id) {
+    if (id) {
+        Mario* m = (Mario*)id;
+        return m->check();
+    }
+    return -1;
+}
+
 
 int run_node(int64_t id, int node_id) {
     if (id) {
@@ -177,5 +185,5 @@ BOOST_PYTHON_MODULE(libitat)
     def("confirm", confirm);
     def("set_user", set_user);
     def("mario_is_done", mario_is_done);
+    def("check_mario", check_mario);
 }
-

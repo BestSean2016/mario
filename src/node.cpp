@@ -216,11 +216,10 @@ int iNode::do_run_back_(FUN_PARAM) {
     }
   }
 
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
-                        state_);
-
   switch (state_) {
   case ST_running:
+    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                          state_);
     break;
   case ST_error:
     on_run_error(nullptr);
@@ -240,10 +239,8 @@ int iNode::do_run_back_(FUN_PARAM) {
 }
 
 int iNode::do_user_confirm_front_(FUN_PARAM confirmd) {
-  if (confirmd)
-    state_ = ST_succeed;
-  else
-    state_ = ST_confirm_refused;
+  UNUSE(confirmd);
+  state_ = ST_succeed;
   dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
   return 0;

@@ -88,7 +88,7 @@ public: // the action from user
   int pause();
   int go_on();
   int stop();
-  int user_confirm(int ok);
+  int user_confirm(int node_id);
 
 
   int on_run_error(FUN_PARAM node);
@@ -125,8 +125,8 @@ private: // the  state machine front and back
   int do_stop_front_(FUN_PARAM);
   int do_stop_back_(FUN_PARAM);
   // confirm
-  int do_user_confirm_front_(FUN_PARAM node);
-  int do_user_confirm_back_(FUN_PARAM node);
+  int do_user_confirm_front_(FUN_PARAM node_id);
+  int do_user_confirm_back_(FUN_PARAM node_id);
 
 private:
   // internal event action
