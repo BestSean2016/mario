@@ -13,6 +13,7 @@ INCLUDEPATH += /app/boost/include
 TEMPLATE = lib
 
 DEFINES += PLEDITOR_LIBRARY
+DEFINES += __USING_MYSQL__
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked as deprecated (the exact warnings
@@ -25,10 +26,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-SOURCES += pleditor.cpp
+SOURCES += pleditor.cpp \
+    ../src/mylog.cpp \
+    ../src/mario_sql.cpp \
+    ../src/str.c \
+    ../src/mario_data.cpp \
+    ../src/pljson_parser.cpp
 
 HEADERS += pleditor.h\
-        pleditor_global.h
+        pleditor_global.h \
+    ../include/mylog.h \
+    ../include/mario_mysql.h \
+    ../include/str.h \
+    ../include/mario_data.h \
+    ../include/pljson_parser.hpp
 
 
 ###################### unix ############################
@@ -78,3 +89,6 @@ windows {
     }
 
 }
+
+DISTFILES += \
+    pl.json
