@@ -185,16 +185,19 @@ int iNode::do_run_back_(FUN_PARAM) {
     case 5: // end
       state_ = ST_succeed;
       break;
-    case 6: // poweroff
-      break;
-    case 7: // restart
-      break;
-    case 8: // logoff
-      break;
+    // case 6: // poweroff
+    //   break;
+    // case 7: // restart
+    //   break;
+    // case 8: // logoff
+    //   break;
     default:
       state_ = ST_succeed;
       break;
     }
+    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                          state_);
+    return state_;
   } else {
     if (test_param_ && test_param_->run_type > SIMULATE_RESULT_TYPE_UNKNOW) {
       simu_run__();
@@ -214,27 +217,26 @@ int iNode::do_run_back_(FUN_PARAM) {
 
       state_ = saltman_->run_node(this);
     }
-  }
 
-  switch (state_) {
-  case ST_running:
-    dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
-                          state_);
-    break;
-  case ST_error:
-    on_run_error(nullptr);
-    break;
-  case ST_timeout:
-    on_run_timeout(nullptr);
-    break;
-  case ST_succeed:
-    on_run_ok(nullptr);
-    break;
-  default:
-    on_run_error(nullptr);
-    break;
+    switch (state_) {
+    case ST_running:
+      dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                            state_);
+      break;
+    case ST_error:
+      on_run_error(nullptr);
+      break;
+    case ST_timeout:
+      on_run_timeout(nullptr);
+      break;
+    case ST_succeed:
+      on_run_ok(nullptr);
+      break;
+    default:
+      on_run_error(nullptr);
+      break;
+    }
   }
-
   return state_;
 }
 
