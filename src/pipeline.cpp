@@ -574,16 +574,8 @@ int Pipeline::do_node_check_cb_(const igraph_t *graph, igraph_integer_t vid,
 int Pipeline::do_check_back_(FUN_PARAM) {
   assert(ig_.n > 0);
 
-  igraph_vector_t order;
-  igraph_vector_init(&order, igraph_vcount(&ig_));
-  igraph_bfs(&ig_, 0, nullptr, IGRAPH_OUT, true, nullptr, &order, nullptr,
-             nullptr, nullptr, nullptr, nullptr, &Pipeline::do_node_check_cb_,
-             this);
-  igraph_vector_destroy(&order);
-
-  if (chk_state_ == ST_checking)
-    chk_state_ = ST_checked_ok;
-  SEND_STATUS
+  tchk_ = std::thread{&Pipeline::chk_chek_chk__, this};
+  tchk_.detach();
 
   return 0;
 }
@@ -1095,7 +1087,7 @@ int Pipeline::get_start_node_id() {
 
 int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
   pl->do_check_front_(nullptr);
-  pl->do_check_back_(nullptr);
+  pl->real_do_check__();
   if (pl->chk_state_ != ST_checked_ok)
       return ST_error;
   pl->do_run_front_((void *)((uint64_t)node_id));
@@ -1105,4 +1097,29 @@ int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
 
   return 0;
 }
+
+
+
+int Pipeline::real_do_check__() {
+  igraph_vector_t order;
+  igraph_vector_init(&order, igraph_vcount(&ig_));
+  igraph_bfs(&ig_, 0, nullptr, IGRAPH_OUT, true, nullptr, &order, nullptr,
+             nullptr, nullptr, nullptr, nullptr, &Pipeline::do_node_check_cb_,
+             this);
+  igraph_vector_destroy(&order);
+
+  if (chk_state_ == ST_checking)
+    chk_state_ = ST_checked_ok;
+
+  SEND_STATUS
+
+
+  return 0;
+}
+
+int Pipeline::chk_chek_chk__(Pipeline* pl) {
+  pl->real_do_check__();
+  return 0;
+}
+
 } // namespace itat

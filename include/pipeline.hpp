@@ -99,6 +99,7 @@ private: // the  state machine front and back
   // Check Action
   int do_check_front_(FUN_PARAM);
   int do_check_back_(FUN_PARAM);
+  int real_do_check__();
   // the checking callback function for igraph's visitor
   static int do_node_check_cb_(const igraph_t *graph, igraph_integer_t vid,
                                igraph_integer_t, igraph_integer_t,
@@ -174,6 +175,7 @@ private:
   int on_waitin_confirm_back_(FUN_PARAM node);
 
   static int run_run_run__(Pipeline* pl, int node_id);
+  static int chk_chek_chk__(Pipeline* pl);
 
 public:
   // interface for test
@@ -196,6 +198,7 @@ private:
   NODESET nodeset_;
 
   std::thread tsim_;
+  std::thread tchk_;
 
   TEST_PARAM *test_param_ = nullptr;
 
