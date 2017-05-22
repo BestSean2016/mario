@@ -10,12 +10,19 @@
 #include <errno.h>
 #include <error.h>
 
-#define DJANGO_HOSTIP "10.10.10.16"
-#define DJANGO_PORT 8000
+
+static char django_ip[64] = {"10.10.10.16"};
+static short django_port = 8000;
+
 
 #define THREAD_POOL_SIZE 1
 #define THREAD_POOL_QUEUE_SIZE 4096
 
+
+void set_django_ip_port(const char * ip, int port) {
+    strcpy_s(django_ip, 64,  ip);
+    django_port = (short)port;
+}
 
 
 extern int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
@@ -65,8 +72,8 @@ static void sock(void* param) {
 
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   address.sin_family = AF_INET;
-  address.sin_addr.s_addr = inet_addr(DJANGO_HOSTIP);
-  address.sin_port = htons(DJANGO_PORT);
+  address.sin_addr.s_addr = inet_addr(django_ip);
+  address.sin_port = htons(django_port);
   len = sizeof(address);
   result = connect(sockfd, (struct sockaddr *)&address, len);
 
@@ -181,7 +188,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
   char* cmd = buf + BUFSIZ * 4;
   snprintf(cmd, BUFSIZ * 4, sendingmsg, pl_ex_id, graph_id,
            node_mysql_map[node_id], run_state, check_state, code, strout,
-           strerr, DJANGO_HOSTIP, DJANGO_PORT);
+           strerr, django_ip, django_port);
   buffers * bufs = new buffers;
   bufs->buf = buf;
   bufs->cmd = cmd;

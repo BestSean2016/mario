@@ -5,6 +5,9 @@
 using namespace itat;
 
 
+
+extern void set_django_ip_port(const char * ip, int port);
+
 // boost::python::tuple
 // mario_pickle::getinitargs(Mario const& m)
 // {
@@ -186,4 +189,5 @@ BOOST_PYTHON_MODULE(libitat)
     def("set_user", set_user);
     def("mario_is_done", mario_is_done);
     def("check_mario", check_mario);
+    def("set_django_ip_port", set_django_ip_port);
 }

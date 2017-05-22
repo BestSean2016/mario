@@ -277,7 +277,7 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
 
   // find new node to run
   if (!nodeset_.run_set_.empty())
-    find_node_to_run_(id);
+    find_node_to_run_(id, false);
   EXIT_MULTEX
 
 #ifdef _DEBUG_
@@ -615,7 +615,7 @@ int Pipeline::do_run_front_(FUN_PARAM node_id) {
 
 #define INTVEC(y, i) ((int)(((y).stor_begin)[(i)]))
 
-void Pipeline::find_node_to_run_(int ig_node_id) {
+void Pipeline::find_node_to_run_(int ig_node_id, bool igno_error) {
   // get all child node of node_id put into nodeset_.prepare_to_run_
   igraph_vector_t children, fathers;
   igraph_vector_init(&children, 0);
@@ -649,10 +649,19 @@ void Pipeline::find_node_to_run_(int ig_node_id) {
     if (ig_node_id > 0) {
       igraph_neighbors(&ig_, &fathers, INTVEC(children, i), IGRAPH_IN);
       for (int j = 0; j < igraph_vector_size(&fathers); ++j) {
-        if (get_node_by_id(ignodeid_2_inodeid[INTVEC(fathers, j)])
-                ->get_state() != ST_succeed) {
-          all_father_done = false;
-          break;
+        if (igno_error) {
+          STATE_TYPE st = get_node_by_id(ignodeid_2_inodeid[INTVEC(fathers, j)])
+                  ->get_state() ;
+          if (st != ST_succeed && st != ST_error && st != ST_timeout) {
+            all_father_done = false;
+            break;
+          }
+        } else {
+          if (get_node_by_id(ignodeid_2_inodeid[INTVEC(fathers, j)])
+                  ->get_state() != ST_succeed) {
+            all_father_done = false;
+            break;
+          }
         }
       }
     }
@@ -819,7 +828,7 @@ int Pipeline::thread_simulator_(Pipeline *pl) {
 
 bool Pipeline::is_all_done_() {
     ENTER_MULTEX
-    bool is_done = (nodeset_.run_set_.empty() && nodeset_.issues_.empty()) ;
+    bool is_done = nodeset_.run_set_.empty();
     EXIT_MULTEX
     return is_done;
 }
@@ -880,11 +889,22 @@ int Pipeline::do_pause_back_(FUN_PARAM) {
 
 // go_on
 int Pipeline::do_go_on_front_(FUN_PARAM) {
-  state_ = ST_running;
-  SEND_STATUS
-  return 0;
+    ENTER_MULTEX
+      for (auto& igid : nodeset_.issues_) {
+        vec_erase(nodeset_.run_set_, igid);
+
+        // find new node to run
+        if (!nodeset_.run_set_.empty())
+          find_node_to_run_(igid, true);
+      }
+    EXIT_MULTEX
+    return 0;
 }
-int Pipeline::do_go_on_back_(FUN_PARAM) { return 0; }
+int Pipeline::do_go_on_back_(FUN_PARAM) {
+    state_ = ST_running;
+    SEND_STATUS
+    return 0;
+}
 
 // stop
 int Pipeline::do_stop_front_(FUN_PARAM) {
@@ -961,8 +981,14 @@ int Pipeline::thread_simulator_ex_ex_() {
           break;
         case ST_succeed:
           on_run_ok(node);
-          if (is_all_done_())
-            on_run_allok_(nullptr);
+          if (is_all_done_()) {
+            if (nodeset_.issues_.empty())
+              on_run_allok_(nullptr);
+            else {
+              on_run_with_error();
+              goto error_exit;
+            }
+          }
           break;
         case ST_timeout:
           on_run_timeout(node);
@@ -995,6 +1021,8 @@ int Pipeline::thread_simulator_ex_ex_() {
     else
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
+
+error_exit:
 #ifdef _DEBUG_
   cout << "thread ex exited hahaha\n";
 #endif //_DEBUG_
@@ -1003,7 +1031,7 @@ int Pipeline::thread_simulator_ex_ex_() {
   return 0;
 }
 
-int Pipeline::thread_simulator_ex_(Pipeline *pl) {
+ int Pipeline::thread_simulator_ex_(Pipeline *pl) {
 #ifdef _DEBUG_
   std::cout << "thread_simulator_ex_\n";
 #endif //_DEBUG_
@@ -1120,6 +1148,12 @@ int Pipeline::real_do_check__() {
 int Pipeline::chk_chek_chk__(Pipeline* pl) {
   pl->real_do_check__();
   return 0;
+}
+
+int Pipeline::on_run_with_error() {
+    state_ = ST_done_but_error;
+    SEND_STATUS;
+    return 0;
 }
 
 } // namespace itat

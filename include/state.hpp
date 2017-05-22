@@ -36,6 +36,7 @@ typedef enum STATE_TYPE {
   ST_run_one_ok,
   ST_run_one_err,
   ST_confirm_refused,
+  ST_done_but_error,
 } STATE_TYPE;
 
 class Pipeline;

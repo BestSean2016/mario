@@ -144,6 +144,7 @@ private:
   int on_run_allok_(FUN_PARAM);
   int on_run_allok_front_(FUN_PARAM);
   int on_run_allok_back_(FUN_PARAM);
+  int on_run_with_error();
 
   // run one node ..............................
   int on_run_one_error_(FUN_PARAM node);
@@ -216,7 +217,7 @@ private:
   int load_pipe_line_from_db_(vector<MARIO_NODE> &pl_node,
                               vector<MARIO_EDGE> &pl_edge);
 
-  void find_node_to_run_(int ig_node_id);
+  void find_node_to_run_(int ig_node_id, bool igno_error);
 
   bool is_all_done_();
 
