@@ -1116,8 +1116,11 @@ int Pipeline::get_start_node_id() {
 int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
   pl->do_check_front_(nullptr);
   pl->real_do_check__();
-  if (pl->chk_state_ != ST_checked_ok)
+  if (pl->chk_state_ != ST_checked_ok) {
+      pl->state_ = ST_error;
+      dj_.send_graph_status(pl->pleid_, pl->plid_, NO_NODE, pl->state_, pl->chk_state_);
       return ST_error;
+  }
   pl->do_run_front_((void *)((uint64_t)node_id));
   if (pl->state_ == ST_running) {
     pl->do_run_back_ ((void *)((uint64_t)node_id));

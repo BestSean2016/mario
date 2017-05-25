@@ -146,8 +146,26 @@ int iNode::init(int64_t i, MARIO_NODE *node, iGraphStateMachine *gsm,
 int iNode::do_run_front_(FUN_PARAM) {
   assert(g_ != nullptr);
   state_ = ST_running;
-  // dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
-  //                       state_);
+
+  if (plnode_->ref_type != 1) {
+    switch (plnode_->ref_type) {
+    case 4: // start
+    case 5: // end
+      state_ = ST_running;
+      dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                            state_);
+      break;
+    // case 6: // poweroff
+    //   break;
+    // case 7: // restart
+    //   break;
+    // case 8: // logoff
+    //   break;
+    default:
+      break;
+    }
+  }
+
   if (test_param_)
     std::this_thread::sleep_for(
         std::chrono::milliseconds(test_param_->sleep_interval));

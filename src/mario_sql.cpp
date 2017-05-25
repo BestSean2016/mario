@@ -1421,11 +1421,11 @@ int create_graph(igraph_t *g,
     MR_BILL_PIPELINE_EDGE &e = pl_edge.at(i);
     int src_index = get_value_by_key(e.src_id, mysql_node_map);
     int trg_index = get_value_by_key(e.trg_id, mysql_node_map);
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
     // printf("(%s->%s)\n", pl_node.at(src_index).ip_address.c_str(),
     // pl_node.at(trg_index).ip_address.c_str());
-    printf("aa %d->%d (%d->%d),", e.src_id, e.trg_id, src_index, trg_index);
-#endif
+    // printf("aa %d->%d (%d->%d),", e.src_id, e.trg_id, src_index, trg_index);
+// #endif
     // add egde to igraph
     igraph_add_edge(&graph, src_index, trg_index);
   }
@@ -1440,9 +1440,9 @@ int create_graph(igraph_t *g,
       first = INTVEC(first_father, 0);
   igraph_vector_destroy(&first_father);
 
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
   printf("first is %d\n", first);
-#endif
+// #endif
 
   igraph_vector_t order;
   igraph_vector_init(&order, pl_node.size());
@@ -1454,9 +1454,9 @@ int create_graph(igraph_t *g,
   map<int, int> mapNode;
   for (int j = 0; j < igraph_vector_size(&order); ++j) {
     if (INTVEC(order, j) >= 0) {
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
       printf("og %d -> %d, ", j, INTVEC(order, j));
-#endif //_DEBUG_
+// #endif //_DEBUG_
       ignodeid_2_inodeid.insert(std::make_pair(j, INTVEC(order, j)));
       inodeid_2_ignodeid.insert(std::make_pair(INTVEC(order, j), j));
       mapNode.insert(std::make_pair(INTVEC(order, j), j));
@@ -1468,7 +1468,7 @@ int create_graph(igraph_t *g,
 
   igraph_vector_t edge;
   // get the out style tree's all edges, the put them to vector e
-  igraph_vector_init(&edge, pl_edge.size() * 2);
+  igraph_vector_init(&edge, 0);
 
   for (size_t i = 0; i < pl_edge.size(); i++) {
     MR_BILL_PIPELINE_EDGE &e = pl_edge.at(i);
@@ -1476,16 +1476,12 @@ int create_graph(igraph_t *g,
     // VECTOR(edge)[i * 2 + 1] = mapNode[mysql_node_map[e.trg_id]];
     int src_id = mapNode[mysql_node_map[e.src_id]];
     int trg_id = mapNode[mysql_node_map[e.trg_id]];
-    VECTOR(edge)[i * 2] = src_id;
-    VECTOR(edge)[i * 2 + 1] = trg_id;
+    if (src_id == trg_id) continue;
+    igraph_vector_push_back(&edge, src_id);
+    igraph_vector_push_back(&edge, trg_id);
 
 #ifdef _DEBUG_
-    fprintf(stdout, "New Graph Eage: %d -> %d, %d -> %d, %d -> %d\n",
-            // VECTOR(edge)[i * 2], VECTOR(edge)[i * 2 + 1],
-            // ignodeid_2_inodeid[VECTOR(edge)[i * 2]],
-            // ignodeid_2_inodeid[VECTOR(edge)[i * 2 + 1]],
-            // node_mysql_map[ignodeid_2_inodeid[VECTOR(edge)[i * 2]]],
-            // node_mysql_map[ignodeid_2_inodeid[VECTOR(edge)[i * 2 + 1]]]);
+    fprintf(stdout, "Eage: %d -> %d, %d -> %d, %d -> %d\n",
             src_id, trg_id, ignodeid_2_inodeid[src_id],
             ignodeid_2_inodeid[trg_id],
             node_mysql_map[ignodeid_2_inodeid[src_id]],
@@ -1494,12 +1490,12 @@ int create_graph(igraph_t *g,
 #endif //_DEBUG_
   }
 
-// #ifdef _DEBUG_
-//   for (int i = 0; i < igraph_vector_size(&edge); i += 2)
-//     printf("kkkkk  %d -> %d, %d -> %d\n", INTVEC(edge, i), INTVEC(edge, i + 1),
-//            ignodeid_2_inodeid[INTVEC(edge, i)],
-//            ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
-// #endif //_DEBUG_
+#ifdef _DEBUG_
+  for (int i = 0; i < igraph_vector_size(&edge); i += 2)
+    printf("kkkkk  %d -> %d, %d -> %d\n", INTVEC(edge, i), INTVEC(edge, i + 1),
+           ignodeid_2_inodeid[INTVEC(edge, i)],
+           ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
+#endif //_DEBUG_
 
   igraph_create(g, &edge, graph.n, 1);
   igraph_destroy(&graph);
