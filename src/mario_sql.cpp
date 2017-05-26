@@ -1533,13 +1533,13 @@ exec_bill_exec_node_sql:
     }else{
         string result_info = "";
         if(run_state == itat::STATE_TYPE(7)){
-            result_info = "Ê§°Ü";
+            result_info = "失败";
         } else if(run_state == itat::STATE_TYPE(8)){
-            result_info = "³¬Ê±";
+            result_info = "超时";
         } else if(run_state == itat::STATE_TYPE(9)){
-            result_info = "³É¹¦";
+            result_info = "成功";
         } else if(run_state == itat::STATE_TYPE(10)){
-            result_info = "µÈ´ýÓÃ»§È·ÈÏ";
+            result_info = "等待用户确认";
         }
         else{
             // disconnect_db(h_db);
@@ -1557,6 +1557,7 @@ exec_bill_exec_node_sql:
 #ifdef _DEBUG_
     cout << sql <<endl;
 #endif
+    mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
         fprintf(stdout, "\ninsert or update error: %s by %s\n",
@@ -1571,7 +1572,6 @@ exec_bill_exec_node_sql:
                 error_time = 0;
                 return -4;
             }
-            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
             goto exec_bill_exec_node_sql;
         }
         return -4;
@@ -1620,6 +1620,7 @@ exec_bill_exec_pipeline_sql:
 #ifdef _DEBUG_
     cout << sql <<endl;
 #endif
+    mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
         fprintf(stdout, "\nupdate error: %s by %s\n",
@@ -1634,7 +1635,6 @@ exec_bill_exec_pipeline_sql:
                 error_time = 0;
                 return -4;
             }
-            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
             goto exec_bill_exec_pipeline_sql;
         }
         return -4;
@@ -1673,11 +1673,11 @@ exec_bill_checked_node_sql:
     }else{
         string strResultInfo = "";
         if(run_state == (itat::STATE_TYPE)3){
-            strResultInfo = "½Å±¾´íÎó";
+            strResultInfo = "脚本错误";
         }else if(run_state == (itat::STATE_TYPE)4){
-            strResultInfo = "»úÆ÷Î´ÁªÍ¨";
+            strResultInfo = "机器未联通";
         }else if(run_state == (itat::STATE_TYPE)5){
-            strResultInfo = "¼ì²â³É¹¦";
+            strResultInfo = "检测成功";
         }else{
             // disconnect_db(h_db);
             return 0;
@@ -1695,6 +1695,7 @@ where ck_pl_id=(select id from bill_checked_pipeline where pipeline_id=%d and st
 #ifdef _DEBUG_
     cout << sql <<endl;
 #endif
+    mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
         fprintf(stdout, "\ninsert or update error: %s by %s\n",
@@ -1752,9 +1753,9 @@ exec_bill_checked_pipeline_sql:
     }else{
         string strResultInfo = "";
         if(check_state == (itat::STATE_TYPE)2){
-            strResultInfo = "¼ì²âÒì³£";
+            strResultInfo = "检测异常";
         }else if(check_state == (itat::STATE_TYPE)5){
-            strResultInfo = "¼ì²â³É¹¦";
+            strResultInfo = "检测成功";
         }else{
             // disconnect_db(h_db);
             return 0;
@@ -1772,6 +1773,7 @@ where pipeline_id=%d and status = 1",
 #ifdef _DEBUG_
     cout << sql <<endl;
 #endif
+    mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
     int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
     if (res) {
         fprintf(stdout, "\ninsert or update error: %s by %s\n",
@@ -1786,7 +1788,6 @@ where pipeline_id=%d and status = 1",
                 error_time = 0;
                 return -4;
             }
-            mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
             goto exec_bill_checked_pipeline_sql;
         }
         return -4;
