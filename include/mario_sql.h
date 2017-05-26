@@ -331,6 +331,7 @@ typedef struct MR_BILL_PIPELINE_ALL_NODE_VIEW{
     int script_type;
     string script_file_path;
     string script_argv;
+    string script_path;
     int script_argc;
     int status;
 
@@ -361,6 +362,7 @@ typedef struct MR_BILL_PIPELINE_ALL_NODE_VIEW{
             nn->script_argv = n->script_argv;
             nn->script_argc = n->script_argc;
             nn->status = n->status;
+            nn->script_path = n->script_path;
 
             return nn;
         }

@@ -283,8 +283,12 @@ restart_client:
     }
   }
 
-  if (!ret && param->rf)
+  if (!ret && param->rf) {
+#ifdef _DEBUG_
+    show_cstring(json_data, data_len);
+#endif //_DEBUG_      _
     ret = (0 != param->rf(json_data, data_len, param->param1, param->param2));
+  }
 
   if (rescode != 200)
     ret = rescode;

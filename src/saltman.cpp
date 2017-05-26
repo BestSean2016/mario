@@ -110,7 +110,7 @@ STATE_TYPE saltman::check_node(iNode *node) {
     state = ST_checked_herr;
   else {
     // 2. find the script
-    auto script_path = split(n->command, ' ');
+    auto script_path = split(n->script_path, ' ');
     if ((ret = salt_api_file_exists(&param_check_, n->minion_id.c_str(),
                                     script_path[0].c_str())))
       state = ST_checked_serr;

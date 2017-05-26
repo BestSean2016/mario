@@ -14,9 +14,11 @@ const char *query_sql[] = {
   "select id,`name` from auth_group",
   "select id,group_id,permission_id from auth_group_permissions",
   "select id,`name`,content_type_id,codename from auth_permission",
+
   "select "
   "id,password,last_login,is_superuser,username,first_name,last_name,email,is_"
   "staff,is_active,date_joined from auth_user",
+
   "select id,user_id,group_id from auth_user_groups",
   "select id,user_id,permission_id from auth_user_user_permissions",
   "select `key`,created,user_id from authtoken_token",
@@ -47,7 +49,7 @@ const char *query_sql[] = {
   "select "
   "id,ref_id,old_id,ref_type,`name`,minion_id,timeout,argv,`desc`,created_at,"
   "updated_at,creator_id,modifier_id,pipeline_id,ip_address,position_x,"
-  "position_y,command,script_name,script_content from "
+  "position_y,command,script_name,script_content,script_path from "
   "bill_pipeline_all_node_view",
   "select "
   "id,`desc`,created_at,updated_at,creator_id,modifier_id,pipeline_id,src_id,"
@@ -304,6 +306,7 @@ int get_bill_pipeline_all_node_view(void *r, MYSQL_ROW &row) {
   mr_record.command = mysql_str(row[17]);
   mr_record.script_name = mysql_str(row[18]);
   mr_record.script_content = mysql_str(row[19]);
+  mr_record.script_path = mysql_str(row[20]);
   return 0;
 }
 
@@ -657,7 +660,7 @@ int get_bill_pipeline_all_node_view_to_insert_sql(void *t, string &str) {
       "at,updated_at,creator_id,modifier_id,pipeline_id,ip_address,position_x,"
       "position_y,command,script_name,script_content) "
       "values(%d,%d,'%s',%d,'%s','%s',%d,'%s','%s',%d,%d,%d,%d,%d,'%s','%s','%"
-      "s','%s','%s','%s')",
+      "s','%s','%s','%s', '%s')",
       mr_record.id, mr_record.ref_id, mr_record.old_id.c_str(),
       mr_record.ref_type, mr_record.name.c_str(), mr_record.minion_id.c_str(),
       mr_record.timeout, mr_record.argv.c_str(), mr_record.desc.c_str(),
@@ -665,7 +668,8 @@ int get_bill_pipeline_all_node_view_to_insert_sql(void *t, string &str) {
       mr_record.modifier_id, mr_record.pipeline_id,
       mr_record.ip_address.c_str(), mr_record.position_x.c_str(),
       mr_record.position_y.c_str(), mr_record.command.c_str(),
-      mr_record.script_name.c_str(), mr_record.script_content.c_str());
+      mr_record.script_name.c_str(), mr_record.script_content.c_str(),
+      mr_record.script_path.c_str());
   return 0;
 }
 

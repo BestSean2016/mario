@@ -11,6 +11,7 @@ global brother
 
 def mario_run(plid):
     global brother
+    libitat.set_django_ip_port("10.10.10.16", 8001)
     brother = libitat.new_mario(plid)
     print brother
     libitat.initial(brother, 1, 'test_transfers', 0, 0)

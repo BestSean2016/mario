@@ -358,9 +358,9 @@ int salt_api_file_exists(HTTP_API_PARAM* param, const char* target, const char* 
     snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
     snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_FILE_EXISTS],
              param->hostname, param->port, g_token, strlen(tmp_buf), target, script);
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
     std::cout << std::endl << cmd << std::endl;
-#endif //_DEBUG_
+// #endif //_DEBUG_
 
     int ret = itat_httpc(param, buffer, cmd);
     if (ret)
