@@ -149,6 +149,7 @@ int iNode::do_run_front_(FUN_PARAM) {
 
   if (plnode_->ref_type != 1) {
     switch (plnode_->ref_type) {
+    case 2: // waiting for confirms
     case 4: // start
     case 5: // end
       state_ = ST_running;
