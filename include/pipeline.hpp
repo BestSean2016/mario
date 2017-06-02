@@ -62,6 +62,7 @@ public: // generic interface to manuplate the pipeline
   NODESET* get_nodeset() { return &nodeset_; }
   NODEMAPS* get_nodemaps() {return nodemaps_; }
   DBHANDLE get_db_handle() { return g_h_db_; }
+  DjangoAPI* get_django() { return dj_; }
 
   // test, set up simulator
   /**

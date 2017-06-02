@@ -134,6 +134,7 @@ int iNode::init(int64_t i, MARIO_NODE *node, iGraphStateMachine *gsm,
                 iNodeStateMachine *nsm, saltman *sm) {
   nodemaps_ = g_->get_nodemaps();
   g_h_db_ = g_->get_db_handle();
+  dj_ = g_->get_django();
 
   gen_pl_node(i, node);
   gsm_ = gsm, nsm_ = nsm;
