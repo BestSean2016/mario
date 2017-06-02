@@ -6,6 +6,7 @@
 #include "state.hpp"
 #include "mario_sql.h"
 #include "saltapi.hpp"
+#include "djangoapi.hpp"
 
 namespace itat {
 
@@ -27,7 +28,7 @@ typedef enum NODE_TYPE {
 
 class iNode {
 public:
-  iNode() {}
+  // iNode() {}
   iNode(Pipeline *g);
   virtual ~iNode();
 
@@ -54,6 +55,7 @@ public:
 
   void set_test_param(TEST_PARAM* param) { test_param_ = param; }
   MARIO_NODE* get_mario_node() { return plnode_; }
+  NODEMAPS* get_nodemaps() { return nodemaps_; }
 
 public:
   //user's action
@@ -100,6 +102,11 @@ private:
   TEST_PARAM * test_param_ = nullptr;
 
   saltman* saltman_ = nullptr;
+
+  NODEMAPS* nodemaps_ = nullptr;
+  DjangoAPI* dj_      = nullptr;
+  DBHANDLE g_h_db_    = nullptr;
+
 private:
   void setup_state_machine_();
   void simu_check__();

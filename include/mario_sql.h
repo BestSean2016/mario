@@ -606,15 +606,20 @@ extern int get_django_session_to_insert_sql(void *r, string & str);
 extern int get_django_session_to_update_sql(void *r, string & str);
 
 
+typedef struct NODEMAPS {
+  map<int, int> node_mysql_map;
+  map<int, int> mysql_node_map;
+  map<int, int> ignodeid_2_inodeid;
+  map<int, int> inodeid_2_ignodeid;
+}NODEMAPS;
+
 extern int create_graph(igraph_t *g, std::vector<MR_BILL_PIPELINE_ALL_NODE_VIEW> &pl_node,
                         std::vector<MR_BILL_PIPELINE_EDGE> &pl_edge, DBHANDLE h_db,
-                        int pl_id);
+                        int pl_id, NODEMAPS *maps);
 
 
-extern map<int, int> node_mysql_map;
-extern map<int, int> mysql_node_map;
-extern map<int, int> ignodeid_2_inodeid;
-extern map<int, int> inodeid_2_ignodeid;
+extern NODEMAPS* init_nodemaps();
+extern void destroy_nodemaps(NODEMAPS* nms);
 
 extern int get_value_by_key(int key, const std::map<int, int> &my_map);
 

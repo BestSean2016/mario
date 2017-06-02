@@ -5,7 +5,7 @@
 #include "itat_global.h"
 #include "state.hpp"
 #include "httpapi.hpp"
-
+#include "mario_sql.h"
 
 #include <Python.h>
 
@@ -56,6 +56,7 @@ public:
     DjangoAPI();
     ~DjangoAPI();
 
+    void set_run(NODEMAPS* maps, DBHANDLE h_db) { maps_ = maps, g_h_db_ = h_db; }
     int send_graph_status(int pl_ex_id,
                          int graph_id,
                          int node_id,
@@ -72,11 +73,11 @@ private:
 
 private:
     void make_send_msg();
+    NODEMAPS* maps_ = nullptr;
+    DBHANDLE g_h_db_ = nullptr;
 };
 
 
-
-extern DjangoAPI dj_;
 
 } // namespace itat
 

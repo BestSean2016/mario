@@ -5,7 +5,6 @@
 
 using namespace std;
 
-DBHANDLE g_h_db = nullptr;
 #ifndef INTVEC
 #define INTVEC(y, i) ((int)(((y).stor_begin)[(i)]))
 #endif // INTVEC
@@ -1228,10 +1227,6 @@ int returninid(DBHANDLE db) {
   return x;
 }
 
-map<int, int> node_mysql_map;
-map<int, int> mysql_node_map;
-map<int, int> ignodeid_2_inodeid;
-map<int, int> inodeid_2_ignodeid;
 
 // igraph index, node id in mysql
 // node id in mysql, igraph index
@@ -1248,7 +1243,7 @@ void create_node_mysql_map(
 // get value by key from map
 int get_value_by_key(int key, const std::map<int, int> &my_map) {
   auto it = my_map.find(key);
-  if (it == mysql_node_map.end()) {
+  if (it == my_map.end()) {
     return -1;
   }
   return it->second;
@@ -1388,20 +1383,18 @@ get_nodes_by_pipelineid(std::vector<MR_BILL_PIPELINE_ALL_NODE_VIEW> &pl_node,
 int create_graph(igraph_t *g,
                  std::vector<MR_BILL_PIPELINE_ALL_NODE_VIEW> &pl_node,
                  std::vector<MR_BILL_PIPELINE_EDGE> &pl_edge, DBHANDLE h_db,
-                 int pl_id) {
+                 int pl_id, NODEMAPS* maps) {
   assert(h_db != nullptr);
-  assert(g_h_db != nullptr);
-  assert(h_db == g_h_db);
 
   std::map<int, int> parentnodeid_firstnodeid;
   std::map<int, int> parentnodeid_lastnodeid;
   pl_edge.clear();
   pl_node.clear();
 
-  node_mysql_map.clear();
-  mysql_node_map.clear();
-  ignodeid_2_inodeid.clear();
-  inodeid_2_ignodeid.clear();
+  maps->node_mysql_map.clear();
+  maps->mysql_node_map.clear();
+  maps->ignodeid_2_inodeid.clear();
+  maps->inodeid_2_ignodeid.clear();
 
   // get nodes
   if (get_nodes_by_pipelineid(pl_node, parentnodeid_firstnodeid,
@@ -1416,15 +1409,15 @@ int create_graph(igraph_t *g,
   }
 
   // create index of igraph id and mysql node id
-  create_node_mysql_map(pl_node, node_mysql_map, mysql_node_map);
+  create_node_mysql_map(pl_node, maps->node_mysql_map, maps->mysql_node_map);
 
   igraph_t graph;
   igraph_empty(&graph, pl_node.size(), IGRAPH_DIRECTED);
 
   for (size_t i = 0; i < pl_edge.size(); i++) {
     MR_BILL_PIPELINE_EDGE &e = pl_edge.at(i);
-    int src_index = get_value_by_key(e.src_id, mysql_node_map);
-    int trg_index = get_value_by_key(e.trg_id, mysql_node_map);
+    int src_index = get_value_by_key(e.src_id, maps->mysql_node_map);
+    int trg_index = get_value_by_key(e.trg_id, maps->mysql_node_map);
 // #ifdef _DEBUG_
     // printf("(%s->%s)\n", pl_node.at(src_index).ip_address.c_str(),
     // pl_node.at(trg_index).ip_address.c_str());
@@ -1434,7 +1427,7 @@ int create_graph(igraph_t *g,
     igraph_add_edge(&graph, src_index, trg_index);
   }
 
-  int first = get_value_by_key(pl_edge[0].src_id, mysql_node_map);
+  int first = get_value_by_key(pl_edge[0].src_id, maps->mysql_node_map);
   //find the first's father if exists
   igraph_vector_t first_father;
   igraph_vector_init(&first_father, 0);
@@ -1461,8 +1454,8 @@ int create_graph(igraph_t *g,
 // #ifdef _DEBUG_
       printf("og %d -> %d, ", j, INTVEC(order, j));
 // #endif //_DEBUG_
-      ignodeid_2_inodeid.insert(std::make_pair(j, INTVEC(order, j)));
-      inodeid_2_ignodeid.insert(std::make_pair(INTVEC(order, j), j));
+      maps->ignodeid_2_inodeid.insert(std::make_pair(j, INTVEC(order, j)));
+      maps->inodeid_2_ignodeid.insert(std::make_pair(INTVEC(order, j), j));
       mapNode.insert(std::make_pair(INTVEC(order, j), j));
     }
   }
@@ -1478,18 +1471,19 @@ int create_graph(igraph_t *g,
     MR_BILL_PIPELINE_EDGE &e = pl_edge.at(i);
     // VECTOR(edge)[i * 2] = mapNode[mysql_node_map[e.src_id]];
     // VECTOR(edge)[i * 2 + 1] = mapNode[mysql_node_map[e.trg_id]];
-    int src_id = mapNode[mysql_node_map[e.src_id]];
-    int trg_id = mapNode[mysql_node_map[e.trg_id]];
+    int src_id = mapNode[maps->mysql_node_map[e.src_id]];
+    int trg_id = mapNode[maps->mysql_node_map[e.trg_id]];
     if (src_id == trg_id) continue;
     igraph_vector_push_back(&edge, src_id);
     igraph_vector_push_back(&edge, trg_id);
 
 #ifdef _DEBUG_
     fprintf(stdout, "Eage: %d -> %d, %d -> %d, %d -> %d\n",
-            src_id, trg_id, ignodeid_2_inodeid[src_id],
-            ignodeid_2_inodeid[trg_id],
-            node_mysql_map[ignodeid_2_inodeid[src_id]],
-            node_mysql_map[ignodeid_2_inodeid[trg_id]]);
+            src_id, trg_id,
+            maps->ignodeid_2_inodeid[src_id],
+            maps->ignodeid_2_inodeid[trg_id],
+            maps->node_mysql_map[maps->ignodeid_2_inodeid[src_id]],
+            maps->node_mysql_map[maps->ignodeid_2_inodeid[trg_id]]);
     fflush(stdout);
 #endif //_DEBUG_
   }
@@ -1497,8 +1491,8 @@ int create_graph(igraph_t *g,
 #ifdef _DEBUG_
   for (int i = 0; i < igraph_vector_size(&edge); i += 2)
     printf("kkkkk  %d -> %d, %d -> %d\n", INTVEC(edge, i), INTVEC(edge, i + 1),
-           ignodeid_2_inodeid[INTVEC(edge, i)],
-           ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
+           maps->ignodeid_2_inodeid[INTVEC(edge, i)],
+           maps->ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
 #endif //_DEBUG_
 
   igraph_create(g, &edge, graph.n, 1);
@@ -1513,6 +1507,7 @@ int create_graph(igraph_t *g,
 
 int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/){
     if (run_state != check_state || node_id == 0){
@@ -1524,9 +1519,7 @@ int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
     static int error_time = 0;
 
 exec_bill_exec_node_sql:
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db;// connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                           //     g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
+    assert(h_db != nullptr);
     if (!h_db)
       return -1;
 
@@ -1588,6 +1581,7 @@ exec_bill_exec_node_sql:
 
 int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/){
     if (node_id != 0 || check_state != (itat::STATE_TYPE)5){
@@ -1600,9 +1594,7 @@ int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
     static int error_time = 0;
 
 exec_bill_exec_pipeline_sql:
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db;  //connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                             //    g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
+    assert(h_db != nullptr);
     if (!h_db)
       return -2;
 
@@ -1651,6 +1643,7 @@ exec_bill_exec_pipeline_sql:
 
 int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/){
     if (node_id == 0 || check_state != run_state){
@@ -1663,9 +1656,7 @@ int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
     static int error_time = 0;
 
 exec_bill_checked_node_sql:
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db; // connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                            //    g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
+    assert(h_db != nullptr);
     if (!h_db)
       return -2;
 
@@ -1727,6 +1718,7 @@ where ck_pl_id=(select id from bill_checked_pipeline where pipeline_id=%d and st
 
 int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/, int global_userid_){
     if (node_id != 0 || (itat::STATE_TYPE)0 != run_state){
@@ -1738,9 +1730,7 @@ int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
 
     static int error_time = 0;
 exec_bill_checked_pipeline_sql:
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db; // connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                            //            g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
+    assert(h_db != nullptr);
     if (!h_db)
       return -2;
 
@@ -1803,4 +1793,11 @@ where pipeline_id=%d and status = 1",
 }
 
 
+NODEMAPS* init_nodemaps() {
+    return new NODEMAPS;
+}
+
+void destroy_nodemaps(NODEMAPS* nms) {
+    if (nms) delete nms;
+}
 

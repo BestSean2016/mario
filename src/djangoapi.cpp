@@ -27,18 +27,22 @@ void set_django_ip_port(const char * ip, int port) {
 
 extern int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/);
 extern int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/);
 extern int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/);
 extern int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
                           itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                          DBHANDLE h_db,
                           int /*code*/, const char */*strout*/,
                           const char */*strerr*/, int);
 
@@ -52,9 +56,6 @@ static const char *str_status[] = {
   "ST_waiting_for_input", "ST_running_one",         "ST_run_one_ok",
   "ST_run_one_err",       "ST_confirm_refused",
 };
-
-extern std::map<int, int> node_mysql_map;
-extern std::map<int, int> mysql_node_map;
 
 // std::string python_filename = { "bill_message" };
 
@@ -133,8 +134,6 @@ namespace itat {
 
 int global_userid_ = 0;
 
-DjangoAPI dj_;
-
 static threadpool_t* g_thpool;
 
 DjangoAPI::DjangoAPI() {
@@ -167,26 +166,26 @@ int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
   int ret = 0;
 
 
-  update_bill_exec_node(pl_ex_id, graph_id, node_mysql_map[node_id],
-                                  run_state, check_state, code, strout,
+  update_bill_exec_node(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
+                                  run_state, check_state, g_h_db_, code, strout,
                                   strerr);
 
-  update_bill_exec_pipeline(pl_ex_id, graph_id, node_mysql_map[node_id],
-                              run_state, check_state, code, strout, strerr);
+  update_bill_exec_pipeline(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
+                              run_state, check_state, g_h_db_, code, strout, strerr);
 
-  update_bill_checked_pipeline(pl_ex_id, graph_id, node_mysql_map[node_id],
-                               run_state, check_state, code, strout,
+  update_bill_checked_pipeline(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
+                               run_state, check_state, g_h_db_, code, strout,
                                strerr,
                                global_userid_);
 
-  update_bill_checked_node(pl_ex_id, graph_id, node_mysql_map[node_id],
-                             run_state, check_state, code, strout, strerr);
+  update_bill_checked_node(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
+                             run_state, check_state, g_h_db_, code, strout, strerr);
 
   // if (!ret) {
   char* buf = new char[BUFSIZ * 8];
   char* cmd = buf + BUFSIZ * 4;
   snprintf(cmd, BUFSIZ * 4, sendingmsg, pl_ex_id, graph_id,
-           node_mysql_map[node_id], run_state, check_state, code, strout,
+           maps_->node_mysql_map[node_id], run_state, check_state, code, strout,
            strerr, django_ip, django_port);
   buffers * bufs = new buffers;
   bufs->buf = buf;
@@ -203,7 +202,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
 
   // #ifdef _DEBUG_
   std::cout << global_userid_ << ", " << pl_ex_id << ", " << graph_id << ", "
-            << node_id << ", " << node_mysql_map[node_id] << ", "
+            << node_id << ", " << maps_->node_mysql_map[node_id] << ", "
             << str_status[run_state] << ", " << str_status[check_state] << ", "
             << code << ", " << strout << ", " << strerr << std::endl;
   // #endif //_DEBUG

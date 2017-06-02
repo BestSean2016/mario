@@ -560,7 +560,6 @@ int parse_salt_myjob_jobmap(const char *json_data, size_t len,
   MAP_SALT_JOB* jobs = reinterpret_cast<MAP_SALT_JOB*>(p1);
   iNode* inode = reinterpret_cast<iNode*>(p2);
 
-
   rapidjson::Document doc;
   doc.Parse((char *)json_data, len);
 
@@ -587,7 +586,7 @@ int parse_salt_myjob_jobmap(const char *json_data, size_t len,
   bool found = (iter != jobs->end());
 
   job->status = ST_running;
-  job->node_id = inodeid_2_ignodeid[inode->get_id()];
+  job->node_id = inode->get_nodemaps()->inodeid_2_ignodeid[inode->get_id()];
   job->inode = inode;
 
   if (!found) {

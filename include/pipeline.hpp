@@ -5,6 +5,7 @@
 #include "itat_global.h"
 #include "state.hpp"
 #include "mario_sql.h"
+#include "djangoapi.hpp"
 #include "saltapi.hpp"
 
 #include <igraph/igraph.h>
@@ -59,6 +60,8 @@ public: // generic interface to manuplate the pipeline
   igraph_t* get_igraph() { return &ig_; }
   saltman* get_saltman() { return saltman_; }
   NODESET* get_nodeset() { return &nodeset_; }
+  NODEMAPS* get_nodemaps() {return nodemaps_; }
+  DBHANDLE get_db_handle() { return g_h_db_; }
 
   // test, set up simulator
   /**
@@ -204,6 +207,11 @@ private:
   TEST_PARAM *test_param_ = nullptr;
 
   saltman* saltman_ = nullptr;
+
+  NODEMAPS* nodemaps_ = nullptr;
+  DjangoAPI* dj_      = nullptr;
+  DBHANDLE g_h_db_    = nullptr;
+
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
   int gen_node_(vector<MARIO_NODE> *nodes);
