@@ -6,7 +6,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <threadpool.h>
 #include <errno.h>
 #include <error.h>
 
@@ -25,26 +24,12 @@ void set_django_ip_port(const char * ip, int port) {
 }
 
 
-extern int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          DBHANDLE h_db,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/);
-extern int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          DBHANDLE h_db,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/);
-extern int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          DBHANDLE h_db,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/);
-extern int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          DBHANDLE h_db,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/, int);
+extern void update_status_mysql_tables(int pl_ex_id, int graph_id, int node_id,
+                                       itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
+                                       DBHANDLE h_db,
+                                       int code, const char *strout,
+                                       const char *strerr, int userid);
+
 
 
 static const char *str_status[] = {
@@ -132,10 +117,6 @@ error_exit:
 
 namespace itat {
 
-int global_userid_ = 0;
-
-static threadpool_t* g_thpool;
-
 DjangoAPI::DjangoAPI() {
   g_thpool = threadpool_create(THREAD_POOL_SIZE, THREAD_POOL_QUEUE_SIZE, 0);
 }
@@ -161,25 +142,12 @@ void DjangoAPI::make_send_msg() {}
 int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
                                  STATE_TYPE run_state, STATE_TYPE check_state,
                                  int code, const char *strout,
-                                 const char *strerr) {
+                                 const char *strerr, const char *why) {
 
   int ret = 0;
 
 
-  update_bill_exec_node(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
-                                  run_state, check_state, g_h_db_, code, strout,
-                                  strerr);
-
-  update_bill_exec_pipeline(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
-                              run_state, check_state, g_h_db_, code, strout, strerr);
-
-  update_bill_checked_pipeline(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
-                               run_state, check_state, g_h_db_, code, strout,
-                               strerr,
-                               global_userid_);
-
-  update_bill_checked_node(pl_ex_id, graph_id, maps_->node_mysql_map[node_id],
-                             run_state, check_state, g_h_db_, code, strout, strerr);
+  update_status_mysql_tables(pl_ex_id, graph_id, maps_->node_mysql_map[node_id], run_state, check_state, g_h_db_, code, strout, strerr, global_userid_);
 
   // if (!ret) {
   char* buf = new char[BUFSIZ * 8];

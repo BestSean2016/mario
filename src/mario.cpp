@@ -30,6 +30,12 @@ int Mario::initial(int real_run, const char *py_message_path, int node_num,
   return g_->initial(real_run, node_num, branch_num);
 }
 
+
+void Mario::set_user(int userid) {
+  assert(g_ != nullptr);
+  g_->get_django()->set_user(userid);
+}
+
 int Mario::check() {
   assert(g_ != nullptr);
   return g_->check();
@@ -55,10 +61,10 @@ int Mario::go_on() {
   return g_->go_on();
 }
 
-int Mario::stop() {
+int Mario::stop(int code, const char *why) {
   assert(g_ != nullptr);
   cout << "STOPSTOPSTOP\n";
-  return g_->stop();
+  return g_->stop(code, why);
 }
 
 int Mario::confirm(int node_id) {

@@ -91,7 +91,7 @@ public: // the action from user
   int run_node(int node_id);
   int pause();
   int go_on();
-  int stop();
+  int stop(int code, const char* why);
   int user_confirm(int node_id);
 
 
@@ -212,6 +212,8 @@ private:
   NODEMAPS* nodemaps_ = nullptr;
   DjangoAPI* dj_      = nullptr;
   DBHANDLE g_h_db_    = nullptr;
+
+  char user_data[512];
 
 private:
   int gen_diamod_graph_(int node_num, int branch_num);

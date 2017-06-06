@@ -236,8 +236,9 @@ int Pipeline::go_on() {
   return gsm_->do_trans(state_, &Pipeline::do_go_on_front_, this, nullptr);
 }
 
-int Pipeline::stop() {
-  return gsm_->do_trans(state_, &Pipeline::do_stop_front_, this, nullptr);
+int Pipeline::stop(int code, const char *why) {
+  strcpy_s(user_data, 512, why);
+  return gsm_->do_trans(state_, &Pipeline::do_stop_front_, this, (FUN_PARAM)code);
 }
 
 int Pipeline::user_confirm(int node_id) {

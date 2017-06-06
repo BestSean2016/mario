@@ -69,10 +69,10 @@ int run_mario(int64_t id, int start_id, int pleid) {
 }
 
 
-int stop_mario(int64_t id) {
+int stop_mario(int64_t id, int code, const char* why) {
     if (id) {
       Mario* m = (Mario*)id;
-      return m->stop();
+      return m->stop(code, why);
     }
 
     return -1;

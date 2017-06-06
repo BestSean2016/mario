@@ -6,6 +6,7 @@
 #include "state.hpp"
 #include "httpapi.hpp"
 #include "mario_sql.h"
+#include <threadpool.h>
 
 #include <Python.h>
 
@@ -57,6 +58,7 @@ public:
     ~DjangoAPI();
 
     void set_run(NODEMAPS* maps, DBHANDLE h_db) { maps_ = maps, g_h_db_ = h_db; }
+    void set_user(int userid) { global_userid_ = userid; }
     int send_graph_status(int pl_ex_id,
                          int graph_id,
                          int node_id,
@@ -64,7 +66,8 @@ public:
                          STATE_TYPE check_state,
                          int code = 0,
                          const char* strout = {""},
-                         const char* strerr = {""});
+                         const char* strerr = {""},
+                         const char* why = nullptr);
 
 
 private:
@@ -75,6 +78,8 @@ private:
     void make_send_msg();
     NODEMAPS* maps_ = nullptr;
     DBHANDLE g_h_db_ = nullptr;
+    int global_userid_ = 0;
+    threadpool_t* g_thpool;
 };
 
 
