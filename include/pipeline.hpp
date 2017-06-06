@@ -190,6 +190,7 @@ public:
 private:
   STATE_TYPE state_ = ST_initial;
   STATE_TYPE chk_state_ = ST_initial;
+  STATE_TYPE stop_state_ = ST_initial;
   iGraphStateMachine *gsm_ = nullptr;
   iNodeStateMachine *nsm_ = nullptr;
 

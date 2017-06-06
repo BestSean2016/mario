@@ -25,10 +25,11 @@ void set_django_ip_port(const char * ip, int port) {
 
 
 extern void update_status_mysql_tables(int pl_ex_id, int graph_id, int node_id,
-                                       itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                                       DBHANDLE h_db,
+                                       itat::STATE_TYPE run_state,
+                                       itat::STATE_TYPE check_state, DBHANDLE h_db,
                                        int code, const char *strout,
-                                       const char *strerr, int userid);
+                                       const char *strerr, int userid,
+                                       const char *why);
 
 
 
@@ -147,7 +148,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
   int ret = 0;
 
 
-  update_status_mysql_tables(pl_ex_id, graph_id, maps_->node_mysql_map[node_id], run_state, check_state, g_h_db_, code, strout, strerr, global_userid_);
+  update_status_mysql_tables(pl_ex_id, graph_id, maps_->node_mysql_map[node_id], run_state, check_state, g_h_db_, code, strout, strerr, global_userid_, why);
 
   // if (!ret) {
   char* buf = new char[BUFSIZ * 8];

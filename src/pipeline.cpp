@@ -238,6 +238,7 @@ int Pipeline::go_on() {
 
 int Pipeline::stop(int code, const char *why) {
   strcpy_s(user_data, 512, why);
+  stop_state_ = (STATE_TYPE)code;
   return gsm_->do_trans(state_, &Pipeline::do_stop_front_, this, (FUN_PARAM)code);
 }
 
@@ -395,8 +396,8 @@ int Pipeline::on_stoped_(FUN_PARAM) {
 
 int Pipeline::on_stoped_front_(FUN_PARAM) {
   // check if all node are stoped
-  state_ = ST_stoped;
-  SEND_STATUS
+  state_ = stop_state_;//ST_stoped;
+  dj_->send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_, stop_state_, "", "", user_data);
   return 0;
 }
 int Pipeline::on_stoped_back_(FUN_PARAM) { return 0; }
@@ -916,7 +917,7 @@ int Pipeline::do_go_on_back_(FUN_PARAM) {
 // stop
 int Pipeline::do_stop_front_(FUN_PARAM) {
   state_ = ST_stoping;
-  SEND_STATUS
+  dj_->send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_, stop_state_, "", "", user_data);
   return 0;
 }
 int Pipeline::do_stop_back_(FUN_PARAM) { return 0; }
@@ -967,7 +968,8 @@ int Pipeline::thread_simulator_ex_ex_() {
   // dj_.save_thread();
   iNode *node = nullptr;
   while (true) {
-    if (state_ == ST_running) {
+    switch (state_) {
+    case ST_running: {
       // simulate run a node
       node = nullptr;
       ENTER_MULTEX
@@ -993,7 +995,7 @@ int Pipeline::thread_simulator_ex_ex_() {
               on_run_allok_(nullptr);
             else {
               on_run_with_error();
-              goto error_exit;
+              goto exit_fun;
             }
           }
           break;
@@ -1014,13 +1016,26 @@ int Pipeline::thread_simulator_ex_ex_() {
           break;
         }
       }
-    } else if (state_ == ST_stoping) {
+    }
+    break;
+    case ST_stoping:
       on_stoped_(nullptr);
-    } else if (state_ == ST_pausing) {
+      break;
+    case ST_pausing:
       on_paused_(nullptr);
-    } else if (state_ == ST_succeed || state_ == ST_stoped) {
+      break;
+    case ST_succeed:
+    case ST_stoped:
+    case ST_confirm_refused:
+    case ST_stop_user_take_err:
+    case ST_stop_user_take_ok:
+    case ST_done_but_error:
+      goto exit_fun;
+    default:
       break;
     }
+
+
     if (nodeset_.prepare_to_run_.empty()
         || state_ == ST_pausing
         || state_ == ST_paused)
@@ -1029,7 +1044,7 @@ int Pipeline::thread_simulator_ex_ex_() {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
-error_exit:
+exit_fun:
 #ifdef _DEBUG_
   cout << "thread ex exited hahaha\n";
 #endif //_DEBUG_
