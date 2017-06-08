@@ -5,6 +5,8 @@
 using namespace itat;
 
 
+std::mutex g_mario_mutex;
+std::set<Mario* > mario_set;
 
 extern void set_django_ip_port(const char * ip, int port);
 
@@ -25,35 +27,53 @@ extern void set_django_ip_port(const char * ip, int port);
 // {
 // }
 
-char const* greet()
-{
+static void insert_mario(Mario* m) {
+    auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+    mario_set.insert(m);
+    delete guard;
+}
+
+
+static bool remove_mario(Mario* m) {
+    auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+    auto iter = mario_set.find(m);
+    bool found = false;
+    if (iter != mario_set.end()) {
+        mario_set.erase(iter);
+        found = true;
+    }
+    delete guard;
+    return found;
+}
+
+char const* greet() {
    std::cout << "greetings\n";
    return "hello, world";
 }
 
 int64_t new_mario(int plid) {
-    return (uint64_t)(void*)(new Mario(plid));
-}
-
-int get_back_mario(int64_t id) {
-    if (id) {
-      Mario* m = (Mario*)id;
-      return m->get_plid();
-    }
-    return -1;
+    Mario* m = new Mario(plid);
+    insert_mario(m);
+    return (uint64_t)(void*)(m);
 }
 
 void kill_mario(int64_t id) {
     if (id) {
       Mario* m = (Mario*)id;
-      delete m;
+      if (remove_mario(m));
+          delete m;
     }
 }
 
 int initial(int64_t id, int real_run, const char* bill_message, int node_num, int branch_num) {
     if (id) {
       Mario* m = (Mario*)id;
-      return m->initial(real_run, bill_message, node_num, branch_num);
+      int ret = 0;
+      auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+      if (mario_set.find(m) != mario_set.end())
+        ret = m->initial(real_run, bill_message, node_num, branch_num);
+      delete guard;
+      return ret;
     }
 
     return -1;
@@ -62,7 +82,12 @@ int initial(int64_t id, int real_run, const char* bill_message, int node_num, in
 int run_mario(int64_t id, int start_id, int pleid) {
     if (id) {
       Mario* m = (Mario*)id;
-      return m->run(start_id, pleid);
+      int ret = 0;
+      auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+      if (mario_set.find(m) != mario_set.end())
+        ret = m->run(start_id, pleid);
+      delete guard;
+      return ret;
     }
 
     return -1;
@@ -72,7 +97,12 @@ int run_mario(int64_t id, int start_id, int pleid) {
 int stop_mario(int64_t id, int code, const char* why) {
     if (id) {
       Mario* m = (Mario*)id;
-      return m->stop(code, why);
+      int ret = 0;
+      auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+      if (mario_set.find(m) != mario_set.end())
+        ret = m->stop(code, why);
+      delete guard;
+      return ret;
     }
 
     return -1;
@@ -81,8 +111,13 @@ int stop_mario(int64_t id, int code, const char* why) {
 
 int check_mario(int64_t id) {
     if (id) {
-        Mario* m = (Mario*)id;
-        return m->check();
+      Mario* m = (Mario*)id;
+      int ret = 0;
+      auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+      if (mario_set.find(m) != mario_set.end())
+        ret = m->check();
+      delete guard;
+      return ret;
     }
     return -1;
 }
@@ -90,8 +125,12 @@ int check_mario(int64_t id) {
 
 int run_node(int64_t id, int node_id) {
     if (id) {
-        Mario* m = (Mario*)id;
-        return m->run_node(node_id);
+      Mario* m = (Mario*)id;
+      int ret = 0;
+      auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+      if (mario_set.find(m) != mario_set.end())
+        ret = m->run_node(node_id);
+      delete guard;
     }
 
     return -1;
@@ -100,7 +139,12 @@ int run_node(int64_t id, int node_id) {
 int pause_mario(int64_t id) {
     if (id) {
         Mario* m = (Mario*)id;
-        return m->pause();
+        int ret = 0;
+        auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+        if (mario_set.find(m) != mario_set.end())
+          ret = m->pause();
+        delete guard;
+        return ret;
     }
     return -1;
 }
@@ -108,7 +152,12 @@ int pause_mario(int64_t id) {
 int go_on(int64_t id) {
     if (id) {
         Mario* m = (Mario*)id;
-        return m->go_on();
+        int ret = 0;
+        auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+        if (mario_set.find(m) != mario_set.end())
+          ret = m->go_on();
+        delete guard;
+        return ret;
     }
     return -1;
 }
@@ -116,7 +165,12 @@ int go_on(int64_t id) {
 int confirm(int64_t id, int node_id) {
     if (id) {
         Mario* m = (Mario*)id;
-        return m->confirm(node_id);
+        int ret = 0;
+        auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+        if (mario_set.find(m) != mario_set.end())
+          ret = m->confirm(node_id);
+        delete guard;
+        return ret;
     }
     return -1;
 }
@@ -124,14 +178,22 @@ int confirm(int64_t id, int node_id) {
 void set_user(int64_t id, int userid) {
     if (id) {
         Mario* m = (Mario*)id;
-        return m->set_user(userid);
+        auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+        if (mario_set.find(m) != mario_set.end())
+          m->set_user(userid);
+        delete guard;
     }
 }
 
 int mario_is_done(int64_t id) {
     if (id) {
         Mario* m = (Mario*)id;
-        return m->is_done();
+        int ret = 0;
+        auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+        if (mario_set.find(m) != mario_set.end())
+          ret = m->is_done();
+        delete guard;
+        return ret;
     }
     return 1;
 }
@@ -148,8 +210,10 @@ int test_setup(int64_t id,
                int sleep_interval) {
     if (id) {
         Mario* m = (Mario*)id;
-        m->test_setup(check, run, check_err_id, run_err_id, timeout_id, pause_id, stop_id, confirm_id, sleep_interval);
-        return 0;
+        auto guard = new std::lock_guard<std::mutex>(g_mario_mutex);
+        if (mario_set.find(m) != mario_set.end())
+          m->test_setup(check, run, check_err_id, run_err_id, timeout_id, pause_id, stop_id, confirm_id, sleep_interval);
+        delete guard;
     }
 
     return -1;

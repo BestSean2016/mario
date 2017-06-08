@@ -5,7 +5,6 @@
 
 namespace  itat {
 
-//JOBMAP g_jobmap;
 char g_token[TOKEN_LEN] = {0};
 
 #define TEMPBUF_LEN 2048
