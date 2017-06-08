@@ -63,7 +63,6 @@ private:
 } // namespace itat
 
 extern int64_t new_mario(int plid);
-extern int get_back_mario(int64_t id);
 extern void kill_mario(int64_t id);
 extern int initial(int64_t id, int real_run, const char *bill_message,
                    int node_num, int branch_num);

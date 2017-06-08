@@ -240,7 +240,6 @@ BOOST_PYTHON_MODULE(libitat)
 
     def("greet", greet);
     def("new_mario", new_mario);
-    def("get_back_mario", get_back_mario);
     def("kill_mario", kill_mario);
     def("initial", initial);
     def("test_setup", test_setup);
