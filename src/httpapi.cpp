@@ -216,7 +216,7 @@ static int analyse_response(char **buf, int buflen, int *rescode,
   return finished;
 }
 
-int itat_httpc(itat::HTTP_API_PARAM* param, HTTPBUF buf, const char *cmd) {
+int itat_httpc(saltman* sm, itat::HTTP_API_PARAM* param, HTTPBUF buf, const char *cmd) {
   int sockfd, n, total_len;
   struct sockaddr_in serveraddr;
   struct hostent *server;
@@ -287,7 +287,7 @@ restart_client:
 #ifdef _DEBUG_
     show_cstring(json_data, data_len);
 #endif //_DEBUG_      _
-    ret = (0 != param->rf(json_data, data_len, param->param1, param->param2));
+    ret = (0 != param->rf(sm, json_data, data_len, param->param1, param->param2));
   }
 
   if (rescode != 200)
@@ -321,7 +321,7 @@ run_receive_long_data : {
       else {
         // printf("************** %s\n", line);
         if (param->rf) // do not check error
-          param->rf(line, tmp - line, param->param1, param->param2);
+          param->rf(sm, line, tmp - line, param->param1, param->param2);
         // ret = (0 != parse_fun(line, tmp - line, param1, 0));
 
         // next line

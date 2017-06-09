@@ -14,13 +14,11 @@
 
 
 
-#define ENTER_MULTEX auto guard = new std::lock_guard<std::mutex>(g_job_mutex);
+#define ENTER_MULTEX auto guard = new std::lock_guard<std::mutex>(saltman_->sap_.g_job_mutex);
 #define EXIT_MULTEX delete guard;
 #define SEND_STATUS dj_->send_graph_status(pleid_, plid_, NO_NODE, state_, chk_state_);
 
 namespace itat {
-extern std::mutex g_job_mutex;
-
 Pipeline::Pipeline(int plid) : plid_(plid) {
   srand(time(0));
   nodemaps_ = init_nodemaps();
@@ -269,7 +267,7 @@ int Pipeline::on_run_ok_back_(FUN_PARAM node) {
        << ((iNode *)node)->get_state() << "\n";
 #endif //_DEBUG_
 
-  ENTER_MULTEX
+ENTER_MULTEX
 // remove from nodeset_.run_set_
 #ifdef _USE_VECTOR_AS_SET_
   vec_erase(nodeset_.run_set_, id);
@@ -796,14 +794,14 @@ int Pipeline::thread_simulator_(Pipeline *pl) {
   iNode *node = nullptr;
   while (pl->state_ == ST_running) {
     node = nullptr;
-    ENTER_MULTEX
+    auto guard = new std::lock_guard<std::mutex>(pl->saltman_->sap_.g_job_mutex);
     if (!pl->nodeset_.prepare_to_run_.empty()) {
       node = pl->get_node_by_id(*(pl->nodeset_.prepare_to_run_.begin()));
       cout << node->get_id() << " <--- node id " << "\n";
 
       pl->nodeset_.prepare_to_run_.erase(pl->nodeset_.prepare_to_run_.begin());
     }
-    EXIT_MULTEX
+    delete guard;
     if (node != nullptr) {
       STATE_TYPE state = (STATE_TYPE)(node->run());
       switch (state) {
@@ -1067,7 +1065,7 @@ exit_fun:
     if (pl->state_ == ST_running) {
       // simulate run a node
       node = nullptr;
-      ENTER_MULTEX
+      auto guard = new std::lock_guard<std::mutex>(pl->saltman_->sap_.g_job_mutex);
       // get all nodes will have to run
       if (!pl->nodeset_.prepare_to_run_.empty()) {
         int ig_node_id = *(pl->nodeset_.prepare_to_run_.begin());
@@ -1075,7 +1073,7 @@ exit_fun:
         pl->nodeset_.prepare_to_run_.erase(
             pl->nodeset_.prepare_to_run_.begin());
       }
-      EXIT_MULTEX
+      delete guard;
       if (node != nullptr) {
         // run node
         STATE_TYPE node_state = (STATE_TYPE)(node->run());

@@ -11,8 +11,6 @@
 
 
 namespace itat {
-extern bool g_run_check_timer_out;
-
 bool vec_find(std::vector<int> &vec, int a) {
   for (auto &p : vec)
     if (p == a)
@@ -42,7 +40,7 @@ bool vec_erase(std::vector<int> &vec, int a) {
 saltman::saltman() {
   param_check_.set_param(SALT_SERVER_IP, SALT_SERVER_PORT, parse_token_fn,
                          &map_job_, nullptr);
-  salt_api_login(&param_check_, SALT_USERNAME, SALT_PASSWORD);
+  salt_api_login(this, &param_check_, SALT_USERNAME, SALT_PASSWORD);
 }
 
 saltman::~saltman() {
@@ -74,8 +72,8 @@ void saltman::stop() {
     thread_event_.join();
   }
 
-  if (g_run_check_timer_out) {
-    g_run_check_timer_out = false;
+  if (sap_.g_run_check_timer_out) {
+    sap_.g_run_check_timer_out = false;
     thread_timeout_.join();
   }
 
@@ -105,13 +103,13 @@ STATE_TYPE saltman::check_node(iNode *node) {
   SALT_JOB_RET jobret;
   param_check_.param1 = &jobret;
   param_check_.param2 = (void *)(n->minion_id.c_str());
-  int ret = salt_api_testping(&param_check_, n->minion_id.c_str());
+  int ret = salt_api_testping(this, &param_check_, n->minion_id.c_str());
   if (ret)
     state = ST_checked_herr;
   else {
     // 2. find the script
     auto script_path = split(n->script_path, ' ');
-    if ((ret = salt_api_file_exists(&param_check_, n->minion_id.c_str(),
+    if ((ret = salt_api_file_exists(this, &param_check_, n->minion_id.c_str(),
                                     script_path[0].c_str())))
       state = ST_checked_serr;
   }
@@ -124,7 +122,7 @@ STATE_TYPE saltman::run_node(iNode *node) {
   param_run_.param1 = &map_job_;
   param_run_.param2 = node;
 
-  if (salt_api_async_cmd_runall(&param_run_,
+  if (salt_api_async_cmd_runall(this, &param_run_,
                                 node->get_mario_node()->minion_id.c_str(),
                                 node->get_mario_node()->command.c_str()))
     state = ST_error;
@@ -146,12 +144,12 @@ void saltman::init(Pipeline *pl) {
 
   int ret = 0;
   if (!ret) {
-    g_run_check_timer_out = true;
-    thread_timeout_ = std::thread(itat::thread_check_timer_out, &map_job_);
+    sap_.g_run_check_timer_out = true;
+    thread_timeout_ = std::thread(itat::thread_check_timer_out, this, &map_job_);
   }
 
   if (!ret) {
-    thread_event_ = std::thread(itat::salt_api_events, &param_event_);
+    thread_event_ = std::thread(itat::salt_api_events, this, &param_event_);
   }
 
   std::this_thread::sleep_for(std::chrono::seconds(5));
