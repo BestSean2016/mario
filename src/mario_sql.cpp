@@ -1682,7 +1682,7 @@ static int update_bill_checked_node(int graph_id, int node_id,
                                     DBHANDLE h_db) {
   if (node_id == 0) {
 #ifdef _DEBUG_
-    cout << check_state << " " << run_state << " " << node_id << endl;
+    cout << check_state << " " << node_id << endl;
 #endif
     return 0;
   }

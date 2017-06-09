@@ -216,11 +216,7 @@ int Pipeline::run(int start_id, int pleid) {
 }
 
 int Pipeline::run_node(int node_id) {
-  iNode *node = get_node_by_id((int)((uint64_t)node_id));
-  if (nullptr == node)
-    return ERROR_INVAILD_NODE_ID;
-  else
-    return gsm_->do_trans(state_, &Pipeline::do_run_one_front_, this, node);
+    return gsm_->do_trans(state_, &Pipeline::do_run_one_front_, this, (FUN_PARAM)node_id);
 }
 
 int Pipeline::pause() {
@@ -477,10 +473,10 @@ int Pipeline::setup_state_machine_() {
 
   //.....................................................................................
   // run_one
-  gsm_->add_state_trans(ST_initial, &Pipeline::do_run_one_front_, ST_running,
-                        &Pipeline::do_run_one_back_);
-  gsm_->add_state_trans(ST_checked_ok, &Pipeline::do_run_one_front_, ST_running,
-                        &Pipeline::do_run_one_back_);
+  // gsm_->add_state_trans(ST_initial, &Pipeline::do_run_one_front_, ST_running,
+  //                       &Pipeline::do_run_one_back_);
+  // gsm_->add_state_trans(ST_checked_ok, &Pipeline::do_run_one_front_, ST_running,
+  //                       &Pipeline::do_run_one_back_);
   gsm_->add_state_trans(ST_error, &Pipeline::do_run_one_front_, ST_running,
                         &Pipeline::do_run_one_back_);
   gsm_->add_state_trans(ST_timeout, &Pipeline::do_run_one_front_, ST_running,
@@ -561,9 +557,9 @@ int Pipeline::do_node_check_cb_(const igraph_t *graph, igraph_integer_t vid,
   Pipeline *g = (Pipeline *)extra;
   assert(graph == &g->ig_);
 #ifdef _DEBUG_
-  std::cout << "checking " << vid << " -> " << nodemaps_->ignodeid_2_inodeid[vid] << std::endl;
+  std::cout << "checking " << vid << " -> " << g->get_nodemaps()->ignodeid_2_inodeid[vid] << std::endl;
 #endif //_DEBUG_
-  iNode *node = g->get_node_by_id(g->nodemaps_->ignodeid_2_inodeid[vid]);
+  iNode *node = g->get_node_by_id(g->get_nodemaps()->ignodeid_2_inodeid[vid]);
   assert(node != nullptr);
 
   if (node->check()) {
@@ -840,26 +836,59 @@ bool Pipeline::is_all_done_() {
 }
 
 // run one node
-int Pipeline::do_run_one_front_(FUN_PARAM node) {
-  assert(node != nullptr);
-  iNode* n = (iNode*)node;
+int Pipeline::do_run_one_front_(FUN_PARAM node_id) {
+  assert(node_id != nullptr);
+  int nid = nodemaps_->mysql_node_map[(int)((uint64_t)node_id)];
+  iNode *node = get_node_by_id(nid);
+  if (nullptr == node) {
+    cout << "do run node ERROR INVALID NODE ID" << endl;
+    return ERROR_INVAILD_NODE_ID;
+  }
+
+
   int ret = 0;
+#ifdef _DEBUG_
+  cout << "do run node " << nodemaps_->inodeid_2_ignodeid[nid] << endl;
+#endif //_DEBUG_
+
   ENTER_MULTEX
-  if (!vec_find(nodeset_.issues_, nodemaps_->inodeid_2_ignodeid[n->get_id()]))
+  if (!vec_find(nodeset_.issues_, nodemaps_->inodeid_2_ignodeid[nid]))
     ret = 1;
   EXIT_MULTEX
+
+#ifdef _DEBUG_
+  if (ret)
+     cout << "can not found node in issues" << node_id << ", " << nid << ", " << nodemaps_->inodeid_2_ignodeid[nid] << endl;
+#endif //_DEBUG_
+
   return (ret) ? ERROR_WRONG_STATE_TO_ACTION : 0;
 }
 
-int Pipeline::do_run_one_back_(FUN_PARAM node) {
-  assert(node != nullptr);
-  STATE_TYPE state = (STATE_TYPE)(((iNode *)node)->run());
+int Pipeline::do_run_one_back_(FUN_PARAM node_id) {
+  assert(node_id != nullptr);
+
+  int nid = nodemaps_->mysql_node_map[(int)((uint64_t)node_id)];
+  iNode *node = get_node_by_id(nid);
+  if (nullptr == node) {
+    cout << "do run node ERROR INVALID NODE ID" << endl;
+    return ERROR_INVAILD_NODE_ID;
+  }
+
+#ifdef _DEBUG_
+  cout << "do_run_one_back_ " << nodemaps_->inodeid_2_ignodeid[nid] << endl;
+#endif //_DEBUG_
+
+  STATE_TYPE state = (STATE_TYPE)(node->run());
+
+#ifdef _DEBUG_
+  cout << "do_run_one_back_ " << state << endl;
+#endif //_DEBUG_
+
   bool status_changed = false;
   int ret = 0;
   if (state == ST_succeed) {
       ENTER_MULTEX
-      iNode* n = (iNode*)node;
-      if (!vec_erase(nodeset_.issues_, nodemaps_->inodeid_2_ignodeid[n->get_id()]))
+      if (!vec_erase(nodeset_.issues_, nodemaps_->inodeid_2_ignodeid[nid]))
         ret = 1;
       if (nodeset_.issues_.empty())
           status_changed = true;

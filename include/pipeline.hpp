@@ -118,8 +118,8 @@ private: // the  state machine front and back
   int thread_simulator_ex_ex_();
 
   // run one node
-  int do_run_one_front_(FUN_PARAM node);
-  int do_run_one_back_(FUN_PARAM node);
+  int do_run_one_front_(FUN_PARAM node_id);
+  int do_run_one_back_(FUN_PARAM node_id);
   // pause
   int do_pause_front_(FUN_PARAM);
   int do_pause_back_(FUN_PARAM);

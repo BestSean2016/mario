@@ -63,7 +63,8 @@ private:
 } // namespace itat
 
 extern int64_t new_mario(int plid);
-extern void kill_mario(int64_t id);
+extern int kill_mario(int64_t id);
+extern int get_back_mario(int id);
 extern int initial(int64_t id, int real_run, const char *bill_message,
                    int node_num, int branch_num);
 extern int check_mario(int64_t id);
@@ -78,7 +79,7 @@ extern int run_node(int64_t id, int node_id);
 extern int pause_mario(int64_t id);
 extern int go_on(int64_t id);
 extern int confirm(int64_t id, int node_id);
-extern void set_user(int64_t id, int userid);
+extern int set_user(int64_t id, int userid);
 extern int mario_is_done(int64_t id);
 
 #endif // MARIO_PLUMBER_H
