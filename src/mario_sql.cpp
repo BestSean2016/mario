@@ -1531,7 +1531,6 @@ static int update_bill_exec_node(int pl_ex_id, int node_id,
 
 static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
                                      itat::STATE_TYPE run_state,
-                                     itat::STATE_TYPE check_state,
                                      DBHANDLE h_db, const char *why);
 
 static int update_bill_checked_node(int graph_id, int node_id,
@@ -1539,7 +1538,6 @@ static int update_bill_checked_node(int graph_id, int node_id,
                                     DBHANDLE h_db);
 
 static int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
-                                        itat::STATE_TYPE run_state,
                                         itat::STATE_TYPE check_state,
                                         DBHANDLE h_db, int userid);
 
@@ -1554,10 +1552,10 @@ void update_status_mysql_tables(int pl_ex_id, int graph_id, int node_id,
   update_bill_exec_node(pl_ex_id, node_id, run_state, check_state, h_db, code,
                         strout, strerr);
 
-  update_bill_exec_pipeline(pl_ex_id, node_id, run_state, check_state, h_db,
+  update_bill_exec_pipeline(pl_ex_id, node_id, run_state, h_db,
                             why);
 
-  update_bill_checked_pipeline(pl_ex_id, graph_id, node_id, run_state,
+  update_bill_checked_pipeline(pl_ex_id, graph_id, node_id,
                                check_state, h_db, userid);
 
   update_bill_checked_node(graph_id, node_id, check_state, h_db);
@@ -1640,9 +1638,8 @@ static int update_bill_exec_node(int pl_ex_id, int node_id,
 
 static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
                                      itat::STATE_TYPE run_state,
-                                     itat::STATE_TYPE check_state,
                                      DBHANDLE h_db, const char *why) {
-  if (node_id != 0 || check_state != (itat::STATE_TYPE)5) {
+  if (node_id != 0) {
 #ifdef _DEBUG_
     cout << check_state << " " << node_id << endl;
 #endif
@@ -1714,10 +1711,9 @@ static int update_bill_checked_node(int graph_id, int node_id,
 static const char *type[] = { "EC", "SC", };
 
 static int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
-                                        itat::STATE_TYPE run_state,
                                         itat::STATE_TYPE check_state,
                                         DBHANDLE h_db, int global_userid_) {
-  if (node_id != 0 || itat::ST_initial != run_state) {
+  if (node_id != 0) {
 #ifdef _DEBUG_
     cout << check_state << " " << run_state << " " << node_id << endl;
 #endif

@@ -543,6 +543,7 @@ int Pipeline::setup_state_machine_() {
 // Check Action
 int Pipeline::do_check_front_(FUN_PARAM) {
   chk_state_ = ST_checking;
+
   SEND_STATUS
 #ifdef _DEBUG_
   cout << "igraph " << plid_ << ": do_check_" << endl;
@@ -1168,8 +1169,8 @@ int Pipeline::run_run_run__(Pipeline* pl, int node_id) {
   pl->do_check_front_(nullptr);
   pl->real_do_check__();
   if (pl->chk_state_ != ST_checked_ok) {
-      pl->state_ = ST_error;
-      pl->dj_->send_graph_status(pl->pleid_, pl->plid_, NO_NODE, pl->state_, pl->chk_state_);
+      // pl->state_ = ST_error;
+      // pl->dj_->send_graph_status(pl->pleid_, pl->plid_, NO_NODE, pl->state_, pl->chk_state_);
       return ST_error;
   }
   pl->do_run_front_((void *)((uint64_t)node_id));
@@ -1192,6 +1193,9 @@ int Pipeline::real_do_check__() {
 
   if (chk_state_ == ST_checking)
     chk_state_ = ST_checked_ok;
+
+  if (chk_state_ != ST_checked_ok)
+    state_ = ST_checked_err;
 
   SEND_STATUS
 
