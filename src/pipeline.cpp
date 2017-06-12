@@ -268,8 +268,10 @@ ENTER_MULTEX
 #ifdef _USE_VECTOR_AS_SET_
   vec_erase(nodeset_.run_set_, id);
   if (vec_erase(nodeset_.issues_, id)) {
-     if (nodeset_.issues_.empty())
+     if (nodeset_.issues_.empty()) {
        state_ = ST_running;
+       SEND_STATUS
+     }
   }
 
 #else  //_USE_VECTOR_AS_SET_
