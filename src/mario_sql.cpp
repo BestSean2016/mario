@@ -1651,12 +1651,6 @@ static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
 
   string sql;
   switch (run_state) {
-  case itat::ST_error:
-  case itat::ST_timeout:
-    sql = stringFormat(
-        "update bill_exec_pipeline set result_status=%d where id=%d", run_state,
-        pl_ex_id);
-    break;
   case itat::ST_succeed:
     sql = stringFormat("update bill_exec_pipeline set result_status=%d, "
                        "result_info='%s', ended_at=now() where id=%d",
@@ -1671,7 +1665,10 @@ static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
                        run_state, why, pl_ex_id);
     break;
   default:
-    return 0;
+    sql = stringFormat(
+          "update bill_exec_pipeline set result_status=%d where id=%d", run_state,
+          pl_ex_id);
+    break;
   }
 
   return query_bill_mysql_table(sql.c_str(), h_db);
