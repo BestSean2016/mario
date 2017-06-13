@@ -11,36 +11,29 @@ Mario::Mario(int plid) {
   // state_ = new dfGraphStateMachine(g_);
 }
 
-Mario::~Mario() {
-    SafeDeletePtr(g_);
-}
+Mario::~Mario() { SafeDeletePtr(g_); }
 
-void Mario::test_setup(int check,
-                      int run,
-                      int check_err_id,
-                      int run_err_id,
-                      int timeout_id,
-                      int pause_id,
-                      int stop_id ,
-                      int confirm_id,
-                      int sleep_interval) {
+void Mario::test_setup(int check, int run, int check_err_id, int run_err_id,
+                       int timeout_id, int pause_id, int stop_id,
+                       int confirm_id, int sleep_interval) {
   assert(g_ != nullptr);
-  g_->test_setup((SIMULATE_RESULT_TYPE)check,
-                 (SIMULATE_RESULT_TYPE)run,
-                 check_err_id,
-                 run_err_id,
-                 timeout_id,
-                 pause_id,
-                 stop_id ,
-                 confirm_id,
-                 sleep_interval);
+  g_->test_setup((SIMULATE_RESULT_TYPE)check, (SIMULATE_RESULT_TYPE)run,
+                 check_err_id, run_err_id, timeout_id, pause_id, stop_id,
+                 confirm_id, sleep_interval);
 }
 
-int Mario::initial(int real_run, const char* py_message_path, int node_num, int branch_num) {
+int Mario::initial(int real_run, const char *py_message_path, int node_num,
+                   int branch_num) {
   UNUSE(py_message_path);
   assert(g_ != nullptr);
 
   return g_->initial(real_run, node_num, branch_num);
+}
+
+
+void Mario::set_user(int userid) {
+  assert(g_ != nullptr);
+  g_->get_django()->set_user(userid);
 }
 
 int Mario::check() {
@@ -68,10 +61,10 @@ int Mario::go_on() {
   return g_->go_on();
 }
 
-int Mario::stop() {
+int Mario::stop(int code, const char *why) {
   assert(g_ != nullptr);
   cout << "STOPSTOPSTOP\n";
-  return g_->stop();
+  return g_->stop(code, why);
 }
 
 int Mario::confirm(int node_id) {
@@ -80,14 +73,14 @@ int Mario::confirm(int node_id) {
 }
 
 int Mario::get_plid() {
-    assert(g_ != nullptr);
-    return g_->get_plid();
+  assert(g_ != nullptr);
+  return g_->get_plid();
 }
 
 int Mario::is_done() {
-    assert(g_ != nullptr);
-    return (g_->get_state() == ST_succeed);
+  assert(g_ != nullptr);
+  return (g_->get_state() == ST_succeed || g_->get_state() == ST_checked_err ||
+          g_->get_state() == ST_stoped);
 }
-
 
 } // namespace itat

@@ -7,6 +7,7 @@
 #define ERROR_DONT_HAVE_FRONT_ACTION -10001
 #define ERROR_INVAILD_NODE_ID -10002
 #define ERROR_CANNOT_CREATE_THREAD_POOL -10003
+#define ERROR_INVAILD_MARIO_INSTANCE -10004
 
 #define NO_NODE -1
 
@@ -36,6 +37,9 @@ typedef enum STATE_TYPE {
   ST_run_one_ok,
   ST_run_one_err,
   ST_confirm_refused,
+  ST_done_but_error,
+  ST_stop_user_take_ok,
+  ST_stop_user_take_err,
 } STATE_TYPE;
 
 class Pipeline;

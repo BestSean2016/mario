@@ -7,4 +7,5 @@ SUBDIRS += \
     itat \
     itat_utest \
     py-axa \
-    utest_node_sm
+    utest_node_sm \
+    pleditor

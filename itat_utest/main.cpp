@@ -105,10 +105,12 @@ TEST(itat_salt, SALT_JOB) {
 }
 
 */
-TEST(itat_salt, salt_api_login) {
-  HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_login(&param, "salt-test", "salt-test"));
-}
+
+// TEST(itat_salt, salt_api_login) {
+//   HTTP_API_PARAM param("10.10.10.19", 8000, parse_token_fn, nullptr, nullptr);
+//   EXPECT_EQ(0, salt_api_login(&param, "salt-test", "salt-test"));
+// }
+
 //
 //
 // TEST(itat_salt, salt_api_testping) {
@@ -118,20 +120,22 @@ TEST(itat_salt, salt_api_login) {
 // }
 //
 //
-TEST(itat_ssalt, salt_api_async_cmd_runall) {
-  HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
-  EXPECT_EQ(0, salt_api_async_cmd_runall(&param, "old080027C8AACB", "dir"));
-}
 
 
-TEST(itat_ssalt, salt_api_cmd_runall) {
-  itat::SALT_JOB_RET ret;
-  char minion[64] = {"old080027789636"};
-  HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, &ret, minion);
-  EXPECT_EQ(0, salt_api_cmd_runall(&param, minion, "C:\\\\hongt\\\\Client\\\\ExecClient.exe abcd"));
-  std::cout << ret << std::endl;
-  EXPECT_EQ(ret.retcode, 0);
-}
+// TEST(itat_ssalt, salt_api_async_cmd_runall) {
+//   HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
+//   EXPECT_EQ(0, salt_api_async_cmd_runall(&param, "old080027C8AACB", "dir"));
+// }
+
+
+// TEST(itat_ssalt, salt_api_cmd_runall) {
+//   itat::SALT_JOB_RET ret;
+//   char minion[64] = {"old080027789636"};
+//   HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, &ret, minion);
+//   EXPECT_EQ(0, salt_api_cmd_runall(&param, minion, "C:\\\\hongt\\\\Client\\\\ExecClient.exe abcd"));
+//   std::cout << ret << std::endl;
+//   EXPECT_EQ(ret.retcode, 0);
+// }
 
 // void events() {
 //   HTTP_API_PARAM param("10.10.10.19", 8000, nullptr, nullptr, nullptr);
@@ -159,13 +163,13 @@ TEST(itat_ssalt, salt_api_cmd_runall) {
 // }
 
 
-TEST(itat_salt_event, salt_event_class) {
-    auto event = new saltman;
-    event->start();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-    event->stop();
-    event->dump_jobmap();
-    delete event;
-}
+// TEST(itat_salt_event, salt_event_class) {
+//     auto event = new saltman;
+//     event->start();
+//     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+//     event->stop();
+//     event->dump_jobmap();
+//     delete event;
+// }
 
 

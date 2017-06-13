@@ -11,7 +11,6 @@ global brother
 
 def mario_run(plid):
     global brother
-    libitat.set_django_ip_port("10.10.10.16", 8001)
     brother = libitat.new_mario(plid)
     print brother
     libitat.initial(brother, 1, 'test_transfers', 0, 0)
@@ -20,7 +19,7 @@ def mario_run(plid):
 
 def test_all_pipeline():
   global brother
-  for plid in range(8, 9):
+  for plid in range(14, 15):
     print "RUN PIPELINE", plid
     mario_run(plid)
     print "mario_run has returned"

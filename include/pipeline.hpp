@@ -5,6 +5,7 @@
 #include "itat_global.h"
 #include "state.hpp"
 #include "mario_sql.h"
+#include "djangoapi.hpp"
 #include "saltapi.hpp"
 
 #include <igraph/igraph.h>
@@ -59,6 +60,9 @@ public: // generic interface to manuplate the pipeline
   igraph_t* get_igraph() { return &ig_; }
   saltman* get_saltman() { return saltman_; }
   NODESET* get_nodeset() { return &nodeset_; }
+  NODEMAPS* get_nodemaps() {return nodemaps_; }
+  DBHANDLE get_db_handle() { return g_h_db_; }
+  DjangoAPI* get_django() { return dj_; }
 
   // test, set up simulator
   /**
@@ -87,8 +91,8 @@ public: // the action from user
   int run_node(int node_id);
   int pause();
   int go_on();
-  int stop();
-  int user_confirm(int ok);
+  int stop(int code, const char* why);
+  int user_confirm(int node_id);
 
 
   int on_run_error(FUN_PARAM node);
@@ -99,6 +103,7 @@ private: // the  state machine front and back
   // Check Action
   int do_check_front_(FUN_PARAM);
   int do_check_back_(FUN_PARAM);
+  int real_do_check__();
   // the checking callback function for igraph's visitor
   static int do_node_check_cb_(const igraph_t *graph, igraph_integer_t vid,
                                igraph_integer_t, igraph_integer_t,
@@ -113,8 +118,8 @@ private: // the  state machine front and back
   int thread_simulator_ex_ex_();
 
   // run one node
-  int do_run_one_front_(FUN_PARAM node);
-  int do_run_one_back_(FUN_PARAM node);
+  int do_run_one_front_(FUN_PARAM node_id);
+  int do_run_one_back_(FUN_PARAM node_id);
   // pause
   int do_pause_front_(FUN_PARAM);
   int do_pause_back_(FUN_PARAM);
@@ -125,8 +130,8 @@ private: // the  state machine front and back
   int do_stop_front_(FUN_PARAM);
   int do_stop_back_(FUN_PARAM);
   // confirm
-  int do_user_confirm_front_(FUN_PARAM node);
-  int do_user_confirm_back_(FUN_PARAM node);
+  int do_user_confirm_front_(FUN_PARAM node_id);
+  int do_user_confirm_back_(FUN_PARAM node_id);
 
 private:
   // internal event action
@@ -143,6 +148,7 @@ private:
   int on_run_allok_(FUN_PARAM);
   int on_run_allok_front_(FUN_PARAM);
   int on_run_allok_back_(FUN_PARAM);
+  int on_run_with_error();
 
   // run one node ..............................
   int on_run_one_error_(FUN_PARAM node);
@@ -174,6 +180,7 @@ private:
   int on_waitin_confirm_back_(FUN_PARAM node);
 
   static int run_run_run__(Pipeline* pl, int node_id);
+  static int chk_chek_chk__(Pipeline* pl);
 
 public:
   // interface for test
@@ -183,6 +190,7 @@ public:
 private:
   STATE_TYPE state_ = ST_initial;
   STATE_TYPE chk_state_ = ST_initial;
+  STATE_TYPE stop_state_ = ST_initial;
   iGraphStateMachine *gsm_ = nullptr;
   iNodeStateMachine *nsm_ = nullptr;
 
@@ -196,10 +204,18 @@ private:
   NODESET nodeset_;
 
   std::thread tsim_;
+  std::thread tchk_;
 
   TEST_PARAM *test_param_ = nullptr;
 
   saltman* saltman_ = nullptr;
+
+  NODEMAPS* nodemaps_ = nullptr;
+  DjangoAPI* dj_      = nullptr;
+  DBHANDLE g_h_db_    = nullptr;
+
+  char user_data[512];
+
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
   int gen_node_(vector<MARIO_NODE> *nodes);
@@ -213,7 +229,7 @@ private:
   int load_pipe_line_from_db_(vector<MARIO_NODE> &pl_node,
                               vector<MARIO_EDGE> &pl_edge);
 
-  void find_node_to_run_(int ig_node_id);
+  void find_node_to_run_(int ig_node_id, bool igno_error);
 
   bool is_all_done_();
 

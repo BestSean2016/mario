@@ -29,6 +29,9 @@ int iNode::check() {
 int iNode::run() {
   assert(g_ != nullptr && gsm_ != nullptr && nsm_ != nullptr &&
          plnode_ != nullptr);
+#ifdef _DEBUG_
+  cout << "inode state for run " << state_ << endl;
+#endif //_DEBUG_
   return nsm_->do_trans(state_, &iNode::do_run_front_, this, nullptr);
 }
 
@@ -63,6 +66,10 @@ void iNode::setup_state_machine_() {
   //                       &iNode::do_run_back_);
   nsm_->add_state_trans(ST_checked_ok, &iNode::do_run_front_, ST_running,
                         &iNode::do_run_back_);
+  nsm_->add_state_trans(ST_error, &iNode::do_run_front_, ST_checking,
+                        &iNode::do_run_back_);
+  nsm_->add_state_trans(ST_timeout, &iNode::do_run_front_, ST_checking,
+                        &iNode::do_run_back_);
 
   // user_confirm
   nsm_->add_state_trans(ST_waiting_for_confirm, &iNode::do_user_confirm_front_,
@@ -82,7 +89,7 @@ void iNode::setup_state_machine_() {
 int iNode::do_check_front_(FUN_PARAM) {
   assert(g_ != nullptr);
   state_ = ST_checking;
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
   if (test_param_)
     std::this_thread::sleep_for(
@@ -124,7 +131,7 @@ int iNode::do_check_back_(FUN_PARAM) {
       state_ = saltman_->check_node(this);
     }
   }
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
 
   return (state_ == ST_checked_ok) ? 0 : state_;
@@ -132,6 +139,10 @@ int iNode::do_check_back_(FUN_PARAM) {
 
 int iNode::init(int64_t i, MARIO_NODE *node, iGraphStateMachine *gsm,
                 iNodeStateMachine *nsm, saltman *sm) {
+  nodemaps_ = g_->get_nodemaps();
+  g_h_db_ = g_->get_db_handle();
+  dj_ = g_->get_django();
+
   gen_pl_node(i, node);
   gsm_ = gsm, nsm_ = nsm;
 
@@ -140,14 +151,35 @@ int iNode::init(int64_t i, MARIO_NODE *node, iGraphStateMachine *gsm,
 
   id_ = i;
   setup_state_machine_();
+
+
   return 0;
 }
 
 int iNode::do_run_front_(FUN_PARAM) {
   assert(g_ != nullptr);
   state_ = ST_running;
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
-                        state_);
+
+  if (plnode_->ref_type != 1) {
+    switch (plnode_->ref_type) {
+    case 2: // waiting for confirms
+    case 4: // start
+    case 5: // end
+      state_ = ST_running;
+      dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                            state_);
+      break;
+    // case 6: // poweroff
+    //   break;
+    // case 7: // restart
+    //   break;
+    // case 8: // logoff
+    //   break;
+    default:
+      break;
+    }
+  }
+
   if (test_param_)
     std::this_thread::sleep_for(
         std::chrono::milliseconds(test_param_->sleep_interval));
@@ -178,14 +210,26 @@ void iNode::simu_run__() {
 int iNode::do_run_back_(FUN_PARAM) {
   if (plnode_->ref_type != 1) {
     switch (plnode_->ref_type) {
+    case 2:
+      state_ = ST_waiting_for_confirm;
+      break;
     case 4: // start
     case 5: // end
       state_ = ST_succeed;
       break;
+    // case 6: // poweroff
+    //   break;
+    // case 7: // restart
+    //   break;
+    // case 8: // logoff
+    //   break;
     default:
       state_ = ST_succeed;
       break;
     }
+    dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                          state_);
+    return state_;
   } else {
     if (test_param_ && test_param_->run_type > SIMULATE_RESULT_TYPE_UNKNOW) {
       simu_run__();
@@ -205,37 +249,33 @@ int iNode::do_run_back_(FUN_PARAM) {
 
       state_ = saltman_->run_node(this);
     }
+
+    switch (state_) {
+    case ST_running:
+      dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                            state_);
+      break;
+    case ST_error:
+      on_run_error(nullptr);
+      break;
+    case ST_timeout:
+      on_run_timeout(nullptr);
+      break;
+    case ST_succeed:
+      on_run_ok(nullptr);
+      break;
+    default:
+      on_run_error(nullptr);
+      break;
+    }
   }
-
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
-                        state_);
-
-  switch (state_) {
-  case ST_running:
-    break;
-  case ST_error:
-    on_run_error(nullptr);
-    break;
-  case ST_timeout:
-    on_run_timeout(nullptr);
-    break;
-  case ST_succeed:
-    on_run_ok(nullptr);
-    break;
-  default:
-    on_run_error(nullptr);
-    break;
-  }
-
   return state_;
 }
 
 int iNode::do_user_confirm_front_(FUN_PARAM confirmd) {
-  if (confirmd)
-    state_ = ST_succeed;
-  else
-    state_ = ST_confirm_refused;
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  UNUSE(confirmd);
+  state_ = ST_succeed;
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
   return 0;
 }
@@ -245,23 +285,23 @@ int iNode::do_user_confirm_back_(FUN_PARAM confirmd) { UNUSE(confirmd); return 0
 
 int iNode::on_run_error(FUN_PARAM) {
 #ifdef _DEBUG_
-  printf("iNode -> on_run_error %d\n", inodeid_2_ignodeid[this->id_]);
+  printf("iNode -> on_run_error %d\n", nodemaps_->inodeid_2_ignodeid[this->id_]);
 #endif //_DEBUG_
   return nsm_->do_trans(state_, &iNode::on_run_error_front_, this, nullptr);
 }
 
 int iNode::on_run_error_front_(FUN_PARAM) {
 #ifdef _DEBUG_
-  printf("iNode -> on_run_error_front_ %d\n", inodeid_2_ignodeid[this->id_]);
+  printf("iNode -> on_run_error_front_ %d\n", nodemaps_->inodeid_2_ignodeid[this->id_]);
 #endif //_DEBUG_
   state_ = ST_error;
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
   return 0;
 }
 int iNode::on_run_error_back_(FUN_PARAM) {
 #ifdef _DEBUG_
-  printf("iNode -> on_run_error_back_ %d\n", inodeid_2_ignodeid[this->id_]);
+  printf("iNode -> on_run_error_back_ %d\n", nodemaps_->inodeid_2_ignodeid[this->id_]);
 #endif //_DEBUG_
   g_->on_run_error(this);
   return state_;
@@ -273,7 +313,7 @@ int iNode::on_run_timeout(FUN_PARAM) {
 
 int iNode::on_run_timeout_front_(FUN_PARAM) {
   state_ = ST_timeout;
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
   return 0;
 }
@@ -281,7 +321,7 @@ int iNode::on_run_timeout_back_(FUN_PARAM) { return state_; }
 
 int iNode::on_run_ok(FUN_PARAM) {
 #ifdef _DEBUG_
-  printf("iNode -> on_run_ok %d\n", inodeid_2_ignodeid[this->id_]);
+  printf("iNode -> on_run_ok %d\n", nodemaps_->inodeid_2_ignodeid[this->id_]);
 #endif //_DEBUG_
   return nsm_->do_trans(state_, &iNode::on_run_ok_front_, this, nullptr);
 }
@@ -289,9 +329,9 @@ int iNode::on_run_ok_front_(FUN_PARAM) {
   state_ = ST_succeed;
 #ifdef _DEBUG_
   printf("iNode -> on_run_ok_front_ %d state %d\n",
-         inodeid_2_ignodeid[this->id_], state_);
+         nodemaps_->inodeid_2_ignodeid[this->id_], state_);
 #endif //_DEBUG_
-  dj_.send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
                         state_);
   return 0;
 }
@@ -299,7 +339,7 @@ int iNode::on_run_ok_front_(FUN_PARAM) {
 int iNode::on_run_ok_back_(FUN_PARAM) {
 #ifdef _DEBUG_
   printf("iNode -> on_run_ok_back_ %d state %d\n",
-         inodeid_2_ignodeid[this->id_], state_);
+         nodemaps_->inodeid_2_ignodeid[this->id_], state_);
 #endif //_DEBUG_
   g_->on_run_ok(this);
   return state_;

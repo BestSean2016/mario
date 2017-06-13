@@ -190,16 +190,16 @@ int parase_file_match(const char *json, size_t len, PARAM p1, PARAM p2) {
 
 int match_file(std::vector<COPYFILE_FILE_MATCH> &fm,
                vector<COPYFILE_EXERECORD> &jobs) {
-  HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_token_fn, nullptr,
-                       nullptr);
-  salt_api_login(&param, SALT_API_USER, SALT_API_PASS);
-
-  param.rf = parase_file_match;
-  param.param1 = &jobs;
-
-  if (salt_api_cmd_runall(&param, fm[0].minion.c_str(),
-                          (fm[0].python + " " + fm[0].matchpy).c_str()))
-    return -1;
+// SEAN SEAN SEAN  HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_token_fn, nullptr,
+// SEAN SEAN SEAN                       nullptr);
+// SEAN SEAN SEAN  salt_api_login(nullptr, &param, SALT_API_USER, SALT_API_PASS);
+// SEAN SEAN SEAN
+// SEAN SEAN SEAN  param.rf = parase_file_match;
+// SEAN SEAN SEAN  param.param1 = &jobs;
+// SEAN SEAN SEAN
+// SEAN SEAN SEAN  if (salt_api_cmd_runall(nullptr, &param, fm[0].minion.c_str(),
+// SEAN SEAN SEAN                          (fm[0].python + " " + fm[0].matchpy).c_str()))
+// SEAN SEAN SEAN    return -1;
 
   return 0;
 }
@@ -294,9 +294,9 @@ static int copy_file(vector<COPYFILE_EXERECORD> &jobs, DBHANDLE &db) {
     if (ret)
       break;
 
-    HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_copy_result, &p,
-                         nullptr);
-    ret = salt_api_cmd_runall(&param, p.SourcePC.c_str(), p.RunCommand.c_str());
+    // SEAN SEAN SEAN HTTP_API_PARAM param(SALT_API_HOST, SALT_API_PORT, parse_copy_result, &p,
+    // SEAN SEAN SEAN                      nullptr);
+    // SEAN SEAN SEAN ret = salt_api_cmd_runall(nullptr, &param, p.SourcePC.c_str(), p.RunCommand.c_str());
 
     // "UPDATE k_exerecord SET "
     // "State = \'%s\', "

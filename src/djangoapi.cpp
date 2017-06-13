@@ -6,34 +6,31 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <threadpool.h>
 #include <errno.h>
 #include <error.h>
 
-#define DJANGO_HOSTIP "10.10.10.16"
-#define DJANGO_PORT 8000
+
+static char django_ip[64] = {"10.10.10.16"};
+static short django_port = 8000;
+
 
 #define THREAD_POOL_SIZE 1
 #define THREAD_POOL_QUEUE_SIZE 4096
 
 
+void set_django_ip_port(const char * ip, int port) {
+    strcpy_s(django_ip, 64,  ip);
+    django_port = (short)port;
+}
 
-extern int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/);
-extern int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/);
-extern int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/);
-extern int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/, int);
+
+extern void update_status_mysql_tables(int pl_ex_id, int graph_id, int node_id,
+                                       itat::STATE_TYPE run_state,
+                                       itat::STATE_TYPE check_state, DBHANDLE h_db,
+                                       int code, const char *strout,
+                                       const char *strerr, int userid,
+                                       const char *why);
+
 
 
 static const char *str_status[] = {
@@ -46,9 +43,6 @@ static const char *str_status[] = {
   "ST_run_one_err",       "ST_confirm_refused",
 };
 
-extern std::map<int, int> node_mysql_map;
-extern std::map<int, int> mysql_node_map;
-
 // std::string python_filename = { "bill_message" };
 
 
@@ -59,14 +53,14 @@ static void sock(void* param) {
   int result = 0;
   itat::buffers* bufs = (itat::buffers*)param;
 
-#ifdef _DEBUG_
-  printf("oops: client1 socket mmmm.... %u %u %u %u\n", (uint64_t)param, (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
-#endif //_DEBUG_
+// #ifdef _DEBUG_
+//   printf("oops: client1 socket mmmm.... %u %u %u %u\n", (uint64_t)param, (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
+// #endif //_DEBUG_
 
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   address.sin_family = AF_INET;
-  address.sin_addr.s_addr = inet_addr(DJANGO_HOSTIP);
-  address.sin_port = htons(DJANGO_PORT);
+  address.sin_addr.s_addr = inet_addr(django_ip);
+  address.sin_port = htons(django_port);
   len = sizeof(address);
   result = connect(sockfd, (struct sockaddr *)&address, len);
 
@@ -78,9 +72,9 @@ static void sock(void* param) {
     goto error_exit;
   }
 
-#ifdef _DEBUG_
-  printf("mmmm send command %s\n", bufs->cmd);
-#endif //_DEBUG_
+// #ifdef _DEBUG_
+//   printf("mmmm send command %s\n", bufs->cmd);
+// #endif //_DEBUG_
 
   n = write(sockfd, bufs->cmd, strlen(bufs->cmd));
   if (n != (int)(strlen(bufs->cmd))) {
@@ -91,12 +85,11 @@ static void sock(void* param) {
       goto error_exit;
   }
 
-#ifdef _DEBUG_
-  printf("mmmm read \n");
+// #ifdef _DEBUG_
+//   printf("mmmm read \n");
+// #endif //_DEBUG_
 
   memset(bufs->buf, 0, BUFSIZ * 4);
-#endif //_DEBUG_
-
   n = read(sockfd, bufs->buf, BUFSIZ);
   if (n <= 0) {
 #ifdef _DEBUG_
@@ -106,9 +99,9 @@ static void sock(void* param) {
       goto error_exit;
   }
 
-#ifdef _DEBUG_
-  printf("from server = \n%s\n", bufs->buf);
-#endif //_DEBUG_
+// #ifdef _DEBUG_
+//   printf("from server = \n%s\n", bufs->buf);
+// #endif //_DEBUG_
   close(sockfd);
   bufs->ret = 0;
 
@@ -124,12 +117,6 @@ error_exit:
 }
 
 namespace itat {
-
-int global_userid_ = 0;
-
-DjangoAPI dj_;
-
-static threadpool_t* g_thpool;
 
 DjangoAPI::DjangoAPI() {
   g_thpool = threadpool_create(THREAD_POOL_SIZE, THREAD_POOL_QUEUE_SIZE, 0);
@@ -156,39 +143,26 @@ void DjangoAPI::make_send_msg() {}
 int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
                                  STATE_TYPE run_state, STATE_TYPE check_state,
                                  int code, const char *strout,
-                                 const char *strerr) {
+                                 const char *strerr, const char *why) {
 
   int ret = 0;
 
 
-  update_bill_exec_node(pl_ex_id, graph_id, node_mysql_map[node_id],
-                                  run_state, check_state, code, strout,
-                                  strerr);
-
-  update_bill_exec_pipeline(pl_ex_id, graph_id, node_mysql_map[node_id],
-                              run_state, check_state, code, strout, strerr);
-
-  update_bill_checked_pipeline(pl_ex_id, graph_id, node_mysql_map[node_id],
-                               run_state, check_state, code, strout,
-                               strerr,
-                               global_userid_);
-
-  update_bill_checked_node(pl_ex_id, graph_id, node_mysql_map[node_id],
-                             run_state, check_state, code, strout, strerr);
+  update_status_mysql_tables(pl_ex_id, graph_id, maps_->node_mysql_map[node_id], run_state, check_state, g_h_db_, code, strout, strerr, global_userid_, why);
 
   // if (!ret) {
   char* buf = new char[BUFSIZ * 8];
   char* cmd = buf + BUFSIZ * 4;
   snprintf(cmd, BUFSIZ * 4, sendingmsg, pl_ex_id, graph_id,
-           node_mysql_map[node_id], run_state, check_state, code, strout,
-           strerr, DJANGO_HOSTIP, DJANGO_PORT);
+           maps_->node_mysql_map[node_id], run_state, check_state, code, strout,
+           strerr, django_ip, django_port);
   buffers * bufs = new buffers;
   bufs->buf = buf;
   bufs->cmd = cmd;
 
-#ifdef _DEBUG_
-  printf("DEBUG DEBUG %u %u %u\n", (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
-#endif //_DEBUG_
+// #ifdef _DEBUG_
+//   printf("DEBUG DEBUG %u %u %u\n", (uint64_t)bufs, (uint64_t)bufs->buf, (uint64_t)bufs->cmd);
+// #endif //_DEBUG_
 
   // ret = itat_httpc(&param_, buf_, buf_);
   //ret = sock(&bufs_);
@@ -197,7 +171,7 @@ int DjangoAPI::send_graph_status(int pl_ex_id, int graph_id, int node_id,
 
   // #ifdef _DEBUG_
   std::cout << global_userid_ << ", " << pl_ex_id << ", " << graph_id << ", "
-            << node_id << ", " << node_mysql_map[node_id] << ", "
+            << node_id << ", " << maps_->node_mysql_map[node_id] << ", "
             << str_status[run_state] << ", " << str_status[check_state] << ", "
             << code << ", " << strout << ", " << strerr << std::endl;
   // #endif //_DEBUG

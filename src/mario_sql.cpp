@@ -5,7 +5,6 @@
 
 using namespace std;
 
-DBHANDLE g_h_db = nullptr;
 #ifndef INTVEC
 #define INTVEC(y, i) ((int)(((y).stor_begin)[(i)]))
 #endif // INTVEC
@@ -47,7 +46,7 @@ const char *query_sql[] = {
   "select "
   "id,ref_id,old_id,ref_type,`name`,minion_id,timeout,argv,`desc`,created_at,"
   "updated_at,creator_id,modifier_id,pipeline_id,ip_address,position_x,"
-  "position_y,command,script_name,script_content from "
+  "position_y,command,script_name,script_content,script_path from "
   "bill_pipeline_all_node_view",
   "select "
   "id,`desc`,created_at,updated_at,creator_id,modifier_id,pipeline_id,src_id,"
@@ -304,6 +303,7 @@ int get_bill_pipeline_all_node_view(void *r, MYSQL_ROW &row) {
   mr_record.command = mysql_str(row[17]);
   mr_record.script_name = mysql_str(row[18]);
   mr_record.script_content = mysql_str(row[19]);
+  mr_record.script_path = mysql_str(row[20]);
   return 0;
 }
 
@@ -657,7 +657,7 @@ int get_bill_pipeline_all_node_view_to_insert_sql(void *t, string &str) {
       "at,updated_at,creator_id,modifier_id,pipeline_id,ip_address,position_x,"
       "position_y,command,script_name,script_content) "
       "values(%d,%d,'%s',%d,'%s','%s',%d,'%s','%s',%d,%d,%d,%d,%d,'%s','%s','%"
-      "s','%s','%s','%s')",
+      "s','%s','%s','%s', '%s')",
       mr_record.id, mr_record.ref_id, mr_record.old_id.c_str(),
       mr_record.ref_type, mr_record.name.c_str(), mr_record.minion_id.c_str(),
       mr_record.timeout, mr_record.argv.c_str(), mr_record.desc.c_str(),
@@ -665,7 +665,8 @@ int get_bill_pipeline_all_node_view_to_insert_sql(void *t, string &str) {
       mr_record.modifier_id, mr_record.pipeline_id,
       mr_record.ip_address.c_str(), mr_record.position_x.c_str(),
       mr_record.position_y.c_str(), mr_record.command.c_str(),
-      mr_record.script_name.c_str(), mr_record.script_content.c_str());
+      mr_record.script_name.c_str(), mr_record.script_content.c_str(),
+      mr_record.script_path.c_str());
   return 0;
 }
 
@@ -1189,6 +1190,9 @@ DBHANDLE connect_db(const char *host, int port, const char *db,
     mysql_close(mysql);
     return nullptr;
   }
+  char value = 1;
+  mysql_options(mysql, MYSQL_OPT_RECONNECT, &value);
+
   mysql_query(mysql, "SET NAMES utf8");
 
 #ifdef _DEBUG_
@@ -1219,11 +1223,6 @@ int returninid(DBHANDLE db) {
   return x;
 }
 
-map<int, int> node_mysql_map;
-map<int, int> mysql_node_map;
-map<int, int> ignodeid_2_inodeid;
-map<int, int> inodeid_2_ignodeid;
-
 // igraph index, node id in mysql
 // node id in mysql, igraph index
 void create_node_mysql_map(
@@ -1239,7 +1238,7 @@ void create_node_mysql_map(
 // get value by key from map
 int get_value_by_key(int key, const std::map<int, int> &my_map) {
   auto it = my_map.find(key);
-  if (it == mysql_node_map.end()) {
+  if (it == my_map.end()) {
     return -1;
   }
   return it->second;
@@ -1379,20 +1378,18 @@ get_nodes_by_pipelineid(std::vector<MR_BILL_PIPELINE_ALL_NODE_VIEW> &pl_node,
 int create_graph(igraph_t *g,
                  std::vector<MR_BILL_PIPELINE_ALL_NODE_VIEW> &pl_node,
                  std::vector<MR_BILL_PIPELINE_EDGE> &pl_edge, DBHANDLE h_db,
-                 int pl_id) {
+                 int pl_id, NODEMAPS *maps) {
   assert(h_db != nullptr);
-  assert(g_h_db != nullptr);
-  assert(h_db == g_h_db);
 
   std::map<int, int> parentnodeid_firstnodeid;
   std::map<int, int> parentnodeid_lastnodeid;
   pl_edge.clear();
   pl_node.clear();
 
-  node_mysql_map.clear();
-  mysql_node_map.clear();
-  ignodeid_2_inodeid.clear();
-  inodeid_2_ignodeid.clear();
+  maps->node_mysql_map.clear();
+  maps->mysql_node_map.clear();
+  maps->ignodeid_2_inodeid.clear();
+  maps->inodeid_2_ignodeid.clear();
 
   // get nodes
   if (get_nodes_by_pipelineid(pl_node, parentnodeid_firstnodeid,
@@ -1407,32 +1404,32 @@ int create_graph(igraph_t *g,
   }
 
   // create index of igraph id and mysql node id
-  create_node_mysql_map(pl_node, node_mysql_map, mysql_node_map);
+  create_node_mysql_map(pl_node, maps->node_mysql_map, maps->mysql_node_map);
 
   igraph_t graph;
   igraph_empty(&graph, pl_node.size(), IGRAPH_DIRECTED);
 
   for (size_t i = 0; i < pl_edge.size(); i++) {
     MR_BILL_PIPELINE_EDGE &e = pl_edge.at(i);
-    int src_index = get_value_by_key(e.src_id, mysql_node_map);
-    int trg_index = get_value_by_key(e.trg_id, mysql_node_map);
-#ifdef _DEBUG_
+    int src_index = get_value_by_key(e.src_id, maps->mysql_node_map);
+    int trg_index = get_value_by_key(e.trg_id, maps->mysql_node_map);
+    // #ifdef _DEBUG_
     // printf("(%s->%s)\n", pl_node.at(src_index).ip_address.c_str(),
     // pl_node.at(trg_index).ip_address.c_str());
-    printf("aa %d->%d (%d->%d),", e.src_id, e.trg_id, src_index, trg_index);
-#endif
+    // printf("aa %d->%d (%d->%d),", e.src_id, e.trg_id, src_index, trg_index);
+    // #endif
     // add egde to igraph
     igraph_add_edge(&graph, src_index, trg_index);
   }
 
-  int first = get_value_by_key(pl_edge[0].src_id, mysql_node_map);
-  //find the first's father if exists
+  int first = get_value_by_key(pl_edge[0].src_id, maps->mysql_node_map);
+  // find the first's father if exists
   igraph_vector_t first_father;
   igraph_vector_init(&first_father, 0);
   igraph_neighbors(&graph, &first_father, first, IGRAPH_IN);
 
   if (igraph_vector_size(&first_father) > 0)
-      first = INTVEC(first_father, 0);
+    first = INTVEC(first_father, 0);
   igraph_vector_destroy(&first_father);
 
 #ifdef _DEBUG_
@@ -1441,19 +1438,19 @@ int create_graph(igraph_t *g,
 
   igraph_vector_t order;
   igraph_vector_init(&order, pl_node.size());
-  igraph_bfs(&graph, first, nullptr, IGRAPH_OUT, false, nullptr, &order, nullptr,
-             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+  igraph_bfs(&graph, first, nullptr, IGRAPH_OUT, false, nullptr, &order,
+             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
 
   // get all nodes that needs to run
 
   map<int, int> mapNode;
   for (int j = 0; j < igraph_vector_size(&order); ++j) {
     if (INTVEC(order, j) >= 0) {
-#ifdef _DEBUG_
+      // #ifdef _DEBUG_
       printf("og %d -> %d, ", j, INTVEC(order, j));
-#endif //_DEBUG_
-      ignodeid_2_inodeid.insert(std::make_pair(j, INTVEC(order, j)));
-      inodeid_2_ignodeid.insert(std::make_pair(INTVEC(order, j), j));
+      // #endif //_DEBUG_
+      maps->ignodeid_2_inodeid.insert(std::make_pair(j, INTVEC(order, j)));
+      maps->inodeid_2_ignodeid.insert(std::make_pair(INTVEC(order, j), j));
       mapNode.insert(std::make_pair(INTVEC(order, j), j));
     }
   }
@@ -1463,38 +1460,34 @@ int create_graph(igraph_t *g,
 
   igraph_vector_t edge;
   // get the out style tree's all edges, the put them to vector e
-  igraph_vector_init(&edge, pl_edge.size() * 2);
+  igraph_vector_init(&edge, 0);
 
   for (size_t i = 0; i < pl_edge.size(); i++) {
     MR_BILL_PIPELINE_EDGE &e = pl_edge.at(i);
     // VECTOR(edge)[i * 2] = mapNode[mysql_node_map[e.src_id]];
     // VECTOR(edge)[i * 2 + 1] = mapNode[mysql_node_map[e.trg_id]];
-    int src_id = mapNode[mysql_node_map[e.src_id]];
-    int trg_id = mapNode[mysql_node_map[e.trg_id]];
-    VECTOR(edge)[i * 2] = src_id;
-    VECTOR(edge)[i * 2 + 1] = trg_id;
+    int src_id = mapNode[maps->mysql_node_map[e.src_id]];
+    int trg_id = mapNode[maps->mysql_node_map[e.trg_id]];
+    if (src_id == trg_id)
+      continue;
+    igraph_vector_push_back(&edge, src_id);
+    igraph_vector_push_back(&edge, trg_id);
 
 #ifdef _DEBUG_
-    fprintf(stdout, "New Graph Eage: %d -> %d, %d -> %d, %d -> %d\n",
-            // VECTOR(edge)[i * 2], VECTOR(edge)[i * 2 + 1],
-            // ignodeid_2_inodeid[VECTOR(edge)[i * 2]],
-            // ignodeid_2_inodeid[VECTOR(edge)[i * 2 + 1]],
-            // node_mysql_map[ignodeid_2_inodeid[VECTOR(edge)[i * 2]]],
-            // node_mysql_map[ignodeid_2_inodeid[VECTOR(edge)[i * 2 + 1]]]);
-            src_id, trg_id, ignodeid_2_inodeid[src_id],
-            ignodeid_2_inodeid[trg_id],
-            node_mysql_map[ignodeid_2_inodeid[src_id]],
-            node_mysql_map[ignodeid_2_inodeid[trg_id]]);
+    fprintf(stdout, "Eage: %d -> %d, %d -> %d, %d -> %d\n", src_id, trg_id,
+            maps->ignodeid_2_inodeid[src_id], maps->ignodeid_2_inodeid[trg_id],
+            maps->node_mysql_map[maps->ignodeid_2_inodeid[src_id]],
+            maps->node_mysql_map[maps->ignodeid_2_inodeid[trg_id]]);
     fflush(stdout);
 #endif //_DEBUG_
   }
 
-// #ifdef _DEBUG_
-//   for (int i = 0; i < igraph_vector_size(&edge); i += 2)
-//     printf("kkkkk  %d -> %d, %d -> %d\n", INTVEC(edge, i), INTVEC(edge, i + 1),
-//            ignodeid_2_inodeid[INTVEC(edge, i)],
-//            ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
-// #endif //_DEBUG_
+#ifdef _DEBUG_
+  for (int i = 0; i < igraph_vector_size(&edge); i += 2)
+    printf("kkkkk  %d -> %d, %d -> %d\n", INTVEC(edge, i), INTVEC(edge, i + 1),
+           maps->ignodeid_2_inodeid[INTVEC(edge, i)],
+           maps->ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
+#endif //_DEBUG_
 
   igraph_create(g, &edge, graph.n, 1);
   igraph_destroy(&graph);
@@ -1503,234 +1496,256 @@ int create_graph(igraph_t *g,
   return 0;
 }
 
+static const char *log_to_db[]{
+  // ST_unknow = -1,
+  "初始化",             // ST_initial,
+  "正在检测",           // ST_checking,
+  "检测错误",           // ST_checked_err,
+  "检测脚本错误",       // ST_checked_serr,
+  "检测主机错误",       // ST_checked_herr,
+  "检测正常",           // ST_checked_ok,
+  "正在执行",           // ST_running,
+  "执行错误",           // ST_error,
+  "执行超时",           // ST_timeout,
+  "执行成功",           // ST_succeed,
+  "等待用户确认",       // ST_waiting_for_confirm,
+  "流程终止",           // ST_stoped,
+  "正在终止",           // ST_stoping,
+  "暂停",               // ST_paused,
+  "正在暂停",           // ST_pausing,
+  "等待输入",           // ST_waiting_for_input,
+  "正在执行单个节点",   // ST_running_one,
+  "节点执行成功",       // ST_run_one_ok,
+  "节点执行错误",       // ST_run_one_err,
+  "用户不认可",         // ST_confirm_refused,
+  "执行完成但又错误",   // ST_done_but_error,
+  "手工接管，执行成功", // ST_stop_user_take_ok,
+  "手工接管，执行失败", // ST_stop_user_take_err,
+};
 
+static int update_bill_exec_node(int pl_ex_id, int node_id,
+                                 itat::STATE_TYPE run_state,
+                                 itat::STATE_TYPE check_state, DBHANDLE h_db,
+                                 int code, const char *strout,
+                                 const char *strerr);
 
-int update_bill_exec_node(int pl_ex_id, int /*graph_id*/, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/){
-    if (run_state != check_state || node_id == 0){
+static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
+                                     itat::STATE_TYPE run_state,
+                                     DBHANDLE h_db, const char *why);
+
+static int update_bill_checked_node(int graph_id, int node_id,
+                                    itat::STATE_TYPE check_state,
+                                    DBHANDLE h_db);
+
+static int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
+                                        itat::STATE_TYPE check_state,
+                                        DBHANDLE h_db, int userid);
+
+static int query_bill_mysql_table(const char *szSql, DBHANDLE h_db);
+
+void update_status_mysql_tables(int pl_ex_id, int graph_id, int node_id,
+                                itat::STATE_TYPE run_state,
+                                itat::STATE_TYPE check_state, DBHANDLE h_db,
+                                int code, const char *strout,
+                                const char *strerr, int userid,
+                                const char *why) {
+  update_bill_exec_node(pl_ex_id, node_id, run_state, check_state, h_db, code,
+                        strout, strerr);
+
+  update_bill_exec_pipeline(pl_ex_id, node_id, run_state, h_db,
+                            why);
+
+  update_bill_checked_pipeline(pl_ex_id, graph_id, node_id,
+                               check_state, h_db, userid);
+
+  update_bill_checked_node(graph_id, node_id, check_state, h_db);
+}
+
+static int query_bill_mysql_table(const char *szSql, DBHANDLE h_db) {
+  static int error_time = 0;
+
+  if (!h_db)
+    return -1;
+
+try_sql_exec:
+
 #ifdef _DEBUG_
-        cout << run_state << " " << check_state << " " << node_id << endl;
+  cout << szSql << endl;
 #endif
-        return 0;
-    }
 
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db;// connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                           //     g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
-    if (!h_db)
-      return -1;
+  int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), szSql);
+  if (res) {
+    fprintf(stdout, "\ninsert or update error: %s by %s\n",
+            mysql_error(reinterpret_cast<MYSQL *>(h_db)), szSql);
 
-    string sql = "";
-    if(run_state == (itat::STATE_TYPE)6){
-        sql = stringFormat("insert into bill_exec_node(started_at, ex_pl_id, node_id, status) value(now(), %d, %d, %d)",
-                            pl_ex_id, node_id, run_state);
-    }else{
-        string result_info = "";
-        if(run_state == itat::STATE_TYPE(7)){
-            result_info = "失败";
-        } else if(run_state == itat::STATE_TYPE(8)){
-            result_info = "超时";
-        } else if(run_state == itat::STATE_TYPE(9)){
-            result_info = "成功";
-        } else if(run_state == itat::STATE_TYPE(10)){
-            result_info = "等待用户确认";
-        }
-        else{
-            // disconnect_db(h_db);
-            return 0;
-        }
-        sql = stringFormat("update bill_exec_node set ended_at=now(),result_info=\'%s\',status=%d where ex_pl_id=%d and node_id=%d",
-                     result_info.c_str(), run_state, pl_ex_id, node_id);
-    }
+    // retry for 2013: lost connection, 2006: mysql server gone away
+    if (mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2006 ||
+        mysql_errno(reinterpret_cast<MYSQL *>(h_db)) == 2013) {
+      printf("retry mysql command\n");
 
-    if (sql.length() == 0){
-        // disconnect_db(h_db);
-        return 0;
-    }
-
-#ifdef _DEBUG_
-    cout << sql <<endl;
-#endif
-    int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
-    if (res) {
-        fprintf(stdout, "\ninsert or update error: %s by %s\n",
-                mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
-        // disconnect_db(h_db);
+      error_time++;
+      if (error_time > 15) {
+        error_time = 0;
         return -4;
+      }
+      mysql_query(reinterpret_cast<MYSQL *>(h_db), "SET NAMES utf8");
+      goto try_sql_exec;
     }
+    error_time = 0;
+    return -4;
+  }
 
-    // disconnect_db(h_db);
-    return 0;
+  error_time = 0;
+  return 0;
 }
 
-int update_bill_exec_pipeline(int pl_ex_id, int /*graph_id*/, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/){
-    if (node_id != 0 || check_state != (itat::STATE_TYPE)5){
+static int update_bill_exec_node(int pl_ex_id, int node_id,
+                                 itat::STATE_TYPE run_state,
+                                 itat::STATE_TYPE check_state, DBHANDLE h_db,
+                                 int code, const char *strout,
+                                 const char *strerr) {
+  if (run_state != check_state || node_id == 0) {
 #ifdef _DEBUG_
-        cout << check_state << " " << node_id << endl;
+    cout << run_state << " " << check_state << " " << node_id << endl;
 #endif
-        return 0;
-    }
-
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db;  //connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                             //    g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
-    if (!h_db)
-      return -2;
-
-    string sql = "";
-    if(run_state == (itat::STATE_TYPE)7
-            || run_state == (itat::STATE_TYPE)8){
-        sql = stringFormat("update bill_exec_pipeline set result_status=%d where id=%d",
-                            run_state, pl_ex_id);
-    }else if(run_state == (itat::STATE_TYPE)9){
-        sql = stringFormat("update bill_exec_pipeline set result_status=%d,result_info=\'执行成功\',ended_at=now() where id=%d",
-                     run_state, pl_ex_id);
-    }
-
-    if (sql.length() == 0){
-        // disconnect_db(h_db);
-        return 0;
-    }
-
-#ifdef _DEBUG_
-    cout << sql <<endl;
-#endif
-    int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
-    if (res) {
-        fprintf(stdout, "\nupdate error: %s by %s\n",
-                mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
-        // disconnect_db(h_db);
-        return -4;
-    }
-
-    // disconnect_db(h_db);
     return 0;
+  }
+
+  string sql;
+  switch (run_state) {
+  case itat::ST_running:
+    sql = stringFormat("insert into bill_exec_node(started_at, ex_pl_id, "
+                       "node_id, status) value(now(), %d, %d, %d)",
+                       pl_ex_id, node_id, run_state);
+    break;
+  case itat::ST_error:
+  case itat::ST_timeout:
+  case itat::ST_succeed:
+  case itat::ST_waiting_for_confirm:
+    sql = stringFormat("update bill_exec_node set "
+                       "ended_at=now(),result_info=\'%s\',status=%d,code=%d, "
+                       "std_err=\'%s\', std_out=\'%s\' where ex_pl_id=%d and "
+                       "node_id=%d",
+                       log_to_db[int(run_state)], run_state, code, strerr,
+                       strout, pl_ex_id, node_id);
+    break;
+  default:
+    return 0;
+  }
+
+  return query_bill_mysql_table(sql.c_str(), h_db);
 }
 
-int update_bill_checked_node(int /*pl_ex_id*/, int graph_id, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/){
-    if (node_id == 0 || check_state != run_state){
+static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
+                                     itat::STATE_TYPE run_state,
+                                     DBHANDLE h_db, const char *why) {
+  if (node_id != 0) {
 #ifdef _DEBUG_
-        cout << check_state << " " << run_state << " " << node_id << endl;
+    cout << check_state << " " << node_id << endl;
 #endif
-        return 0;
-    }
-
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db; // connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                            //    g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
-    if (!h_db)
-      return -2;
-
-    string sql = "";
-    if(run_state == (itat::STATE_TYPE)1){
-        sql = stringFormat("insert into bill_checked_node(started_at, status, ck_pl_id, node_id) value(now(),%d,\
-(select id from bill_checked_pipeline where pipeline_id=%d and status = 1 order by id desc limit 1),%d)",
-                            run_state, graph_id, node_id);
-    }else{
-        string strResultInfo = "";
-        if(run_state == (itat::STATE_TYPE)3){
-            strResultInfo = "脚本错误";
-        }else if(run_state == (itat::STATE_TYPE)4){
-            strResultInfo = "机器未联通";
-        }else if(run_state == (itat::STATE_TYPE)5){
-            strResultInfo = "检测成功";
-        }else{
-            // disconnect_db(h_db);
-            return 0;
-        }
-        sql = stringFormat("update bill_checked_node set status=%d,result_info=\'%s\',ended_at=now() \
-where ck_pl_id=(select id from bill_checked_pipeline where pipeline_id=%d and status=1 order by id desc limit 1) and node_id=%d",
-                     run_state, strResultInfo.c_str(), graph_id, node_id);
-    }
-
-    if (sql.length() == 0){
-        // disconnect_db(h_db);
-        return 0;
-    }
-
-#ifdef _DEBUG_
-    cout << sql <<endl;
-#endif
-    int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
-    if (res) {
-        fprintf(stdout, "\ninsert or update error: %s by %s\n",
-                mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
-        // disconnect_db(h_db);
-        return -5;
-    }
-
-    // disconnect_db(h_db);
     return 0;
+  }
+
+  string sql;
+  switch (run_state) {
+  case itat::ST_succeed:
+    sql = stringFormat("update bill_exec_pipeline set result_status=%d, "
+                       "result_info='%s', ended_at=now() where id=%d",
+                       run_state, log_to_db[9], pl_ex_id);
+    break;
+  case itat::ST_stoped:
+  case itat::ST_confirm_refused:
+  case itat::ST_stop_user_take_ok:
+  case itat::ST_stop_user_take_err:
+    sql = stringFormat("update bill_exec_pipeline set result_status=%d, "
+                       "result_info='%s', ended_at=now() where id=%d",
+                       run_state, why, pl_ex_id);
+    break;
+  default:
+    sql = stringFormat(
+          "update bill_exec_pipeline set result_status=%d where id=%d", run_state,
+          pl_ex_id);
+    break;
+  }
+
+  return query_bill_mysql_table(sql.c_str(), h_db);
 }
 
-int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
-                          itat::STATE_TYPE run_state, itat::STATE_TYPE check_state,
-                          int /*code*/, const char */*strout*/,
-                          const char */*strerr*/, int global_userid_){
-    if (node_id != 0 || (itat::STATE_TYPE)0 != run_state){
+static int update_bill_checked_node(int graph_id, int node_id,
+                                    itat::STATE_TYPE check_state,
+                                    DBHANDLE h_db) {
+  if (node_id == 0) {
 #ifdef _DEBUG_
-        cout << check_state << " " << run_state << " " << node_id << endl;
+    cout << check_state << " " << node_id << endl;
 #endif
-        return 0;
-    }
-
-    assert(g_h_db != nullptr);
-    DBHANDLE h_db = g_h_db; // connect_db(g_mysql_db.host.c_str(), g_mysql_db.port, g_mysql_db.db_name.c_str(),
-                            //            g_mysql_db.user_name.c_str(), g_mysql_db.user_pass.c_str());
-    if (!h_db)
-      return -2;
-
-    string sql = "";
-    if(check_state == (itat::STATE_TYPE)1){
-        char type[10] = {0};
-        if(pl_ex_id == 0){
-            strcpy(type, "EC");
-        }else{
-            strcpy(type, "SC");
-        }
-        sql = stringFormat("insert into bill_checked_pipeline(started_at,type, status, pipeline_id, user_id) value(now(),\'%s\',%d,%d,%d)",
-                            type, check_state, graph_id, global_userid_);
-    }else{
-        string strResultInfo = "";
-        if(check_state == (itat::STATE_TYPE)2){
-            strResultInfo = "检测异常";
-        }else if(check_state == (itat::STATE_TYPE)5){
-            strResultInfo = "检测成功";
-        }else{
-            // disconnect_db(h_db);
-            return 0;
-        }
-        sql = stringFormat("update bill_checked_pipeline set status=%d,result_info=\'%s\',ended_at=now() \
-where pipeline_id=%d and status = 1",
-                     check_state, strResultInfo.c_str(), graph_id);
-    }
-
-    if (sql.length() == 0){
-        // disconnect_db(h_db);
-        return 0;
-    }
-
-#ifdef _DEBUG_
-    cout << sql <<endl;
-#endif
-    int res = mysql_query(reinterpret_cast<MYSQL *>(h_db), sql.c_str());
-    if (res) {
-        fprintf(stdout, "\ninsert or update error: %s by %s\n",
-                mysql_error(reinterpret_cast<MYSQL *>(h_db)), sql.c_str());
-        // disconnect_db(h_db);
-        return -5;
-    }
-
-    // disconnect_db(h_db);
     return 0;
+  }
+
+  string sql;
+  switch (check_state) {
+  case itat::ST_checking:
+    sql = stringFormat("insert into bill_checked_node(started_at, status, "
+                       "ck_pl_id, node_id) value(now(),%d,  (select id from "
+                       "bill_checked_pipeline where pipeline_id=%d and status "
+                       "= 1 order by id desc limit 1),%d)",
+                       check_state, graph_id, node_id);
+
+    break;
+  case itat::ST_checked_serr:
+  case itat::ST_checked_herr:
+  case itat::ST_checked_ok:
+    sql = stringFormat(
+        "update bill_checked_node set "
+        "status=%d,result_info=\'%s\',ended_at=now() where ck_pl_id=(select id "
+        "from bill_checked_pipeline where pipeline_id=%d and status=1 order by "
+        "id desc limit 1) and node_id=%d",
+        check_state, log_to_db[int(check_state)], graph_id, node_id);
+    break;
+  default:
+    return 0;
+  }
+
+  return query_bill_mysql_table(sql.c_str(), h_db);
 }
 
+static const char *type[] = { "EC", "SC", };
 
+static int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
+                                        itat::STATE_TYPE check_state,
+                                        DBHANDLE h_db, int global_userid_) {
+  if (node_id != 0) {
+#ifdef _DEBUG_
+    cout << check_state << " " << run_state << " " << node_id << endl;
+#endif
+    return 0;
+  }
+
+  string sql;
+  switch (check_state) {
+  case itat::ST_checking:
+    sql = stringFormat("insert into bill_checked_pipeline(started_at,type, "
+                       "status, pipeline_id, user_id) "
+                       "value(now(),\'%s\',%d,%d,%d)",
+                       type[pl_ex_id == 0], check_state, graph_id,
+                       global_userid_);
+    break;
+  case itat::ST_checked_err:
+  case itat::ST_checked_ok:
+    sql = stringFormat(
+        "update bill_checked_pipeline set status=%d,result_info=\'%s\',ended_at=now() \
+  where pipeline_id=%d and status = 1",
+        check_state, log_to_db[int(check_state)], graph_id);
+    break;
+  default:
+    return 0;
+  }
+
+  return query_bill_mysql_table(sql.c_str(), h_db);
+}
+
+NODEMAPS *init_nodemaps() { return new NODEMAPS; }
+
+void destroy_nodemaps(NODEMAPS *nms) {
+  if (nms)
+    delete nms;
+}

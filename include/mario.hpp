@@ -10,8 +10,6 @@
 namespace itat {
 
 
-extern int global_userid_;
-
 class Mario {
 public:
   Mario() {}
@@ -24,13 +22,13 @@ public:
   int initial(int real_run, const char *py_message_path, int node_num,
               int branch_num);
 
-  void set_user(int userid) { global_userid_ = userid; }
+  void set_user(int userid);
   int check();
   int run(int start_id, int pleid);
   int run_node(int node_id);
   int pause();
   int go_on();
-  int stop();
+  int stop(int code, const char *why);
   int confirm(int node_id);
 
   int test_int(int test) { return test; }
@@ -65,12 +63,13 @@ private:
 } // namespace itat
 
 extern int64_t new_mario(int plid);
-extern int get_back_mario(int64_t id);
-extern void kill_mario(int64_t id);
+extern int kill_mario(int64_t id);
+extern int get_back_mario(int id);
 extern int initial(int64_t id, int real_run, const char *bill_message,
                    int node_num, int branch_num);
+extern int check_mario(int64_t id);
 extern int run_mario(int64_t id, int start_id, int pleid);
-extern int stop_mario(int64_t id);
+extern int stop_mario(int64_t id, int code, const char *why);
 extern int test_setup(int64_t id, int check, int run, int check_err_id,
                       int run_err_id, int timeout_id, int pause_id, int stop_id,
                       int confirm_id, int sleep_interval);
@@ -80,7 +79,7 @@ extern int run_node(int64_t id, int node_id);
 extern int pause_mario(int64_t id);
 extern int go_on(int64_t id);
 extern int confirm(int64_t id, int node_id);
-extern void set_user(int64_t id, int userid);
+extern int set_user(int64_t id, int userid);
 extern int mario_is_done(int64_t id);
 
 #endif // MARIO_PLUMBER_H

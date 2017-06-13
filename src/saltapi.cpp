@@ -3,16 +3,13 @@
 #include "mario_sql.h"
 #include "node.hpp"
 
-namespace  itat {
-
-//JOBMAP g_jobmap;
-char g_token[TOKEN_LEN] = {0};
-
 #define TEMPBUF_LEN 2048
 
-std::mutex g_job_mutex;
+namespace  itat {
 
-bool g_run_check_timer_out = false;
+// char g_token[TOKEN_LEN] = {0};
+// std::mutex g_job_mutex;
+// bool g_run_check_timer_out = false;
 
 static int parse_salt_job_ret_async(SALT_JOB_RET *job, rapidjson::Document &doc);
 static std::string salt_get_string(rapidjson::Value& v) {
@@ -171,14 +168,13 @@ static int run_something__(std::vector<SALT_JOB*>& vec) {
 
 
 
-void thread_check_timer_out(MAP_SALT_JOB* jobmap) {
+void thread_check_timer_out(saltman* sm, MAP_SALT_JOB* jobmap) {
   std::vector<SALT_JOB*> should_run;
-  while (g_run_check_timer_out) {
+  while (sm->sap_.g_run_check_timer_out) {
     should_run.clear();
     std::this_thread::sleep_for(std::chrono::seconds(3));
     //printf("i want to  get a lock ... ");
-    std::lock_guard<std::mutex> *guard =
-        new std::lock_guard<std::mutex>(g_job_mutex);
+    auto guard = new std::lock_guard<std::mutex>(sm->sap_.g_job_mutex);
     //printf("i got it ... ");
     time_t now = time(0);
     for (auto iter = jobmap->begin();
@@ -218,9 +214,10 @@ void thread_check_timer_out(MAP_SALT_JOB* jobmap) {
 }
 
 
-int parse_token_fn(const char *data, size_t len, void* param1, void* param2) {
+int parse_token_fn(saltman* sm, const char *data, size_t len, void* param1, void* param2) {
   // fprintf(stdout, "%s", (char *)ptr);
   //"token": "897b0cc93d59f10aaa46159e7dfba417d225b2cd"
+  UNUSE(sm);
   UNUSE(len);
   UNUSE(param1);
   UNUSE(param2);
@@ -232,10 +229,10 @@ int parse_token_fn(const char *data, size_t len, void* param1, void* param2) {
     if (!end)
       return 0;
     if (end - pos > TOKEN_LEN - 1) return -2;
-    memset(g_token, 0, TOKEN_LEN);
-    strncpy(g_token, pos, end - pos);
+    memset(sm->sap_.g_token, 0, TOKEN_LEN);
+    strncpy(sm->sap_.g_token, pos, end - pos);
 #ifdef _DEBUG_
-    std::cout << g_token << std::endl;
+    std::cout << sm->sap_.g_token << std::endl;
 #endif //_DEBUG_
   } else {
 #ifdef _DEBUG_
@@ -264,23 +261,23 @@ static char* get_contnt(const char* str) {
 
 
 
-int salt_api_login(HTTP_API_PARAM *param, const char* user, const char* pass) {
+int salt_api_login(saltman* sm, HTTP_API_PARAM *param, const char* user, const char* pass) {
   SET_CONTENT(SALT_API_TYPE_LOGIN);
   snprintf(tmp_buf, BUFSIZE / 2, content, user, pass);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_LOGIN], param->hostname, param->port, strlen(tmp_buf), user, pass);
   // show_cstring(buf_login, strlen(buf_login));
-  return itat_httpc(param, buffer, cmd);
+  return itat_httpc(sm, param, buffer, cmd);
 }
 
 
-int salt_api_testping(HTTP_API_PARAM *param, const char* target) {
+int salt_api_testping(saltman* sm, HTTP_API_PARAM *param, const char* target) {
   SET_CONTENT(SALT_API_TYPE_TESTPING);
 
   snprintf(tmp_buf, BUFSIZE / 2, content, target);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_TESTPING],
-           param->hostname, param->port, g_token, strlen(tmp_buf), target);
+           param->hostname, param->port, sm->sap_.g_token, strlen(tmp_buf), target);
   // show_cstring(buf_test_ping, strlen(buf_test_ping));
-  return itat_httpc(param, buffer, cmd);
+  return itat_httpc(sm, param, buffer, cmd);
 }
 
 
@@ -304,13 +301,13 @@ int salt_api_testping(HTTP_API_PARAM *param, const char* target) {
  * @param script
  * @return
  */
-int salt_api_async_cmd_runall(HTTP_API_PARAM *param, const char *target,
+int salt_api_async_cmd_runall(saltman* sm, HTTP_API_PARAM *param, const char *target,
                         const char *script) {
   SET_CONTENT(SALT_API_TYPE_ASYNC_RUNALL);
 
   snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
-           param->hostname, param->port, g_token, strlen(tmp_buf), target, script);
+           param->hostname, param->port, sm->sap_.g_token, strlen(tmp_buf), target, script);
 #ifdef _DEBUG_
   std::cout << std::endl << cmd << std::endl;
 #endif //_DEBUG_
@@ -318,58 +315,58 @@ int salt_api_async_cmd_runall(HTTP_API_PARAM *param, const char *target,
   assert(param->param1 != nullptr);
   assert(param->param2 != nullptr);
 
-  int ret = itat_httpc(param, buffer, cmd);
+  int ret = itat_httpc(sm, param, buffer, cmd);
   if (ret)
     std::cerr << "Wo caO!!!!\n";
 
   return ret;
 }
 
-int salt_api_cmd_runall(HTTP_API_PARAM *param, const char *target, const char *script) {
+int salt_api_cmd_runall(saltman* sm, HTTP_API_PARAM *param, const char *target, const char *script) {
   SET_CONTENT(SALT_API_TYPE_RUNALL);
 
   snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
   snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_RUNALL],
-           param->hostname, param->port, g_token, strlen(tmp_buf), target, script);
+           param->hostname, param->port, sm->sap_.g_token, strlen(tmp_buf), target, script);
 #ifdef _DEBUG_
   std::cout << std::endl << cmd << std::endl;
 #endif //_DEBUG_
   param->rf = parse_salt_runall_ret; //salt_cb.parse_job_ret_cb;
 
-  int ret = itat_httpc(param, buffer, cmd);
+  int ret = itat_httpc(sm, param, buffer, cmd);
   if (ret)
     std::cerr << "Wo caO!!!! " << ret << std::endl;
 
   return ret;
 }
 
-int salt_api_cp_getfile(HTTP_API_PARAM *param, const char* target, const char* src_file, const char* des_file) {
+int salt_api_cp_getfile(saltman* sm, HTTP_API_PARAM *param, const char* target, const char* src_file, const char* des_file) {
     SET_CONTENT(SALT_API_TYPE_CP_GETFILE);
     snprintf(tmp_buf, BUFSIZE / 2, content, target, src_file, des_file);
     snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_ASYNC_RUNALL],
-             param->hostname, param->port, g_token, strlen(tmp_buf), target, src_file, des_file);
-    return itat_httpc(param, buffer, cmd);
+             param->hostname, param->port, sm->sap_.g_token, strlen(tmp_buf), target, src_file, des_file);
+    return itat_httpc(sm, param, buffer, cmd);
 }
 
 
-int salt_api_file_exists(HTTP_API_PARAM* param, const char* target, const char* script) {
+int salt_api_file_exists(saltman* sm, HTTP_API_PARAM* param, const char* target, const char* script) {
     SET_CONTENT(SALT_API_TYPE_FILE_EXISTS);
 
     snprintf(tmp_buf, BUFSIZE / 2, content, target, script);
     snprintf(cmd, BUFSIZE / 2, salt_api_str[SALT_API_TYPE_FILE_EXISTS],
-             param->hostname, param->port, g_token, strlen(tmp_buf), target, script);
-#ifdef _DEBUG_
+             param->hostname, param->port, sm->sap_.g_token, strlen(tmp_buf), target, script);
+// #ifdef _DEBUG_
     std::cout << std::endl << cmd << std::endl;
-#endif //_DEBUG_
+// #endif //_DEBUG_
 
-    int ret = itat_httpc(param, buffer, cmd);
+    int ret = itat_httpc(sm, param, buffer, cmd);
     if (ret)
       std::cerr << "Wo caO!!!! " << ret << std::endl;
 
     return ret;
 }
 
-int salt_api_events(HTTP_API_PARAM* param) {
+int salt_api_events(saltman* sm, HTTP_API_PARAM* param) {
   char buf[BUFSIZE * 2];
   char cmd[1024];
 
@@ -377,9 +374,9 @@ int salt_api_events(HTTP_API_PARAM* param) {
   memset(cmd, 0, 1024);
 
   param->rf = parse_job;
-  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], g_token);
+  snprintf(cmd, 1024, salt_api_str[SALT_API_TYPE_EVENTS], sm->sap_.g_token);
 
-  return itat_httpc(param, buf, cmd);
+  return itat_httpc(sm, param, buf, cmd);
 }
 
 
@@ -547,8 +544,7 @@ static void* _parse_with_type_(rapidjson::Document &doc,
 /*
 {"return": [{"jid": "20161128184515112266", "minions": ["old08002759F4B6"]}]}
 */
-int parse_salt_myjob_jobmap(const char *json_data, size_t len,
-                                   PARAM p1, PARAM p2) {
+int parse_salt_myjob_jobmap(saltman* sm, const char *json_data, size_t len, PARAM p1, PARAM p2) {
 #ifdef _DEBUG_
   // std::cout << "parse_salt_myjob_jobmap: \n";
   // show_cstring(json_data, len);
@@ -559,7 +555,6 @@ int parse_salt_myjob_jobmap(const char *json_data, size_t len,
 
   MAP_SALT_JOB* jobs = reinterpret_cast<MAP_SALT_JOB*>(p1);
   iNode* inode = reinterpret_cast<iNode*>(p2);
-
 
   rapidjson::Document doc;
   doc.Parse((char *)json_data, len);
@@ -580,14 +575,13 @@ int parse_salt_myjob_jobmap(const char *json_data, size_t len,
   }
 
   // show_cstring(json_data, len);
-  std::lock_guard<std::mutex> *guard =
-      new std::lock_guard<std::mutex>(g_job_mutex);
+  auto guard = new std::lock_guard<std::mutex>(sm->sap_.g_job_mutex);
 
   auto iter = jobs->find(job->jid);
   bool found = (iter != jobs->end());
 
   job->status = ST_running;
-  job->node_id = inodeid_2_ignodeid[inode->get_id()];
+  job->node_id = inode->get_nodemaps()->inodeid_2_ignodeid[inode->get_id()];
   job->inode = inode;
 
   if (!found) {
@@ -745,7 +739,8 @@ static int parse_salt_runall_ret(SALT_JOB_RET *job, char* minion, rapidjson::Doc
 }
 
 /* {"return": [{"old0800274353F3": true}]} */
-int parse_salt_testping_ret(const char *json_data, size_t len, void* param1, void* param2) {
+int parse_salt_testping_ret(saltman *sm, const char *json_data, size_t len, void* param1, void* param2) {
+  UNUSE(sm);
   if (!len) return -2;
 
   char p = *(((char*)json_data) + len);
@@ -795,7 +790,8 @@ int parse_salt_testping_ret(const char *json_data, size_t len, void* param1, voi
 //
 //{"return": [{"old080027789636": {"pid": 3036, "retcode": 0, "stderr": "", "stdout": ""}}]}
 //
-int parse_salt_runall_ret(const char *json_data, size_t len, void* param1, void* param2) {
+int parse_salt_runall_ret(saltman* sm, const char *json_data, size_t len, void* param1, void* param2) {
+  UNUSE(sm);
   if (!len) return -1;
 
   char p = *(((char*)json_data) + len);
@@ -846,7 +842,7 @@ static void insert_new_job_into_map_(MAP_SALT_JOB* jobmap, SALT_JOB* job) {
   }
 }
 
-static int parse_salt_jobmap(const char *json_data, size_t len, MAP_SALT_JOB *jobmap) {
+static int parse_salt_jobmap(saltman* sm, const char *json_data, size_t len, MAP_SALT_JOB *jobmap) {
   rapidjson::Document doc;
   doc.Parse((char *)json_data, len);
 
@@ -865,8 +861,7 @@ static int parse_salt_jobmap(const char *json_data, size_t len, MAP_SALT_JOB *jo
   }
 
   // show_cstring(json_data, len);
-  std::lock_guard<std::mutex> *guard =
-      new std::lock_guard<std::mutex>(g_job_mutex);
+  auto guard = new std::lock_guard<std::mutex>(sm->sap_.g_job_mutex);
   std::vector<SALT_JOB*> should_run;
   switch (type) {
   case SALT_JOB_TYPE_NEW:
@@ -1009,7 +1004,7 @@ error_exit:
  * @param param2 is nullptr
  * @return 0 is ok
  */
-int parse_job(const char *json_data, size_t size, void *param1, void *param2) {
+int parse_job(saltman* sm, const char *json_data, size_t size, void *param1, void *param2) {
   // data: {\"tag\": \"salt/job/
   (void)size;
   (void)param2;
@@ -1020,7 +1015,7 @@ int parse_job(const char *json_data, size_t size, void *param1, void *param2) {
 #endif //_DEBUG_
 
   if (!strncmp(json_data, "data: ", 6)) {
-    if (parse_salt_jobmap(json_data + 6, size - 6, jobmap) < -1)
+    if (parse_salt_jobmap(sm, json_data + 6, size - 6, jobmap) < -1)
       return -1;
   }
 
