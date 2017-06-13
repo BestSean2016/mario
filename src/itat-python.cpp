@@ -136,7 +136,7 @@ int check_mario(int64_t id) {
 
 int run_node(int64_t id, int node_id) {
 #ifdef _DEBUG_
-    cout << "run node " << id << ", " << node_id << endl;
+    cout << "mario run node " << id << ", " << node_id << endl;
 #endif //_DEBUG_
 
   Mario *m = (Mario *)id;

@@ -293,8 +293,10 @@ ENTER_MULTEX
 // ........ on run error ..........................
 int Pipeline::on_run_error(FUN_PARAM node) {
   iNode *n = (iNode *)node;
+#ifdef _DEBUG_
   cout << "Pipeline on_run_error inodeid is " << n->get_id() << ", ig node id"
        << nodemaps_->inodeid_2_ignodeid[n->get_id()] << " \n";
+#endif //_DEBUG_
   return gsm_->do_trans(state_, &Pipeline::on_run_error_front_, this, n);
 }
 
@@ -318,7 +320,9 @@ int Pipeline::on_run_error_back_(FUN_PARAM node) {
 // ........ on run timeout ..........................
 int Pipeline::on_run_timeout(FUN_PARAM node) {
   iNode *n = (iNode *)node;
+#ifdef _DEBUG_
   cout << "on_run_timeout\n";
+#endif //_DEBUG_
   return gsm_->do_trans(state_, &Pipeline::on_run_timeout_front_, this, n);
 }
 int Pipeline::on_run_timeout_front_(FUN_PARAM node) {
@@ -465,12 +469,44 @@ int Pipeline::setup_state_machine_() {
                         &Pipeline::on_run_ok_back_);
 
 
+  // on run error
   gsm_->add_state_trans(ST_running, &Pipeline::on_run_error_front_, ST_error,
                         &Pipeline::on_run_error_back_);
+  gsm_->add_state_trans(ST_error, &Pipeline::on_run_error_front_, ST_error,
+                        &Pipeline::on_run_error_back_);
+  gsm_->add_state_trans(ST_timeout, &Pipeline::on_run_error_front_, ST_error,
+                        &Pipeline::on_run_error_back_);
+  gsm_->add_state_trans(ST_waiting_for_confirm, &Pipeline::on_run_error_front_,
+                        ST_error, &Pipeline::on_run_error_back_);
+  gsm_->add_state_trans(ST_paused, &Pipeline::on_run_error_front_, ST_error,
+                        &Pipeline::on_run_error_back_);
+
+
+
+  //one run time out
   gsm_->add_state_trans(ST_running, &Pipeline::on_run_timeout_front_,
                         ST_timeout, &Pipeline::on_run_timeout_back_);
+  gsm_->add_state_trans(ST_error, &Pipeline::on_run_timeout_front_, ST_timeout,
+                        &Pipeline::on_run_timeout_back_);
+  gsm_->add_state_trans(ST_timeout, &Pipeline::on_run_timeout_front_, ST_timeout,
+                        &Pipeline::on_run_timeout_back_);
+  gsm_->add_state_trans(ST_waiting_for_confirm, &Pipeline::on_run_timeout_front_,
+                        ST_timeout, &Pipeline::on_run_timeout_back_);
+  gsm_->add_state_trans(ST_paused, &Pipeline::on_run_timeout_front_, ST_timeout,
+                        &Pipeline::on_run_timeout_back_);
+
+  //one run allok front
   gsm_->add_state_trans(ST_running, &Pipeline::on_run_allok_front_, ST_succeed,
                         &Pipeline::on_run_allok_back_);
+  gsm_->add_state_trans(ST_error, &Pipeline::on_run_allok_front_, ST_succeed,
+                        &Pipeline::on_run_allok_back_);
+  gsm_->add_state_trans(ST_timeout, &Pipeline::on_run_allok_front_, ST_succeed,
+                        &Pipeline::on_run_allok_back_);
+  gsm_->add_state_trans(ST_waiting_for_confirm, &Pipeline::on_run_allok_front_,
+                        ST_succeed, &Pipeline::on_run_allok_back_);
+  gsm_->add_state_trans(ST_paused, &Pipeline::on_run_allok_front_, ST_succeed,
+                        &Pipeline::on_run_allok_back_);
+
   // ////////////////////////////////////////////////////////////////////////////////////////////
 
   //.....................................................................................
@@ -840,6 +876,10 @@ bool Pipeline::is_all_done_() {
 
 // run one node
 int Pipeline::do_run_one_front_(FUN_PARAM node_id) {
+#ifdef _DEBUG_
+  cout << "Pipeline::do_run_one_front_ " << (int)((uint64_t)node_id) << endl;
+#endif //_DEBUG_
+
   assert(node_id != nullptr);
   int nid = nodemaps_->mysql_node_map[(int)((uint64_t)node_id)];
   iNode *node = get_node_by_id(nid);
@@ -855,6 +895,10 @@ int Pipeline::do_run_one_front_(FUN_PARAM node_id) {
 #endif //_DEBUG_
 
   ENTER_MULTEX
+#ifdef _DEBUG_
+  output_vector(nodeset_.issues_);
+#endif //_DEBUG_
+
   if (!vec_find(nodeset_.issues_, nodemaps_->inodeid_2_ignodeid[nid]))
     ret = 1;
   EXIT_MULTEX
@@ -928,6 +972,8 @@ int Pipeline::do_pause_back_(FUN_PARAM) {
 // go_on
 int Pipeline::do_go_on_front_(FUN_PARAM) {
     ENTER_MULTEX
+      // printf("do go on and on ...\n");
+      // output_vector(nodeset_.issues_);
       for (auto& igid : nodeset_.issues_) {
         vec_erase(nodeset_.run_set_, igid);
 

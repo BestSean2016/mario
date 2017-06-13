@@ -1432,9 +1432,9 @@ int create_graph(igraph_t *g,
     first = INTVEC(first_father, 0);
   igraph_vector_destroy(&first_father);
 
-  // #ifdef _DEBUG_
+#ifdef _DEBUG_
   printf("first is %d\n", first);
-  // #endif
+#endif
 
   igraph_vector_t order;
   igraph_vector_init(&order, pl_node.size());
