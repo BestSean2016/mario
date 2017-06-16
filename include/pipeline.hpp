@@ -216,6 +216,8 @@ private:
 
   char user_data[512];
 
+  iNode* pConfirm_ = nullptr;
+
 private:
   int gen_diamod_graph_(int node_num, int branch_num);
   int gen_node_(vector<MARIO_NODE> *nodes);
