@@ -227,6 +227,12 @@ int Pipeline::pause() {
 }
 
 int Pipeline::go_on() {
+  if (state_ == ST_waiting_for_confirm && pConfirm_ != nullptr) {
+      pConfirm_->send_status();
+      SEND_STATUS
+      return 0;
+  }
+
   return gsm_->do_trans(state_, &Pipeline::do_go_on_front_, this, nullptr);
 }
 
@@ -410,6 +416,7 @@ int Pipeline::on_waitin_confirm_(FUN_PARAM node) {
 int Pipeline::on_waitin_confirm_front_(FUN_PARAM node) {
   UNUSE(node);
   state_ = ST_waiting_for_confirm;
+  pConfirm_ = (iNode*)node;
   SEND_STATUS
   return 0;
 }
@@ -1011,12 +1018,14 @@ int Pipeline::do_user_confirm_back_(FUN_PARAM node_id) {
 
     if (!n) return ERROR_INVAILD_NODE_ID;
 
+    if (n != pConfirm_) return ERROR_INVAILD_NODE_ID;
 
     n->user_confirm();
 
     on_run_ok(n);
 
 
+    pConfirm_ = nullptr;
     state_ = ST_running;
     SEND_STATUS
     return 0;

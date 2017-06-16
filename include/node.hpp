@@ -56,6 +56,8 @@ public:
   void set_test_param(TEST_PARAM* param) { test_param_ = param; }
   MARIO_NODE* get_mario_node() { return plnode_; }
   NODEMAPS* get_nodemaps() { return nodemaps_; }
+  void send_status();
+
 
 public:
   //user's action

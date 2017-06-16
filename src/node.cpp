@@ -41,6 +41,12 @@ int iNode::user_confirm() {
   return nsm_->do_trans(state_, &iNode::do_user_confirm_front_, this, nullptr);
 }
 
+
+void iNode::send_status() {
+  dj_->send_graph_status(g_->get_pl_exe_id(), g_->get_plid(), id_, state_,
+                         state_);
+}
+
 //
 // .........................................................................
 //

@@ -28,7 +28,8 @@ SOURCES += \
     ../src/djangoapi.cpp \
     ../src/mario_sql.cpp \
     ../src/saltman.cpp \
-    ../src/threadpool.c
+    ../src/threadpool.c \
+    ../src/cron.c
 
 HEADERS += \
     ../include/itat_global.h \

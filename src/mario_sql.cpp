@@ -1648,10 +1648,12 @@ static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
 
   string sql;
   switch (run_state) {
+  case itat::ST_checked_err:
   case itat::ST_succeed:
+  case itat::ST_done_but_error:
     sql = stringFormat("update bill_exec_pipeline set result_status=%d, "
                        "result_info='%s', ended_at=now() where id=%d",
-                       run_state, log_to_db[9], pl_ex_id);
+                       run_state, log_to_db[run_state], pl_ex_id);
     break;
   case itat::ST_stoped:
   case itat::ST_confirm_refused:
