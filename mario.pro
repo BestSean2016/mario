@@ -8,4 +8,6 @@ SUBDIRS += \
     itat_utest \
     py-axa \
     utest_node_sm \
-    pleditor
+    pleditor \
+    libcron \
+    utest_cron
