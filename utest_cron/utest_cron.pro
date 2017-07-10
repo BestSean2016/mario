@@ -28,12 +28,12 @@ unix {
 
     CONFIG(debug, debug|release) {
         DEFINES += _DEBUG_
-        TARGET = itat_utest_d
+        TARGET = utest_cron_d
         LIBS += -L$$OUT_PWD/../libcron/ -lcron-d
         message("Build for Debug version")
     }
     CONFIG(release, debug|release) {
-        TARGET = itat_utest
+        TARGET = utest_cron
         LIBS += -L$$OUT_PWD/../libcron/ -lcron
         message("Build for release version")
     }
