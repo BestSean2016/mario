@@ -1432,9 +1432,9 @@ int create_graph(igraph_t *g,
     first = INTVEC(first_father, 0);
   igraph_vector_destroy(&first_father);
 
-#ifdef _DEBUG_
+//#ifdef _DEBUG_
   printf("first is %d\n", first);
-#endif
+// #endif
 
   igraph_vector_t order;
   igraph_vector_init(&order, pl_node.size());
@@ -1454,9 +1454,9 @@ int create_graph(igraph_t *g,
       mapNode.insert(std::make_pair(INTVEC(order, j), j));
     }
   }
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
   printf("\n");
-#endif //_DEBUG_
+// #endif //_DEBUG_
 
   igraph_vector_t edge;
   // get the out style tree's all edges, the put them to vector e
@@ -1473,21 +1473,23 @@ int create_graph(igraph_t *g,
     igraph_vector_push_back(&edge, src_id);
     igraph_vector_push_back(&edge, trg_id);
 
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
     fprintf(stdout, "Eage: %d -> %d, %d -> %d, %d -> %d\n", src_id, trg_id,
             maps->ignodeid_2_inodeid[src_id], maps->ignodeid_2_inodeid[trg_id],
             maps->node_mysql_map[maps->ignodeid_2_inodeid[src_id]],
             maps->node_mysql_map[maps->ignodeid_2_inodeid[trg_id]]);
     fflush(stdout);
-#endif //_DEBUG_
+// #endif //_DEBUG_
   }
 
-#ifdef _DEBUG_
+  printf("\n");
+
+// #ifdef _DEBUG_
   for (int i = 0; i < igraph_vector_size(&edge); i += 2)
     printf("kkkkk  %d -> %d, %d -> %d\n", INTVEC(edge, i), INTVEC(edge, i + 1),
            maps->ignodeid_2_inodeid[INTVEC(edge, i)],
            maps->ignodeid_2_inodeid[INTVEC(edge, i + 1)]);
-#endif //_DEBUG_
+// #endif //_DEBUG_
 
   igraph_create(g, &edge, graph.n, 1);
   igraph_destroy(&graph);
@@ -1641,7 +1643,7 @@ static int update_bill_exec_pipeline(int pl_ex_id, int node_id,
                                      DBHANDLE h_db, const char *why) {
   if (node_id != 0) {
 #ifdef _DEBUG_
-    cout << check_state << " " << node_id << endl;
+    cout << run_state << " " << node_id << endl;
 #endif
     return 0;
   }
@@ -1717,7 +1719,7 @@ static int update_bill_checked_pipeline(int pl_ex_id, int graph_id, int node_id,
                                         DBHANDLE h_db, int global_userid_) {
   if (node_id != 0) {
 #ifdef _DEBUG_
-    cout << check_state << " " << run_state << " " << node_id << endl;
+    cout << check_state << " " << node_id << endl;
 #endif
     return 0;
   }
